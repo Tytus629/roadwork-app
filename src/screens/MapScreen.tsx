@@ -1,22 +1,20 @@
 import React, { useMemo, useRef, useState, useEffect } from "react";
 import { View, Text, StyleSheet, Pressable, Alert } from "react-native";
 import MapView, { Marker, Polyline, Polygon, PROVIDER_GOOGLE, LatLng, MapPressEvent, Region, MapType } from "react-native-maps";
-import { useAppDispatch, useAppSelector } from "../store/hooks";
-import { selectVisibleWorkItems } from "../utils/selectWorkItems";
-import type { WorkItem, WorkType } from "../types/workItem";
+import type { WorkType } from "../types/workItem";
 import WorkItemSheet from "../components/WorkItemSheet";
 import { createPointWorkOrder, createLineWorkOrder } from "../services/workOrdersService";
-import { addLog } from "../store/workLogSlice";
 import { uid } from "../utils/uid";
 import { requestLocationPermission } from "../native/location";
 import Geolocation from "@react-native-community/geolocation";
 import CreateWizardModal from "../components/CreateWizardModal";
 import { formatWorkType } from "../constants/workOrderTypes";
 import { useMapWorkOrders } from "../hooks/useMapWorkOrders";
-import type { BBox } from "../db/types";
+import type { BBox, WorkOrderRow } from "../db/types";
 import { useWorkOrderFilter } from "../state/FilterContext";
 import { WorkOrderFilterSheet } from "../components/WorkOrderFilterSheet";
-import { WORK_ORDER_TYPE_OPTIONS } from "../constants/workOrderTypes";
+import { useAppDispatch } from "../store/hooks";
+import { addLog } from "../store/workLogSlice";
 
 // Helper: Convert map region to bbox
 function regionToBBox(region: Region): BBox {
@@ -42,12 +40,6 @@ function formatStatus(status: string): string {
 export default function MapScreen() {
   const dispatch = useAppDispatch();
   const mapRef = useRef<MapView>(null);
-
-  const items = useAppSelector(s => s.workItems.items);
-  const filters = useAppSelector(s => s.workItems.filters);
-  const sortMode = useAppSelector(s => s.workItems.sortMode);
-
-  const visible = useMemo(() => selectVisibleWorkItems(items, filters, sortMode), [items, filters, sortMode]);
 
   // ✅ Store selected ID, not full item (prevents stale data)
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -84,7 +76,7 @@ export default function MapScreen() {
     longitudeDelta: 0.08,
   };
 
-  // ✅ Load DB pins based on bbox + filters
+  // ✅ Load DB pins based on bbox + filters (SQLite is source of truth)
   const bbox = currentRegion ? regionToBBox(currentRegion) : null;
   const dbItems = useMapWorkOrders(bbox, filter);
 
@@ -172,69 +164,27 @@ export default function MapScreen() {
 
   async function createPoint(lat: number, lng: number, type: WorkType) {
     const now = Date.now();
-    const item: WorkItem = {
-      id: uid(),
+    const itemId = uid();
+
+    createPointWorkOrder({
+      id: itemId,
       type,
       status: "needs",
       priority: "high",
-      title: formatWorkType(type),
-      notes: "",
-      geometry: { kind: "point", coordinates: { lat, lng } },
-      createdAt: now,
-      updatedAt: now,
-      lastActionAt: now,
-      assignedTo: null,
-      photos: [],
-      needsSync: true,
-    };
-
-    // Initialize type-specific details with sensible defaults
-    if (type === "pothole") {
-      item.potholeDetails = { severity: "medium", hazard: false, needsPatch: true };
-    }
-    if (type === "sign") {
-      item.signDetails = { signType: "stop", mutcdCode: null, condition: "good", reflectivityIssue: false, obstructed: false, replacementNeeded: false, postLeaning: false, heightOk: true };
-    }
-    if (type === "spraying") {
-      item.sprayingDetails = { target: "weeds", areaType: "shoulder", nearWater: false, posted: false };
-    }
-    if (type === "brushing") {
-      item.brushingDetails = { scope: "spot", areaType: "shoulder", sightDistanceIssue: false, debrisLeft: false };
-    }
-    if (type === "culvert") {
-      item.culvertDetails = { issue: "plugged", standingWater: false, inletBlocked: true, outletBlocked: false, needsJetting: false };
-    }
-    if (type === "guardrail") {
-      item.guardrailDetails = { component: "end_treatment", endTreatmentType: "unknown", damageLevel: "moderate", needsReplacement: true };
-    }
-    if (type === "danger_tree") {
-      item.dangerTreeDetails = { issue: "in_road", blockingLane: true, needsTrafficControl: true, removed: false };
-    }
-    if (type === "ditching") {
-      item.ditchingDetails = { issue: "silted", equipmentNeeded: "grader" };
-    }
-    if (type === "asphalt") {
-      item.asphaltDetails = { workType: "patch", mix: "unknown", depthIn: null, areaFt2: null };
-    }
-
-    createPointWorkOrder({
-      id: item.id,
-      type: item.type,
-      status: item.status,
-      priority: item.priority,
-      note: item.notes ?? null,
+      note: null,
       point: { lat, lng },
       createdAt: now,
     });
+
     dispatch(addLog({
       id: uid(),
       at: Date.now(),
-      workItemId: item.id,
+      workItemId: itemId,
       action: "created",
       message: `Created ${formatWorkType(type)} @ ${lat.toFixed(5)}, ${lng.toFixed(5)}`,
     }));
 
-    setSelectedId(item.id);  // Changed from setSelected(item)
+    setSelectedId(itemId);
   }
 
   async function createLine(points: { lat: number; lng: number }[], type: WorkType) {
@@ -244,48 +194,30 @@ export default function MapScreen() {
     }
 
     const now = Date.now();
-    const item: WorkItem = {
-      id: uid(),
+    const itemId = uid();
+
+    createLineWorkOrder({
+      id: itemId,
       type,
       status: "needs",
       priority: "high",
-      title: `${formatWorkType(type)} (Line)`,
-      notes: "",
-      geometry: { kind: "line", coordinates: points },
-      createdAt: now,
-      updatedAt: now,
-      lastActionAt: now,
-      assignedTo: null,
-      photos: [],
-      needsSync: true,
-    };
-
-    // Initialize type-specific details
-    if (type === "pothole") item.potholeDetails = { severity: "medium", hazard: false, needsPatch: true };
-    if (type === "sign") item.signDetails = { signType: "stop", mutcdCode: null, condition: "good", reflectivityIssue: false, obstructed: false, replacementNeeded: false, postLeaning: false, heightOk: true };
-    if (type === "spraying") item.sprayingDetails = { target: "weeds", areaType: "shoulder", nearWater: false, posted: false };
-    if (type === "brushing") item.brushingDetails = { scope: "spot", areaType: "shoulder", sightDistanceIssue: false, debrisLeft: false };
-    if (type === "culvert") item.culvertDetails = { issue: "plugged", standingWater: false, inletBlocked: true, outletBlocked: false, needsJetting: false };
-    if (type === "guardrail") item.guardrailDetails = { component: "end_treatment", endTreatmentType: "unknown", damageLevel: "moderate", needsReplacement: true };
-    if (type === "danger_tree") item.dangerTreeDetails = { species: "unknown", dbhInches: null, hazardRating: "moderate", deadTop: false, leaningOver: false, rootIssues: false };
-    if (type === "ditching") item.ditchingDetails = { issue: "plugged", standingWater: false, debrisType: "vegetation", needsJetting: false };
-    if (type === "asphalt") item.asphaltDetails = { workType: "patch", mix: "unknown", depthIn: null, areaFt2: null };
-
-    createLineWorkOrder({
-      id: item.id,
-      type: item.type,
-      status: item.status,
-      priority: item.priority,
-      note: item.notes ?? null,
+      note: null,
       points: points,
       createdAt: now,
     });
-    dispatch(addLog({ id: uid(), at: now, workItemId: item.id, action: "created", message: `Created ${formatWorkType(type)} line work order` }));
+
+    dispatch(addLog({ 
+      id: uid(), 
+      at: now, 
+      workItemId: itemId, 
+      action: "created", 
+      message: `Created ${formatWorkType(type)} line work order` 
+    }));
 
     setDraftLine([]);
     setPickingLocation(false);
     setPickType(null);
-    setSelectedId(item.id);
+    setSelectedId(itemId);
   }
 
   function handleFinishLine() {
@@ -337,15 +269,14 @@ export default function MapScreen() {
         onRegionChangeComplete={(region) => setCurrentRegion(region)}
         mapType={mapType}
       >
-        {/* TODO: Convert dbItems (WorkOrderRow) to render as markers/lines */}
-        {visible.map(item => {
-          if (item.geometry.kind === "point") {
-            const c = item.geometry.coordinates;
+        {/* Render work orders from SQLite */}
+        {dbItems.map(item => {
+          if (item.geomType === "point" && item.lat != null && item.lng != null) {
             return (
               <Marker
                 key={item.id}
-                coordinate={{ latitude: c.lat, longitude: c.lng }}
-                title={item.title ?? item.type}
+                coordinate={{ latitude: item.lat, longitude: item.lng }}
+                title={formatWorkType(item.type as any)}
                 description={`${formatStatus(item.status)} • ${item.priority}`}
                 onPress={() => {
                   // Don't open sheet if currently drawing a line
@@ -356,13 +287,18 @@ export default function MapScreen() {
             );
           }
 
-          if (item.geometry.kind === "line") {
-            const coords: LatLng[] = item.geometry.coordinates.map(p => ({ latitude: p.lat, longitude: p.lng }));
-            return <Polyline key={item.id} coordinates={coords} strokeWidth={5} />;
+          if (item.geomType === "line" && item.lineJson) {
+            try {
+              const points = JSON.parse(item.lineJson) as LatLng[];
+              const coords: LatLng[] = points.map(p => ({ latitude: p.lat, longitude: p.lng }));
+              return <Polyline key={item.id} coordinates={coords} strokeWidth={5} />;
+            } catch (e) {
+              console.warn("Failed to parse line JSON for", item.id, e);
+              return null;
+            }
           }
 
-          const coords: LatLng[] = item.geometry.coordinates.map(p => ({ latitude: p.lat, longitude: p.lng }));
-          return <Polygon key={item.id} coordinates={coords} strokeWidth={2} />;
+          return null;
         })}
 
         {/* Draft line during drawing */}

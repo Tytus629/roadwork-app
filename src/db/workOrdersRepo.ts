@@ -163,6 +163,14 @@ export function deleteWorkOrder(id: string) {
   db.execute(`DELETE FROM work_orders WHERE id = ?;`, [id]);
 }
 
+export function getWorkOrderById(id: string): WorkOrderRow | null {
+  const r = db.execute(`SELECT * FROM work_orders WHERE id = ? LIMIT 1;`, [id]);
+  const rows: any = r?.rows;
+  const arr = Array.isArray(rows) ? rows : [];
+  if (arr.length === 0) return null;
+  return rowToWorkOrder(arr[0]);
+}
+
 export function getDistinctWorkOrderTypes(): string[] {
   const r = db.execute(`
     SELECT DISTINCT type

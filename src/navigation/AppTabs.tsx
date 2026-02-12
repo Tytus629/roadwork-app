@@ -3,37 +3,22 @@
  * APP TABS NAVIGATOR - Bottom Tab Navigation
  * ═══════════════════════════════════════════════════════════════════════════
  * 
- * STARTUP PERSISTENCE LOADING:
- * On mount, loads all work orders from SQLite into Redux.
- * This is how work orders persist across app restarts.
+ * PERSISTENCE MODEL:
+ * SQLite is the source of truth. Screens use hooks that query the DB directly:
+ * - useMapWorkOrders() - for Map screen
+ * - useActiveWorkOrders() - for Work List screen
+ * - DbEvents system provides reactivity when data changes
  * 
- * LOADING SEQUENCE:
- * 1. Component mounts
- * 2. useEffect runs once (dependency: [dispatch])
- * 3. Calls getAllWorkItems() from workRepo
- * 4. Dispatches loadAllWorkItems(items) to Redux
- * 5. All screens now have access to persisted data
- * 
- * LOGGING:
- * - Before: "[startup] Loading persisted work orders..."
- * - Success: "[startup] Loaded X work orders from DB"
- * - Failure: "[startup] Load failed - running without DB"
+ * NO REDUX HYDRATION:
+ * We previously loaded all work orders into Redux on startup. That's been removed.
+ * Each screen now reads from SQLite on demand, subscribes to changes via DbEvents.
  * 
  * GRACEFUL FAILURE:
- * - If DB unavailable, logs warning but continues
- * - App starts with empty Redux state (no crash)
- * - User can still create new work orders (in-memory only)
- * 
- * CHANGE HISTORY:
- * - Added comprehensive startup logging
- * - Enhanced error handling for DB failures
- * - Logs work order count on successful load
+ * - If DB unavailable, hooks return empty arrays
+ * - App continues to work (create operations will fail gracefully)
  */
-import React, { useEffect } from "react";
+import React from "react";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
-import { useAppDispatch } from "../store/hooks";
-import { loadAllWorkItems } from "../store/workItemsSlice";
-import { getAllWorkItems, isDbAvailable } from "../storage/workRepo";
 import Icon from "react-native-vector-icons/MaterialCommunityIcons";
 
 import MapScreen from "../screens/MapScreen";
@@ -51,26 +36,6 @@ export type RootTabParamList = {
 const Tab = createBottomTabNavigator<RootTabParamList>();
 
 export default function AppTabs() {
-  const dispatch = useAppDispatch();
-
-  /**
-   * STARTUP PERSISTENCE RESTORATION
-   * Runs once when app starts to load persisted work orders from SQLite.
-   * This is the critical path that makes work orders survive app restarts.
-   */
-  useEffect(() => {
-    (async () => {
-      try {
-        console.log("[startup] Loading persisted work orders...");
-        const items = await getAllWorkItems();
-        dispatch(loadAllWorkItems(items));
-        console.log("[startup] Loaded", items.length, "work orders from DB");
-      } catch (e) {
-        console.warn("[startup] Load failed - running without DB:", e);
-      }
-    })();
-  }, [dispatch]);
-
   return (
     <Tab.Navigator screenOptions={{ headerShown: true }}>
       <Tab.Screen 
@@ -99,6 +64,14 @@ export default function AppTabs() {
       <Tab.Screen 
         name="More" 
         component={MoreStack}
+        options={{
+          headerShown: false,
+          tabBarIcon: ({ color, size }) => <Icon name="dots-horizontal" size={size} color={color} />
+        }}
+      />
+    </Tab.Navigator>
+  );
+}        component={MoreStack}
         options={{
           headerShown: false,
           tabBarIcon: ({ color, size }) => <Icon name="dots-horizontal" size={size} color={color} />
