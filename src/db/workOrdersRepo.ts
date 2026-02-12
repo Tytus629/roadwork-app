@@ -41,7 +41,7 @@ export function upsertWorkOrderPoint(args: {
   const createdAt = args.createdAt ?? t;
   const b = bboxForPoint(args.point);
 
-  db.execute(
+  db.executeSync(
     `
     INSERT INTO work_orders(
       id, type, createdAt, updatedAt, status, priority, note,
@@ -96,7 +96,7 @@ export function upsertWorkOrderLine(args: {
   const b = bboxForLine(args.points);
   const lineJson = JSON.stringify(args.points);
 
-  db.execute(
+  db.executeSync(
     `
     INSERT INTO work_orders(
       id, type, createdAt, updatedAt, status, priority, note,
@@ -136,7 +136,7 @@ export function upsertWorkOrderLine(args: {
 }
 
 export function upsertSignDetails(d: SignDetailsRow) {
-  db.execute(
+  db.executeSync(
     `
     INSERT INTO sign_details(
       workOrderId, signTypeId, category, condition, action, reflectivityIssue
@@ -160,11 +160,11 @@ export function upsertSignDetails(d: SignDetailsRow) {
 }
 
 export function deleteWorkOrder(id: string) {
-  db.execute(`DELETE FROM work_orders WHERE id = ?;`, [id]);
+  db.executeSync(`DELETE FROM work_orders WHERE id = ?;`, [id]);
 }
 
 export function getWorkOrderById(id: string): WorkOrderRow | null {
-  const r = db.execute(`SELECT * FROM work_orders WHERE id = ? LIMIT 1;`, [id]);
+  const r = db.executeSync(`SELECT * FROM work_orders WHERE id = ? LIMIT 1;`, [id]);
   const rows: any = r?.rows;
   const arr = Array.isArray(rows) ? rows : [];
   if (arr.length === 0) return null;
@@ -172,7 +172,7 @@ export function getWorkOrderById(id: string): WorkOrderRow | null {
 }
 
 export function getDistinctWorkOrderTypes(): string[] {
-  const r = db.execute(`
+  const r = db.executeSync(`
     SELECT DISTINCT type
     FROM work_orders
     WHERE type IS NOT NULL AND TRIM(type) <> ''
@@ -211,7 +211,7 @@ export function listActiveWorkOrders(
 ): WorkOrderRow[] {
   const { sql, params } = buildWhere(filter);
 
-  const r = db.execute(
+  const r = db.executeSync(
     `
     SELECT wo.*
     FROM work_orders wo
@@ -255,7 +255,7 @@ export function updateWorkOrderFields(args: {
 
   if (!sets.length) return;
 
-  db.execute(
+  db.executeSync(
     `
     UPDATE work_orders
     SET ${sets.join(", ")}
@@ -299,7 +299,7 @@ function buildWhere(filter?: WorkOrderFilter) {
 export function listWorkOrders(filter?: WorkOrderFilter, limit = 500): WorkOrderRow[] {
   const { sql, params } = buildWhere(filter);
 
-  const r = db.execute(
+  const r = db.executeSync(
     `
     SELECT wo.*
     FROM work_orders wo
@@ -332,7 +332,7 @@ export function listWorkOrdersInBBox(b: BBox, filter?: WorkOrderFilter, limit = 
     ? `${wherePrefix} AND ${bboxClause}`
     : `WHERE ${bboxClause}`;
 
-  const r = db.execute(
+  const r = db.executeSync(
     `
     SELECT wo.*
     FROM work_orders wo

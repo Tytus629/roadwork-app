@@ -4,7 +4,7 @@ export const db = open({ name: "roadwork.db" });
 
 // Helper (optional) so you can see DB is alive in logs
 export function dbPing() {
-  const r = db.execute("SELECT 1 as ok");
+  const r = db.executeSync("SELECT 1 as ok");
   const rows: any = r?.rows;
 
   // handle both array rows and item(i) rows

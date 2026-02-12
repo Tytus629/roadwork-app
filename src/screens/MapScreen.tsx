@@ -1,6 +1,6 @@
 import React, { useMemo, useRef, useState, useEffect } from "react";
 import { View, Text, StyleSheet, Pressable, Alert } from "react-native";
-import MapView, { Marker, Polyline, Polygon, PROVIDER_GOOGLE, LatLng, MapPressEvent, Region, MapType } from "react-native-maps";
+import MapView, { Marker, Polyline, Polygon, PROVIDER_GOOGLE, LatLng as MapLatLng, MapPressEvent, Region, MapType } from "react-native-maps";
 import type { WorkType } from "../types/workItem";
 import WorkItemSheet from "../components/WorkItemSheet";
 import { createPointWorkOrder, createLineWorkOrder } from "../services/workOrdersService";
@@ -10,7 +10,7 @@ import Geolocation from "@react-native-community/geolocation";
 import CreateWizardModal from "../components/CreateWizardModal";
 import { formatWorkType } from "../constants/workOrderTypes";
 import { useMapWorkOrders } from "../hooks/useMapWorkOrders";
-import type { BBox, WorkOrderRow } from "../db/types";
+import type { BBox, WorkOrderRow, LatLng } from "../db/types";
 import { useWorkOrderFilter } from "../state/FilterContext";
 import { WorkOrderFilterSheet } from "../components/WorkOrderFilterSheet";
 import { useAppDispatch } from "../store/hooks";
@@ -289,8 +289,8 @@ export default function MapScreen() {
 
           if (item.geomType === "line" && item.lineJson) {
             try {
-              const points = JSON.parse(item.lineJson) as LatLng[];
-              const coords: LatLng[] = points.map(p => ({ latitude: p.lat, longitude: p.lng }));
+              const points = JSON.parse(item.lineJson) as {lat: number; lng: number}[];
+              const coords = points.map(p => ({ latitude: p.lat, longitude: p.lng }));
               return <Polyline key={item.id} coordinates={coords} strokeWidth={5} />;
             } catch (e) {
               console.warn("Failed to parse line JSON for", item.id, e);

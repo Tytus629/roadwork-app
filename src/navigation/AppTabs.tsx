@@ -71,12 +71,4 @@ export default function AppTabs() {
       />
     </Tab.Navigator>
   );
-}        component={MoreStack}
-        options={{
-          headerShown: false,
-          tabBarIcon: ({ color, size }) => <Icon name="dots-horizontal" size={size} color={color} />
-        }}
-      />
-    </Tab.Navigator>
-  );
 }

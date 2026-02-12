@@ -101,17 +101,17 @@ const MIGRATIONS: Migration[] = [
 ];
 
 function getDbVersion(): number {
-  db.execute(
+  db.executeSync(
     `CREATE TABLE IF NOT EXISTS meta (key TEXT PRIMARY KEY, value TEXT NOT NULL);`
   );
-  const r = db.execute(`SELECT value FROM meta WHERE key = 'dbVersion' LIMIT 1;`);
+  const r = db.executeSync(`SELECT value FROM meta WHERE key = 'dbVersion' LIMIT 1;`);
   const rows: any = r?.rows;
   const v = Array.isArray(rows) ? rows[0]?.value : rows?.[0]?.value;
   return v ? parseInt(String(v), 10) : 0;
 }
 
 function setDbVersion(v: number) {
-  db.execute(
+  db.executeSync(
     `INSERT INTO meta(key, value) VALUES ('dbVersion', ?) 
      ON CONFLICT(key) DO UPDATE SET value=excluded.value;`,
     [String(v)]
@@ -126,7 +126,7 @@ export function runMigrations() {
 
   for (const m of pending) {
     for (const stmt of m.sql) {
-      db.execute(stmt);
+      db.executeSync(stmt);
     }
     setDbVersion(m.id);
   }
