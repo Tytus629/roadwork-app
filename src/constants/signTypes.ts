@@ -82,6 +82,6 @@ export const SIGN_TYPES: SignType[] = [
 export const STANDARD_ROAD_SIGNS = SIGN_TYPES.map(st => ({
   label: st.mutcdCode ? `${st.label} (${st.mutcdCode})` : st.label,
   value: st.id,
-})) as const;
+}));
 
-export type StandardRoadSignKey = typeof STANDARD_ROAD_SIGNS[number]["value"];
+export type StandardRoadSignKey = string;

@@ -1,7 +1,7 @@
 import type { WorkStatus, Priority } from "../db/types";
 
-export const STATUS_OPTIONS: WorkStatus[] = ["needs", "in_progress", "completed"];
-export const PRIORITY_OPTIONS: Priority[] = ["low", "medium", "high", "urgent"];
+export const STATUS_OPTIONS: WorkStatus[] = ["Needs", "In Progress", "Done", "Deferred"];
+export const PRIORITY_OPTIONS: Priority[] = ["Low", "Medium", "High", "Urgent"];
 
 export const SIGN_CATEGORY_OPTIONS = [
   "Regulatory",

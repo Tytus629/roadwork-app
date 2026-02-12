@@ -1,5 +1,5 @@
-export type WorkStatus = "needs" | "in_progress" | "completed" | "deferred";
-export type Priority = "no priority" | "low" | "medium" | "high" | "urgent";
+export type WorkStatus = "Needs" | "In Progress" | "Done" | "Deferred";
+export type Priority = "Low" | "Medium" | "High" | "Urgent";
 export type GeomType = "point" | "line";
 
 export type LatLng = { lat: number; lng: number };

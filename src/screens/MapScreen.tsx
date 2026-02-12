@@ -28,15 +28,6 @@ function regionToBBox(region: Region): BBox {
   };
 }
 
-// Helper function to display user-friendly status labels
-function formatStatus(status: string): string {
-  if (status === "in_progress") return "In Progress";
-  if (status === "completed") return "Completed";
-  if (status === "needs") return "Needs";
-  if (status === "deferred") return "Deferred";
-  return status;
-}
-
 export default function MapScreen() {
   const dispatch = useAppDispatch();
   const mapRef = useRef<MapView>(null);
@@ -169,8 +160,8 @@ export default function MapScreen() {
     createPointWorkOrder({
       id: itemId,
       type,
-      status: "needs",
-      priority: "high",
+      status: "Needs",
+      priority: "High",
       note: null,
       point: { lat, lng },
       createdAt: now,
@@ -199,8 +190,8 @@ export default function MapScreen() {
     createLineWorkOrder({
       id: itemId,
       type,
-      status: "needs",
-      priority: "high",
+      status: "Needs",
+      priority: "High",
       note: null,
       points: points,
       createdAt: now,
@@ -277,7 +268,7 @@ export default function MapScreen() {
                 key={item.id}
                 coordinate={{ latitude: item.lat, longitude: item.lng }}
                 title={formatWorkType(item.type as any)}
-                description={`${formatStatus(item.status)} • ${item.priority}`}
+                description={`${item.status} • ${item.priority}`}
                 onPress={() => {
                   // Don't open sheet if currently drawing a line
                   if (pickingLocation && createGeometryMode === "line") return;

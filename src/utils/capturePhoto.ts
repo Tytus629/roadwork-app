@@ -93,7 +93,7 @@ export async function capturePhoto(): Promise<{ localUri: string; width?: number
       cameraType: "back",
       saveToPhotos: false,
       includeBase64: false,
-      quality: 0.85,
+      quality: 1,
     };
 
     const res = await launchCamera(options);

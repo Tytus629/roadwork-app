@@ -21,7 +21,7 @@ export async function getOneLocationFix(timeoutMs = 7000): Promise<LocationFix |
   // Use built-in geolocation if available (RN has it on some setups) — simplest for now.
   // If your RN build doesn't include navigator.geolocation, we'll swap to react-native-geolocation-service in Step D.
   return new Promise((resolve) => {
-    const geo = (global as any).navigator?.geolocation;
+    const geo = (globalThis as any).navigator?.geolocation;
     if (!geo) return resolve(null);
 
     geo.getCurrentPosition(

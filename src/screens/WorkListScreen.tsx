@@ -1,28 +1,14 @@
 import React, { useMemo, useState } from "react";
 import { View, Text, StyleSheet, Pressable, FlatList, ScrollView } from "react-native";
-import type { WorkOrderFilter } from "../db/types";
+import type { WorkOrderFilter, WorkStatus, Priority } from "../db/types";
 import { SortMode } from "../db/workOrdersRepo";
 import { useActiveWorkOrders } from "../hooks/useActiveWorkOrders";
 import { WORK_ORDER_TYPE_OPTIONS, formatWorkType } from "../constants/workOrderTypes";
 
-// Helper function to display user-friendly status labels
-function formatStatus(status: string): string {
-  if (status === "in_progress") return "In Progress";
-  if (status === "completed") return "Completed";
-  if (status === "needs") return "Needs";
-  if (status === "deferred") return "Deferred";
-  return status;
-}
-
-// Helper to format priority for display
-function formatPriority(priority: string): string {
-  return priority.charAt(0).toUpperCase() + priority.slice(1);
-}
-
 export default function WorkListScreen() {
-  // Default Active filter: show Needs + In Progress (not completed/deferred)
+  // Default Active filter: show Needs + In Progress (not Done/Deferred)
   const [filter, setFilter] = useState<WorkOrderFilter>({
-    status: ["needs", "in_progress"],
+    status: ["Needs", "In Progress"],
   });
 
   const [sort, setSort] = useState<SortMode>("priority");
@@ -33,13 +19,13 @@ export default function WorkListScreen() {
   const typeOptions = useMemo(() => WORK_ORDER_TYPE_OPTIONS.map(opt => opt.key), []);
 
   // Status options
-  const statusOptions = ["needs", "in_progress", "completed", "deferred"];
+  const statusOptions: WorkStatus[] = ["Needs", "In Progress", "Done", "Deferred"];
   
   // Priority options
-  const priorityOptions = ["low", "medium", "high", "urgent"];
+  const priorityOptions: Priority[] = ["Low", "Medium", "High", "Urgent"];
 
   // Helper to toggle item in array
-  const toggleInArray = (arr: string[] | undefined, value: string) => {
+  const toggleInArray = <T,>(arr: T[] | undefined, value: T): T[] => {
     const current = arr ?? [];
     return current.includes(value) 
       ? current.filter(x => x !== value)
@@ -82,7 +68,7 @@ export default function WorkListScreen() {
               onPress={() => setFilter(f => ({ ...f, status: toggleInArray(f.status, s) }))}
               style={[styles.pill, isActive && styles.pillOn]}
             >
-              <Text style={[styles.pillText, isActive && styles.pillTextOn]}>{formatStatus(s)}</Text>
+              <Text style={[styles.pillText, isActive && styles.pillTextOn]}>{s}</Text>
             </Pressable>
           );
         })}
@@ -99,7 +85,7 @@ export default function WorkListScreen() {
               onPress={() => setFilter(f => ({ ...f, priority: toggleInArray(f.priority, p) }))}
               style={[styles.pill, isActive && styles.pillOn]}
             >
-              <Text style={[styles.pillText, isActive && styles.pillTextOn]}>{formatPriority(p)}</Text>
+              <Text style={[styles.pillText, isActive && styles.pillTextOn]}>{p}</Text>
             </Pressable>
           );
         })}
@@ -129,7 +115,7 @@ export default function WorkListScreen() {
         renderItem={({ item }) => (
           <View style={styles.card}>
             <Text style={styles.cardTitle}>{formatWorkType(item.type as any)}</Text>
-            <Text style={styles.cardSub}>{formatStatus(item.status)} • {formatPriority(item.priority)}</Text>
+            <Text style={styles.cardSub}>{item.status} • {item.priority}</Text>
             <Text style={styles.cardSub}>Created: {new Date(item.createdAt).toLocaleString()}</Text>
           </View>
         )}

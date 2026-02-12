@@ -171,6 +171,22 @@ export function getWorkOrderById(id: string): WorkOrderRow | null {
   return rowToWorkOrder(arr[0]);
 }
 
+export function getSignDetailsByWorkOrderId(workOrderId: string): SignDetailsRow | null {
+  const r = db.executeSync(`SELECT * FROM sign_details WHERE workOrderId = ? LIMIT 1;`, [workOrderId]);
+  const rows: any = r?.rows;
+  const arr = Array.isArray(rows) ? rows : [];
+  if (arr.length === 0) return null;
+  const row = arr[0];
+  return {
+    workOrderId: String(row.workOrderId),
+    signTypeId: row.signTypeId ?? null,
+    category: row.category ?? null,
+    condition: row.condition ?? null,
+    action: row.action ?? null,
+    reflectivityIssue: row.reflectivityIssue ?? null,
+  };
+}
+
 export function getDistinctWorkOrderTypes(): string[] {
   const r = db.executeSync(`
     SELECT DISTINCT type
