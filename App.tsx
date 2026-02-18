@@ -29,6 +29,7 @@ import "react-native-gesture-handler";
 import React, { useEffect, useState } from "react";
 import { Provider } from "react-redux";
 import { NavigationContainer } from "@react-navigation/native";
+import { createStackNavigator } from "@react-navigation/stack";
 import { View, Text, StyleSheet } from "react-native";
 import { FirebaseAuthTypes } from "@react-native-firebase/auth";
 import AsyncStorage from "@react-native-async-storage/async-storage";
@@ -45,6 +46,7 @@ import { FilterProvider } from "./src/state/FilterContext";
 import { connectToEmulatorsIfDev } from "./src/firebase/emulators";
 import { AuthScreen } from "./src/screens/AuthScreen";
 import { OrgPickerScreen } from "./src/screens/OrgPickerScreen";
+import { CreateOrgScreen } from "./src/screens/CreateOrgScreen";
 import { setOrgId as setServiceOrgId } from "./src/services/orgSettings";
 import { initializeApp, getApps, getApp } from "@react-native-firebase/app";
 import { OrgProvider, useOrg } from "./src/state/OrgContext";
@@ -117,6 +119,30 @@ function DbBanner() {
   );
 }
 
+const OrgStack = createStackNavigator();
+
+/**
+ * OrgNavigator: Stack navigator for org-related screens
+ */
+function OrgNavigator() {
+  return (
+    <NavigationContainer>
+      <OrgStack.Navigator screenOptions={{ headerShown: true }}>
+        <OrgStack.Screen
+          name="OrgPicker"
+          component={OrgPickerScreen}
+          options={{ title: "Select Organization" }}
+        />
+        <OrgStack.Screen
+          name="CreateOrg"
+          component={CreateOrgScreen}
+          options={{ title: "Create Organization" }}
+        />
+      </OrgStack.Navigator>
+    </NavigationContainer>
+  );
+}
+
 /**
  * RootGate: Determines which screen to show based on auth + org state
  */
@@ -179,7 +205,7 @@ function RootGate() {
 
   // Show org picker if signed in but no org selected
   if (!orgId) {
-    return <OrgPickerScreen />;
+    return <OrgNavigator />;
   }
 
   // Main app - user is authenticated and org is selected

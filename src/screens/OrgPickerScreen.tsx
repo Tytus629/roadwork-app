@@ -2,13 +2,13 @@ import React, { useEffect, useState } from "react";
 import { View, Text, Pressable, StyleSheet, FlatList, ActivityIndicator, Alert, Button } from "react-native";
 import { getApp } from "@react-native-firebase/app";
 import { getAuth } from "@react-native-firebase/auth";
-import { getFirestore, collection, query, where, onSnapshot, doc, getDoc } from "@react-native-firebase/firestore";
+import { getFirestore, collectionGroup, query, where, onSnapshot, doc, getDoc } from "@react-native-firebase/firestore";
 import { getFunctions, httpsCallable } from "@react-native-firebase/functions";
 import { useOrg } from "../state/OrgContext";
 
 type OrgRow = { orgId: string; name: string; role: string };
 
-export function OrgPickerScreen() {
+export function OrgPickerScreen({ navigation }: any) {
   const { setOrgId } = useOrg();
   const [orgs, setOrgs] = useState<OrgRow[]>([]);
   const [loading, setLoading] = useState(true);
@@ -24,8 +24,7 @@ export function OrgPickerScreen() {
     }
 
     const db = getFirestore(getApp());
-    const orgMembersRef = collection(db, "orgMembers");
-    const q = query(orgMembersRef, where("uid", "==", uid));
+    const q = query(collectionGroup(db, "members"), where("uid", "==", uid));
 
     const unsubscribe = onSnapshot(
       q,
@@ -36,8 +35,15 @@ export function OrgPickerScreen() {
 
         for (const memberDoc of snapshot.docs) {
           const memberData = memberDoc.data();
-          const orgId = String(memberData.orgId);
+          // Get orgId from document path: orgs/{orgId}/members/{uid}
+          const orgRef = memberDoc.ref.parent?.parent;
+          const orgId = orgRef?.id;
           const role = String(memberData.role ?? "member");
+
+          if (!orgId) {
+            console.warn("[OrgPicker] Could not resolve orgId from membership path");
+            continue;
+          }
 
           try {
             const orgDocRef = doc(db, "orgs", orgId);
@@ -112,6 +118,9 @@ export function OrgPickerScreen() {
       <Text style={styles.title}>Choose Organization</Text>
 
       <View style={{ height: 12 }} />
+      <Button title="Create Organization" onPress={() => navigation.navigate("CreateOrg")} />
+
+      <View style={{ height: 8 }} />
       <Button title="DEV: Bootstrap Org (emulator)" onPress={devBootstrap} />
 
       <View style={{ height: 12 }} />

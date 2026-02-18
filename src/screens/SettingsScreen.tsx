@@ -100,6 +100,28 @@ export default function SettingsScreen() {
     );
   };
 
+  const handleSwitchOrg = async () => {
+    Alert.alert(
+      "Switch Organization",
+      "Choose a different organization?",
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Switch",
+          onPress: async () => {
+            try {
+              await clearOrgId();
+              console.log("[Settings] Cleared org selection");
+            } catch (e: any) {
+              console.error("[Settings] Switch org error:", e);
+              Alert.alert("Error", "Failed to switch organization");
+            }
+          },
+        },
+      ]
+    );
+  };
+
   return (
     <ScrollView style={styles.container}>
       <Text style={styles.title}>Settings</Text>
@@ -108,6 +130,13 @@ export default function SettingsScreen() {
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Account</Text>
         
+        <Pressable
+          onPress={handleSwitchOrg}
+          style={styles.switchOrgButton}
+        >
+          <Text style={styles.switchOrgButtonText}>Switch Organization</Text>
+        </Pressable>
+
         <Pressable
           onPress={handleLogout}
           style={styles.logoutButton}
@@ -308,6 +337,21 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: "#475569",
     lineHeight: 18,
+  },
+  switchOrgButton: {
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+    borderWidth: 1,
+    borderColor: "#3b82f6",
+    borderRadius: 12,
+    backgroundColor: "#eff6ff",
+    alignItems: "center",
+    marginBottom: 12,
+  },
+  switchOrgButtonText: {
+    fontWeight: "700",
+    fontSize: 16,
+    color: "#3b82f6",
   },
   logoutButton: {
     paddingVertical: 14,
