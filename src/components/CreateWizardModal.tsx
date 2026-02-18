@@ -1,3 +1,61 @@
+/**
+ * ========================================
+ * CreateWizardModal.tsx
+ * ========================================
+ * 
+ * PURPOSE:
+ * - Multi-step modal wizard for creating new work orders from the map
+ * - Guides user through: 1) Type selection, 2) Location method, 3) Geometry mode
+ * - Appears when user taps the "Create" FAB on MapScreen
+ * 
+ * USER FLOW:
+ * Step 1: Choose Type
+ *   - User selects work order type (Pothole, Sign, Spraying, etc.)
+ *   - Tapping a type button proceeds to Step 2
+ * 
+ * Step 2: Choose Location
+ *   - "Current Location": Creates work order at GPS position immediately
+ *   - "Pick Location": Proceeds to Step 3 (geometry mode selection)
+ * 
+ * Step 3: Choose Geometry (only if "Pick Location" selected)
+ *   - "Point": User taps once on map to place a single point
+ *   - "Line": User taps multiple times on map to draw a polyline
+ * 
+ * INTEGRATION WITH MAPSCREEN:
+ * - onUseCurrentLocation: Called when user chooses "Current Location"
+ *   → MapScreen immediately creates work order at GPS position
+ * - onPickLocation: Called when user chooses Point/Line mode
+ *   → MapScreen enters "staging" mode (crosshair appears, awaits user taps)
+ * 
+ * WHY THREE STEPS?
+ * - Step 1 required: Type determines work order category (informs filtering, reporting)
+ * - Step 2 splits: GPS location vs manual placement (different UX paths)
+ * - Step 3 conditional: Only shown for manual placement (Point vs Line choice)
+ * 
+ * STATE MANAGEMENT:
+ * - step: Current wizard step (1, 2, or 3)
+ * - type: Selected WorkType (pothole, sign, spraying, etc.)
+ * - geometryMode: point | line (only used internally, not critical)
+ * - All state resets on modal close/completion
+ * 
+ * DESIGN DECISIONS:
+ * - No "Next" button: Selections immediately advance to next step (faster UX)
+ * - Back buttons: User can revisit previous steps to change choices
+ * - Close button: Cancels wizard and resets state
+ * - Visual progression: Header shows current step ("Create • Choose Type")
+ * 
+ * PROPS:
+ * - visible: Boolean to show/hide modal
+ * - onCancel: Called when user closes modal without completing
+ * - onUseCurrentLocation: Called when user chooses GPS location (with type)
+ * - onPickLocation: Called when user chooses manual placement (with type and geometry mode)
+ * 
+ * FUTURE ENHANCEMENTS:
+ * - Could add "Recent Types" for faster access to commonly used types
+ * - Could remember last selected type per user preference
+ * - Could add preview map showing where GPS location is before confirming
+ */
+
 import React, { useMemo, useState } from "react";
 import { Modal, View, Text, StyleSheet, Pressable } from "react-native";
 import type { WorkType } from "../types/workItem";

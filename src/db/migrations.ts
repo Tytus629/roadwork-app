@@ -1,4 +1,4 @@
-import { db } from "./db";
+import { db, addColumnIfMissing } from "./db";
 
 type Migration = {
   id: number;
@@ -98,6 +98,20 @@ const MIGRATIONS: Migration[] = [
       `,
     ],
   },
+  {
+    id: 2,
+    name: "add_sign_inspection_columns",
+    sql: [
+      // Add inspection columns to sign_details
+      // These run only once when upgrading from migration 1 to 2
+      `ALTER TABLE sign_details ADD COLUMN inspectionVisible INTEGER NOT NULL DEFAULT 0;`,
+      `ALTER TABLE sign_details ADD COLUMN reflectivityScore INTEGER;`,
+      `ALTER TABLE sign_details ADD COLUMN delaminationScore INTEGER;`,
+      `ALTER TABLE sign_details ADD COLUMN appearanceScore INTEGER;`,
+      `ALTER TABLE sign_details ADD COLUMN postMaterial TEXT;`,
+      `ALTER TABLE sign_details ADD COLUMN postConditionScore INTEGER;`,
+    ],
+  },
 ];
 
 function getDbVersion(): number {
@@ -130,4 +144,7 @@ export function runMigrations() {
     }
     setDbVersion(m.id);
   }
+
+  // Migration-safe column additions (runs every time, no-op if column exists)
+  addColumnIfMissing("sign_details", "inspectionLastSavedAt", "INTEGER"); // epoch ms
 }

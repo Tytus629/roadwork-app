@@ -2,12 +2,14 @@ import React from "react";
 import { createStackNavigator } from "@react-navigation/stack";
 import AppTabs from "./AppTabs";
 import ToolsScreen from "../screens/ToolsScreen";
+import WorkItemSheetScreen from "../screens/WorkItemSheetScreen";
 import { AsphaltCalculatorScreen } from "../tools/asphalt/AsphaltCalculatorScreen";
 import { MeasureDistanceScreen } from "../tools/measure/MeasureDistanceScreen";
 
 export type RootStackParamList = {
   MainTabs: undefined;
   Tools: undefined;
+  WorkItemSheet: { id: string };
   AsphaltCalculator: undefined;
   MeasureDistance: undefined;
 };
@@ -26,6 +28,11 @@ export default function RootNavigator() {
         name="Tools" 
         component={ToolsScreen}
         options={{ title: "Tools" }}
+      />
+      <Stack.Screen
+        name="WorkItemSheet"
+        component={WorkItemSheetScreen}
+        options={{ title: "Work Order", presentation: "modal" }}
       />
       <Stack.Screen 
         name="AsphaltCalculator" 

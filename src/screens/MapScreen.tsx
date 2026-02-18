@@ -1,9 +1,52 @@
-import React, { useMemo, useRef, useState, useEffect } from "react";
-import { View, Text, StyleSheet, Pressable, Alert } from "react-native";
-import MapView, { Marker, Polyline, Polygon, PROVIDER_GOOGLE, LatLng as MapLatLng, MapPressEvent, Region, MapType } from "react-native-maps";
+/**
+ * MapScreen.tsx
+ * 
+ * PURPOSE:
+ * Main interactive map interface for viewing and creating work orders spatially.
+ * Users can see work orders as pins/lines on the map, filter them, and create new ones.
+ * 
+ * KEY RESPONSIBILITIES:
+ * - Display work orders from SQLite as map markers/polylines
+ * - Real-time GPS tracking with follow mode
+ * - Create point work orders (tap) or line work orders (multi-tap)
+ * - Filter work orders by type/status/priority
+ * - Open WorkItemSheet modal for editing work orders
+ * 
+ * DATA FLOW:
+ * 1. useMapWorkOrders hook queries SQLite based on visible map region (bbox)
+ * 2. Filter context applied to limit what shows
+ * 3. When user creates new work order → immediately saved to SQLite
+ * 4. DbEvents triggers re-render to show new pin
+ * 5. Tapping pin opens WorkItemSheet with work order ID
+ * 
+ * STATE ARCHITECTURE:
+ * - selectedId (not full object): Prevents stale data, hooks fetch live data
+ * - pickingLocation mode: Temporarily disables pin selection while placing new work order
+ * - draftLine: Accumulates points for line work orders before creation
+ * - currentRegion: Tracked for bbox-based SQLite queries (performance optimization)
+ * 
+ * CREATION FLOW:
+ * 1. User presses FAB → CreateWizardModal opens
+ * 2. Choose work type (Sign, Pothole, etc.) and geometry (point/line)
+ * 3. If "Use Current Location": immediately create at GPS position
+ * 4. If "Pick on Map": enter pickingLocation mode, tap map to place
+ * 5. Work order instantly created in SQLite with defaults (Needs/High priority)
+ * 6. WorkItemSheet opens for editing details
+ * 
+ * WHY NO DRAFT STATE:
+ * Previously had pendingDraft state, but simplified to immediate creation:
+ * - Simpler code (one screen, not two)
+ * - Better UX (no extra "Create" button step)
+ * - Can still edit everything immediately after creation
+ * - Delete button available if user changes mind
+ */
+
+import React, { useMemo, useRef, useState, useEffect, useCallback } from "react";
+import { View, Text, StyleSheet, Pressable, Alert, Button } from "react-native";
+import MapView, { Marker, Polyline, PROVIDER_GOOGLE, LatLng as MapLatLng, MapPressEvent, Region, MapType } from "react-native-maps";
 import type { WorkType } from "../types/workItem";
-import WorkItemSheet from "../components/WorkItemSheet";
-import { createPointWorkOrder, createLineWorkOrder } from "../services/workOrdersService";
+import WorkItemSheet, { DraftWorkOrder } from "../components/WorkItemSheet";
+import { createPointWorkOrder, createLineWorkOrder, updateSignDetails } from "../services/workOrdersService";
 import { uid } from "../utils/uid";
 import { requestLocationPermission } from "../native/location";
 import Geolocation from "@react-native-community/geolocation";
@@ -15,8 +58,20 @@ import { useWorkOrderFilter } from "../state/FilterContext";
 import { WorkOrderFilterSheet } from "../components/WorkOrderFilterSheet";
 import { useAppDispatch } from "../store/hooks";
 import { addLog } from "../store/workLogSlice";
+import { getNotificationSettings } from "./SettingsScreen";
+import { notifyWorkOrderCreated } from "../services/notify";
+import { subscribeMapFocus, peekLastMapFocus, clearLastMapFocus } from "../state/MapFocusEvents";
+import { useFocusEffect } from "@react-navigation/native";
+import { upsertSignForWorkOrder } from "../api/signs";
+import { getOrgId } from "../services/orgSettings";
+import { getApp } from "@react-native-firebase/app";
+import { getAuth } from "@react-native-firebase/auth";
+import { getFunctions, httpsCallable } from "@react-native-firebase/functions";
 
-// Helper: Convert map region to bbox
+/**
+ * Helper: Convert map region (center + deltas) to bounding box (min/max corners)
+ * Used for efficient SQLite queries - only fetch work orders in visible area
+ */
 function regionToBBox(region: Region): BBox {
   const halfLat = region.latitudeDelta / 2;
   const halfLng = region.longitudeDelta / 2;
@@ -28,38 +83,87 @@ function regionToBBox(region: Region): BBox {
   };
 }
 
+/**
+ * Helper: Convert zoom level to map deltas for animateToRegion
+ */
+function deltaFor(zoom?: "close" | "street" | "wide") {
+  if (zoom === "close") return { latitudeDelta: 0.003, longitudeDelta: 0.003 };
+  if (zoom === "wide") return { latitudeDelta: 0.06, longitudeDelta: 0.06 };
+  return { latitudeDelta: 0.012, longitudeDelta: 0.012 }; // street default
+}
+
+/**
+ * Helper: Convert zoom level to camera zoom number
+ */
+function zoomToNum(z?: "close" | "street" | "wide") {
+  if (z === "close") return 18;
+  if (z === "wide") return 13;
+  return 16; // street default
+}
+
 export default function MapScreen() {
   const dispatch = useAppDispatch();
   const mapRef = useRef<MapView>(null);
+  const pendingFocusRef = useRef<any>(null);
+  const [mapReady, setMapReady] = useState(false);
 
-  // ✅ Store selected ID, not full item (prevents stale data)
+  // Focus lock prevents "restore viewport" or GPS follow from overriding focus for ~1.5s
+  const focusLockUntilRef = useRef<number>(0);
+
+  // SELECTION STATE
+  // Store only ID, not full object - useWorkOrder hook in WorkItemSheet will fetch live data
+  // This prevents stale data issues when work order is updated
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  
+  // DRAFT STATE
+  // draftWorkOrder: Temporary work order being created (not saved to DB yet)
+  // User can preview/edit before confirming with "Create Work Order" button
+  const [draftWorkOrder, setDraftWorkOrder] = useState<DraftWorkOrder | null>(null);
 
-  // ✅ Live location
+  // FOCUSED WORK ORDER STATE
+  // When navigating from another screen via "Show on Map", this highlights the target
+  const [focusedId, setFocusedId] = useState<string | null>(null);
+
+  // GPS TRACKING STATE
+  // myLoc: Current device location with accuracy
+  // followMe: When true, map auto-centers on GPS position (disable on manual pan)
   const [myLoc, setMyLoc] = useState<{ lat: number; lng: number; accuracyM?: number } | null>(null);
   const [followMe, setFollowMe] = useState(true);
 
-  // ✅ Map type toggle
+  // MAP DISPLAY STATE
+  // Toggle between satellite and standard map view
   const [mapType, setMapType] = useState<MapType>("satellite");
 
-  // ✅ Wizard modal
+  // CREATION FLOW STATE
+  // wizardOpen: CreateWizardModal visible (choose work type + creation method)
+  // pickingLocation: User is tapping map to place work order
+  // pickType: Type of work order being created (Sign, Pothole, etc.)
+  // createGeometryMode: "point" for single tap, "line" for multi-tap polyline
+  // draftLine: Accumulated tap points when drawing line work order
   const [wizardOpen, setWizardOpen] = useState(false);
-
-  // ✅ Pick location mode (after choosing "Pick Location" in wizard)
   const [pickingLocation, setPickingLocation] = useState(false);
   const [pickType, setPickType] = useState<WorkType | null>(null);
-
-  // ✅ Line drawing mode
   const [createGeometryMode, setCreateGeometryMode] = useState<"point" | "line">("point");
   const [draftLine, setDraftLine] = useState<{ lat: number; lng: number }[]>([]);
 
-  // ✅ Track map region for bbox queries
-  const [currentRegion, setCurrentRegion] = useState<Region | null>(null);
+  // MAP REGION TRACKING
+  // mapRegion: CONTROLLED region state - single source of truth for viewport
+  // This ensures setMapRegion() actually moves the map even if animations fail
+  // currentRegion was only used for bbox queries, now mapRegion serves both purposes
+  const [mapRegion, setMapRegion] = useState<Region>({
+    latitude: 46.9965,
+    longitude: -120.5478,
+    latitudeDelta: 0.08,
+    longitudeDelta: 0.08,
+  });
 
-  // ✅ Filter state
+  // FILTER STATE
+  // Filter context provides global filter (type/status/priority)
+  // filterSheetOpen: WorkOrderFilterSheet modal visibility
   const { filter } = useWorkOrderFilter();
   const [filterSheetOpen, setFilterSheetOpen] = useState(false);
 
+  // Initial map position (adjust this for your region)
   const initialRegion: Region = {
     latitude: 46.9965,
     longitude: -120.5478,
@@ -67,10 +171,14 @@ export default function MapScreen() {
     longitudeDelta: 0.08,
   };
 
-  // ✅ Load DB pins based on bbox + filters (SQLite is source of truth)
-  const bbox = currentRegion ? regionToBBox(currentRegion) : null;
+  // LIVE DATA: Fetch work orders from SQLite based on visible map area + filters
+  // useMapWorkOrders hook subscribes to DbEvents, so map updates when data changes
+  const bbox = mapRegion ? regionToBBox(mapRegion) : null;
   const dbItems = useMapWorkOrders(bbox, filter);
 
+  // GPS TRACKING SETUP
+  // Request location permission and start continuous GPS updates
+  // Updates myLoc state and auto-centers map if followMe is true
   useEffect(() => {
     let watchId: number | null = null;
 
@@ -86,11 +194,13 @@ export default function MapScreen() {
 
           setMyLoc({ lat, lng, accuracyM });
 
+          // Guard: Don't override if focus lock is active
+          if (Date.now() < focusLockUntilRef.current) return;
+
           if (followMe && mapRef.current) {
-            mapRef.current.animateToRegion(
-              { latitude: lat, longitude: lng, latitudeDelta: 0.02, longitudeDelta: 0.02 },
-              350
-            );
+            const gpsRegion = { latitude: lat, longitude: lng, latitudeDelta: 0.02, longitudeDelta: 0.02 };
+            setMapRegion(gpsRegion);
+            mapRef.current.animateToRegion(gpsRegion, 350);
           }
         },
         () => {},
@@ -113,6 +223,103 @@ export default function MapScreen() {
     console.log(`[MapScreen] DB loaded ${dbItems.length} items in viewport`);
   }, [dbItems.length]);
 
+  /**
+   * Apply focus to a specific work order location.
+   * Disables follow mode and sets focus lock to prevent GPS from overriding.
+   * Sets mapRegion state (controlled) AND animates for smooth transition.
+   */
+  const applyFocus = useCallback((p: any) => {
+    if (!p) return;
+
+    const lat = Number(p.latitude);
+    const lng = Number(p.longitude);
+    if (!Number.isFinite(lat) || !Number.isFinite(lng)) {
+      console.log("[MapScreen] applyFocus: invalid coords", p);
+      return;
+    }
+
+    console.log("[MapScreen] applyFocus:", p);
+
+    // Disable follow mode so it doesn't snap back to user's GPS
+    setFollowMe(false);
+    // Set focus lock to prevent GPS follow from overriding for 1.5s
+    focusLockUntilRef.current = Date.now() + 1500;
+    setFocusedId(p.workOrderId ?? null);
+
+    const cam = { center: { latitude: lat, longitude: lng }, zoom: zoomToNum(p.zoom) };
+    const d = deltaFor(p.zoom);
+    const region = { latitude: lat, longitude: lng, ...d };
+
+    // KEY FIX: Set controlled region state - this FORCES the map to move
+    setMapRegion(region);
+
+    // Double requestAnimationFrame ensures layout is complete
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        // 1) Prefer camera animation (more reliable)
+        try {
+          mapRef.current?.animateCamera(cam, { duration: 450 });
+        } catch {}
+        // 2) Fallback region animation
+        try {
+          mapRef.current?.animateToRegion(region, 450);
+        } catch {}
+      });
+    });
+
+    // Clear highlight after a moment
+    setTimeout(() => {
+      setFocusedId((cur) => (cur === p.workOrderId ? null : cur));
+    }, 2500);
+  }, []);
+
+  // Subscribe to "Show on Map" events from other screens
+  // Store as pending - apply only when Map tab is actually visible and ready
+  useEffect(() => {
+    const unsub = subscribeMapFocus((p) => {
+      console.log("[MapScreen] focus event stored:", p.workOrderId);
+      pendingFocusRef.current = p;
+    });
+    return unsub;
+  }, []);
+
+  // Single function to try applying pending focus
+  const tryApplyPendingFocus = useCallback(() => {
+    const p = pendingFocusRef.current ?? peekLastMapFocus();
+    if (!p) return;
+    if (!mapReady) return;
+
+    // Clear immediately to prevent double application
+    pendingFocusRef.current = null;
+    clearLastMapFocus();
+
+    console.log("[MapScreen] applying pending focus:", p.workOrderId);
+    applyFocus(p);
+  }, [applyFocus, mapReady]);
+
+  // Apply focus when the Map tab becomes active
+  useFocusEffect(
+    useCallback(() => {
+      // Delay to ensure MapView is rendered after tab switch
+      const timer = setTimeout(() => {
+        tryApplyPendingFocus();
+      }, 150);
+
+      return () => clearTimeout(timer);
+    }, [tryApplyPendingFocus])
+  );
+
+  // Also try to apply focus when mapReady becomes true
+  // (handles case where tab is already visible but map wasn't ready yet)
+  useEffect(() => {
+    if (mapReady) {
+      const timer = setTimeout(() => {
+        tryApplyPendingFocus();
+      }, 100);
+      return () => clearTimeout(timer);
+    }
+  }, [mapReady, tryApplyPendingFocus]);
+
   function toggleMapType() {
     setMapType((prev) => (prev === "standard" ? "satellite" : "standard"));
   }
@@ -124,7 +331,7 @@ export default function MapScreen() {
     }
 
     setWizardOpen(false);
-    createPoint(myLoc.lat, myLoc.lng, type);
+    stagePoint(myLoc.lat, myLoc.lng, type);
   }
 
   function handlePickLocation(type: WorkType, mode: "point" | "line") {
@@ -141,10 +348,10 @@ export default function MapScreen() {
     const { latitude, longitude } = e.nativeEvent.coordinate;
     const p = { lat: latitude, lng: longitude };
 
-    // Point mode: create immediately
+    // Point mode: stage and wait for confirmation
     if (createGeometryMode === "point") {
       setPickingLocation(false);
-      createPoint(latitude, longitude, pickType);
+      stagePoint(latitude, longitude, pickType);
       setPickType(null);
       return;
     }
@@ -153,16 +360,35 @@ export default function MapScreen() {
     setDraftLine(prev => [...prev, p]);
   }
 
-  async function createPoint(lat: number, lng: number, type: WorkType) {
+  async function stagePoint(lat: number, lng: number, type: WorkType) {
+    const draft: DraftWorkOrder = {
+      type,
+      status: "Needs",
+      priority: "High",
+      point: { lat, lng },
+      note: null,
+    };
+    setDraftWorkOrder(draft);
+    setSelectedId(null);
+  }
+
+  async function createPoint(
+    lat: number,
+    lng: number,
+    type: WorkType,
+    status = "Needs",
+    priority = "High",
+    note: string | null = null
+  ) {
     const now = Date.now();
     const itemId = uid();
 
     createPointWorkOrder({
       id: itemId,
       type,
-      status: "Needs",
-      priority: "High",
-      note: null,
+      status,
+      priority,
+      note,
       point: { lat, lng },
       createdAt: now,
     });
@@ -175,24 +401,177 @@ export default function MapScreen() {
       message: `Created ${formatWorkType(type)} @ ${lat.toFixed(5)}, ${lng.toFixed(5)}`,
     }));
 
-    setSelectedId(itemId);
+    return itemId;
   }
 
-  async function createLine(points: { lat: number; lng: number }[], type: WorkType) {
-    if (points.length < 2) {
-      Alert.alert("Need at least 2 points", "Tap more points to draw a line");
-      return;
+  async function stageLine(points: { lat: number; lng: number }[], type: WorkType) {
+    if (points.length < 2) return false;
+    const draft: DraftWorkOrder = {
+      type,
+      status: "Needs",
+      priority: "High",
+      points: points,
+      note: null,
+    };
+    setDraftWorkOrder(draft);
+    setSelectedId(null);
+    return true;
+  }
+
+  async function createFromDraft(draft: DraftWorkOrder) {
+    const now = Date.now();
+    const itemId = uid();
+
+    if (draft.point) {
+      // Point work order
+      createPointWorkOrder({
+        id: itemId,
+        type: draft.type,
+        status: draft.status,
+        priority: draft.priority,
+        note: draft.note ?? null,
+        point: draft.point,
+        createdAt: now,
+      });
+
+      // If it's a sign with details, upsert sign details separately
+      if (draft.type === "sign" && draft.signDetails) {
+        updateSignDetails({
+          workOrderId: itemId,
+          signTypeId: draft.signDetails.signTypeId,
+          category: draft.signDetails.category,
+          condition: draft.signDetails.condition,
+          action: draft.signDetails.action,
+          reflectivityIssue: draft.signDetails.reflectivityIssue,
+          // Inspection fields
+          inspectionVisible: draft.signDetails.inspectionVisible,
+          reflectivityScore: draft.signDetails.reflectivityScore,
+          delaminationScore: draft.signDetails.delaminationScore,
+          appearanceScore: draft.signDetails.appearanceScore,
+          postMaterial: draft.signDetails.postMaterial,
+          postConditionScore: draft.signDetails.postConditionScore,
+        });
+
+        // Sync sign to Firestore (dedupe or create via Cloud Function)
+        const orgId = await getOrgId();
+        if (orgId && draft.signDetails.signCode && draft.signDetails.signName) {
+          try {
+            const result = await upsertSignForWorkOrder({
+              orgId,
+              signCategory: draft.signDetails.signCategory ?? "Other",
+              signCode: draft.signDetails.signCode,
+              signName: draft.signDetails.signName,
+              lat: draft.point.lat,
+              lng: draft.point.lng,
+            });
+            console.log("[MapScreen] Sign upserted via CF:", result.signId, result.merged ? "(merged)" : "(new)");
+          } catch (e) {
+            console.warn("[MapScreen] Firebase sign upsert failed:", e);
+            // Continue - local work order is already saved
+          }
+        }
+      }
+
+      dispatch(addLog({
+        id: uid(),
+        at: Date.now(),
+        workItemId: itemId,
+        action: "created",
+        message: `Created ${formatWorkType(draft.type)} @ ${draft.point.lat.toFixed(5)}, ${draft.point.lng.toFixed(5)}`,
+      }));
+    } else if (draft.points && draft.points.length >= 2) {
+      // Line work order
+      createLineWorkOrder({
+        id: itemId,
+        type: draft.type,
+        status: draft.status,
+        priority: draft.priority,
+        note: draft.note ?? null,
+        points: draft.points,
+        createdAt: now,
+      });
+
+      // If it's a sign with details, upsert sign details separately
+      if (draft.type === "sign" && draft.signDetails) {
+        updateSignDetails({
+          workOrderId: itemId,
+          signTypeId: draft.signDetails.signTypeId,
+          category: draft.signDetails.category,
+          condition: draft.signDetails.condition,
+          action: draft.signDetails.action,
+          reflectivityIssue: draft.signDetails.reflectivityIssue,
+          inspectionVisible: draft.signDetails.inspectionVisible,
+          reflectivityScore: draft.signDetails.reflectivityScore,
+          delaminationScore: draft.signDetails.delaminationScore,
+          appearanceScore: draft.signDetails.appearanceScore,
+          postMaterial: draft.signDetails.postMaterial,
+          postConditionScore: draft.signDetails.postConditionScore,
+        });
+
+        // Sync sign to Firestore (use first point as sign location via Cloud Function)
+        const orgId = await getOrgId();
+        const firstPoint = draft.points[0];
+        if (orgId && draft.signDetails.signCode && draft.signDetails.signName && firstPoint) {
+          try {
+            const result = await upsertSignForWorkOrder({
+              orgId,
+              signCategory: draft.signDetails.signCategory ?? "Other",
+              signCode: draft.signDetails.signCode,
+              signName: draft.signDetails.signName,
+              lat: firstPoint.lat,
+              lng: firstPoint.lng,
+            });
+            console.log("[MapScreen] Sign upserted (line) via CF:", result.signId, result.merged ? "(merged)" : "(new)");
+          } catch (e) {
+            console.warn("[MapScreen] Firebase sign upsert failed:", e);
+          }
+        }
+      }
+
+      dispatch(addLog({
+        id: uid(),
+        at: Date.now(),
+        workItemId: itemId,
+        action: "created",
+        message: `Created ${formatWorkType(draft.type)} line with ${draft.points.length} points`,
+      }));
     }
 
+    // Trigger notification for High/Urgent priority work orders
+    const isHighPriority = draft.priority === "High" || draft.priority === "Urgent";
+    if (isHighPriority) {
+      try {
+        const settings = await getNotificationSettings();
+        if (settings.notifyHighUrgentOnCreate) {
+          const title = `${draft.priority.toUpperCase()} Priority Work Order`;
+          const body = `${formatWorkType(draft.type)} created`;
+          await notifyWorkOrderCreated(title, body);
+          console.log("[MapScreen] Notification sent for", itemId);
+        }
+      } catch (e) {
+        console.warn("[MapScreen] Notification failed:", e);
+      }
+    }
+
+    setDraftWorkOrder(null);
+  }
+
+  async function createLine(
+    points: { lat: number; lng: number }[],
+    type: WorkType,
+    status = "Needs",
+    priority = "High",
+    note: string | null = null
+  ) {
     const now = Date.now();
     const itemId = uid();
 
     createLineWorkOrder({
       id: itemId,
       type,
-      status: "Needs",
-      priority: "High",
-      note: null,
+      status,
+      priority,
+      note,
       points: points,
       createdAt: now,
     });
@@ -205,15 +584,19 @@ export default function MapScreen() {
       message: `Created ${formatWorkType(type)} line work order` 
     }));
 
+    return itemId;
+  }
+
+  async function handleFinishLine() {
+    if (!pickType) return;
+    if (draftLine.length < 2) {
+      Alert.alert("Need at least 2 points", "Tap more points to draw a line");
+      return;
+    }
+    await stageLine(draftLine, pickType);
     setDraftLine([]);
     setPickingLocation(false);
     setPickType(null);
-    setSelectedId(itemId);
-  }
-
-  function handleFinishLine() {
-    if (!pickType) return;
-    createLine(draftLine, pickType);
   }
 
   function handleUndoLinePoint() {
@@ -226,6 +609,8 @@ export default function MapScreen() {
     setPickType(null);
   }
 
+
+
   function recenterToMe() {
     if (!myLoc || !mapRef.current) {
       Alert.alert("Location unavailable", "No GPS fix yet.");
@@ -235,6 +620,32 @@ export default function MapScreen() {
       { latitude: myLoc.lat, longitude: myLoc.lng, latitudeDelta: 0.02, longitudeDelta: 0.02 },
       350
     );
+  }
+
+  // DEV: Test bootstrap function from MapScreen
+  async function devBootstrapFromMap() {
+    try {
+      console.log("[MapScreen] DEV bootstrap starting...");
+      const auth = getAuth(getApp());
+      console.log("[MapScreen] current uid:", auth.currentUser?.uid ?? null);
+
+      const functions = getFunctions(getApp());
+      const fn = httpsCallable(functions, "roadwork_devBootstrapOrg");
+      const res = await fn({});
+
+      console.log("[MapScreen] DEV bootstrap OK:", res.data);
+      Alert.alert(
+        "Bootstrap Success ✅",
+        `OrgId: ${(res.data as any)?.orgId}\n\nCheck console for details.`
+      );
+    } catch (e: any) {
+      console.error("[MapScreen] DEV bootstrap ERROR message:", e?.message ?? e);
+      console.error("[MapScreen] DEV bootstrap ERROR full:", e);
+      Alert.alert(
+        "Bootstrap Failed ❌",
+        `Error: ${e?.message || e}\n\nCheck console for details.`
+      );
+    }
   }
 
   return (
@@ -248,17 +659,33 @@ export default function MapScreen() {
         </Text>
       </View>
 
+      {/* DEV: Bootstrap test button */}
+      {__DEV__ && (
+        <View style={{ padding: 8, backgroundColor: "#eff6ff" }}>
+          <Button title="DEV: Bootstrap Org" onPress={devBootstrapFromMap} />
+        </View>
+      )}
+
       <MapView
         ref={mapRef}
         style={styles.map}
         provider={PROVIDER_GOOGLE}
-        initialRegion={initialRegion}
+        region={mapRegion}
         showsUserLocation
         showsMyLocationButton={false}
         onPress={onMapPress}
         onPanDrag={() => setFollowMe(false)}
-        onRegionChangeComplete={(region) => setCurrentRegion(region)}
+        onRegionChangeComplete={(region) => {
+          // Guard: Don't overwrite during focus lock period
+          if (Date.now() < focusLockUntilRef.current) return;
+          setMapRegion(region);
+        }}
         mapType={mapType}
+        onMapReady={() => {
+          console.log("[MapScreen] onMapReady");
+          setMapReady(true);
+          // Focus will be applied by useFocusEffect when mapReady becomes true
+        }}
       >
         {/* Render work orders from SQLite */}
         {dbItems.map(item => {
@@ -311,6 +738,24 @@ export default function MapScreen() {
             title={`Point ${i + 1}`}
           />
         ))}
+
+        {/* Draft point marker (unsaved work order) */}
+        {draftWorkOrder?.point && (
+          <Marker
+            coordinate={{ latitude: draftWorkOrder.point.lat, longitude: draftWorkOrder.point.lng }}
+            pinColor="#f59e0b"
+            title={`Draft ${formatWorkType(draftWorkOrder.type)}`}
+          />
+        )}
+
+        {/* Draft line marker (unsaved work order) */}
+        {draftWorkOrder?.points && draftWorkOrder.points.length >= 2 && (
+          <Polyline
+            coordinates={draftWorkOrder.points.map(p => ({ latitude: p.lat, longitude: p.lng }))}
+            strokeWidth={5}
+            strokeColor="#f59e0b"
+          />
+        )}
       </MapView>
 
       {/* Line Drawing Controls */}
@@ -358,7 +803,22 @@ export default function MapScreen() {
         <Text style={styles.filterText}>🔍 Filter</Text>
       </Pressable>
 
-      <WorkItemSheet workItemId={selectedId} onClose={() => setSelectedId(null)} />  {/* Changed from item={selected} */}
+      {selectedId && (
+        <WorkItemSheet
+          mode="existing"
+          workItemId={selectedId}
+          onClose={() => setSelectedId(null)}
+        />
+      )}
+
+      {draftWorkOrder && (
+        <WorkItemSheet
+          mode="draft"
+          draftWorkOrder={draftWorkOrder}
+          onCreateDraft={createFromDraft}
+          onClose={() => setDraftWorkOrder(null)}
+        />
+      )}
 
       <CreateWizardModal
         visible={wizardOpen}

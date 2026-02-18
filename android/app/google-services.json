@@ -1,0 +1,114 @@
+{
+  "project_info": {
+    "project_number": "1097724420570",
+    "project_id": "skyhours-781d1",
+    "storage_bucket": "skyhours-781d1.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1097724420570:android:2ebd446569a24e499de0e3",
+        "android_client_info": {
+          "package_name": "com.roadworktracker"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "1097724420570-a6l04qju7mdul2o9rom77pj4ub0aq7vd.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBWAxjWHZLDWOqRSGK0GWjoTp2K-K3VTVg"
+        },
+        {
+          "current_key": "AIzaSyAJXjCf7n350KJhdReUUDhldLngtd4nhKw"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "1097724420570-a6l04qju7mdul2o9rom77pj4ub0aq7vd.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1097724420570:android:a4eed1bab0fbed469de0e3",
+        "android_client_info": {
+          "package_name": "com.skyhours.app"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "1097724420570-a6l04qju7mdul2o9rom77pj4ub0aq7vd.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBWAxjWHZLDWOqRSGK0GWjoTp2K-K3VTVg"
+        },
+        {
+          "current_key": "AIzaSyAJXjCf7n350KJhdReUUDhldLngtd4nhKw"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "1097724420570-a6l04qju7mdul2o9rom77pj4ub0aq7vd.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1097724420570:android:8a08b2eb42bbfcf19de0e3",
+        "android_client_info": {
+          "package_name": "com.skyhours.logbook"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "1097724420570-s3ah12vh5c4r03hijkb4p4c8ub67cg8h.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.skyhours.logbook",
+            "certificate_hash": "5e8f16062ea3cd2c4a0d547876baa6f38cabf625"
+          }
+        },
+        {
+          "client_id": "1097724420570-a6l04qju7mdul2o9rom77pj4ub0aq7vd.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBWAxjWHZLDWOqRSGK0GWjoTp2K-K3VTVg"
+        },
+        {
+          "current_key": "AIzaSyAJXjCf7n350KJhdReUUDhldLngtd4nhKw"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "1097724420570-a6l04qju7mdul2o9rom77pj4ub0aq7vd.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

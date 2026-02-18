@@ -1,6 +1,10 @@
 import React, { useEffect, useState } from "react";
-import { View, Text, Switch, StyleSheet, ScrollView, Pressable } from "react-native";
+import { View, Text, Switch, StyleSheet, ScrollView, Pressable, Alert } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { getApp } from "@react-native-firebase/app";
+import { getAuth } from "@react-native-firebase/auth";
+import { getFunctions, httpsCallable } from "@react-native-firebase/functions";
+import { useOrg } from "../state/OrgContext";
 import { WORK_ORDER_TYPE_OPTIONS } from "../constants/workOrderTypes";
 import type { WorkType } from "../types/workItem";
 
@@ -33,6 +37,7 @@ export async function getNotificationSettings(): Promise<NotificationSettings> {
 
 export default function SettingsScreen() {
   const [settings, setSettings] = useState<NotificationSettings>(DEFAULTS);
+  const { clearOrgId } = useOrg();
 
   useEffect(() => {
     (async () => {
@@ -47,9 +52,69 @@ export default function SettingsScreen() {
     await AsyncStorage.setItem(KEY, JSON.stringify(updated));
   };
 
+  // DEV: Test Functions emulator connection
+  const devPingFunctions = async () => {
+    try {
+      console.log("[DEV] Testing Functions emulator...");
+      const functions = getFunctions(getApp());
+      const ping = httpsCallable(functions, "roadwork_devBootstrapOrg");
+      const res = await ping({});
+      console.log("[DEV] Bootstrap OK:", res.data);
+      Alert.alert(
+        "Functions Emulator ✅",
+        `Successfully called roadwork_devBootstrapOrg\n\nOrgId: ${(res.data as any)?.orgId}\n\nCheck console for full response.`,
+        [{ text: "OK" }]
+      );
+    } catch (e: any) {
+      console.error("[DEV] Functions ping failed:", e);
+      Alert.alert(
+        "Functions Emulator ❌",
+        `Error: ${e?.message || e}\n\nCheck console for details.`,
+        [{ text: "OK" }]
+      );
+    }
+  };
+
+  const handleLogout = async () => {
+    Alert.alert(
+      "Sign Out",
+      "Are you sure you want to sign out?",
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Sign Out",
+          style: "destructive",
+          onPress: async () => {
+            try {
+              const auth = getAuth(getApp());
+              await auth.signOut();
+              await clearOrgId();
+              console.log("[Settings] Signed out successfully");
+            } catch (e: any) {
+              console.error("[Settings] Logout error:", e);
+              Alert.alert("Error", "Failed to sign out. Please try again.");
+            }
+          },
+        },
+      ]
+    );
+  };
+
   return (
     <ScrollView style={styles.container}>
       <Text style={styles.title}>Settings</Text>
+
+      {/* ACCOUNT SECTION */}
+      <View style={styles.section}>
+        <Text style={styles.sectionTitle}>Account</Text>
+        
+        <Pressable
+          onPress={handleLogout}
+          style={styles.logoutButton}
+        >
+          <Text style={styles.logoutButtonText}>Sign Out</Text>
+        </Pressable>
+      </View>
 
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Notifications</Text>
@@ -116,6 +181,27 @@ export default function SettingsScreen() {
           ))}
         </View>
       </View>
+
+      {/* DEV SECTION: Test Functions Emulator */}
+      {__DEV__ && (
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>🔧 Developer Tools</Text>
+          
+          <Pressable
+            onPress={devPingFunctions}
+            style={styles.devTestButton}
+          >
+            <Text style={styles.devTestButtonText}>Test Functions Emulator</Text>
+            <Text style={styles.devTestDescription}>
+              Calls roadwork_devBootstrapOrg() to verify:
+              {"\n"}• Phone → Functions emulator ✅
+              {"\n"}• Auth token passed ✅
+              {"\n"}• Callable reachable ✅
+              {"\n"}• Firestore emulator write ✅
+            </Text>
+          </Pressable>
+        </View>
+      )}
 
       <View style={styles.footer}>
         <Text style={styles.footerText}>RoadWorkTracker v1.0</Text>
@@ -203,5 +289,38 @@ const styles = StyleSheet.create({
   typeLabel: {
     fontWeight: "700",
     fontSize: 15,
+  },
+  devTestButton: {
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+    borderWidth: 2,
+    borderColor: "#3b82f6",
+    borderRadius: 12,
+    backgroundColor: "#eff6ff",
+  },
+  devTestButtonText: {
+    fontWeight: "800",
+    fontSize: 16,
+    color: "#1d4ed8",
+    marginBottom: 8,
+  },
+  devTestDescription: {
+    fontSize: 12,
+    color: "#475569",
+    lineHeight: 18,
+  },
+  logoutButton: {
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+    borderWidth: 1,
+    borderColor: "#dc2626",
+    borderRadius: 12,
+    backgroundColor: "#fef2f2",
+    alignItems: "center",
+  },
+  logoutButtonText: {
+    fontWeight: "800",
+    fontSize: 16,
+    color: "#dc2626",
   },
 });

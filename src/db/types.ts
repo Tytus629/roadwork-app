@@ -31,6 +31,20 @@ export type SignDetailsRow = {
   condition?: string | null;
   action?: string | null;
   reflectivityIssue?: 0 | 1 | null;
+
+  // MUTCD Sign Catalog fields
+  signCategory?: string | null;     // MUTCD category (Regulatory, Warning, etc.)
+  signCode?: string | null;         // MUTCD code (e.g., R1-1)
+  signName?: string | null;         // MUTCD name (e.g., STOP)
+  
+  // Inspection sheet fields
+  inspectionVisible?: 0 | 1 | null;      // Toggle state per work order
+  reflectivityScore?: number | null;     // 1-10 rating
+  delaminationScore?: number | null;     // 1-10 rating
+  appearanceScore?: number | null;       // 1-10 rating
+  postMaterial?: "Wood" | "Steel" | null;
+  postConditionScore?: number | null;    // 1-10 rating
+  inspectionLastSavedAt?: number | null; // epoch ms - timestamp of last inspection save
 };
 
 export type WorkOrderFilter = {

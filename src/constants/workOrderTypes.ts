@@ -20,7 +20,17 @@ export const WORK_ORDER_TYPE_OPTIONS: { key: WorkType; label: string }[] = [
 /**
  * Get user-friendly label for a work type
  */
-export function formatWorkType(type: WorkType): string {
-  const found = WORK_ORDER_TYPE_OPTIONS.find(opt => opt.key === type);
-  return found?.label ?? type;
+function normalizeWorkTypeKey(type?: string | null): WorkType | "" {
+  const t = (type ?? "").trim();
+  if (!t) return "";
+  return t.toLowerCase().replace(/\s+/g, "_") as WorkType;
+}
+
+export function formatWorkType(type?: string | null): string {
+  const normalized = normalizeWorkTypeKey(type);
+  const found = WORK_ORDER_TYPE_OPTIONS.find(opt => opt.key === normalized);
+  if (found) return found.label;
+
+  const fallback = (type ?? "").trim();
+  return fallback.length ? fallback : "Unknown";
 }

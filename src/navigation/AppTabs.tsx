@@ -22,7 +22,7 @@ import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import Icon from "react-native-vector-icons/MaterialCommunityIcons";
 
 import MapScreen from "../screens/MapScreen";
-import WorkListScreen from "../screens/WorkListScreen";
+import { WorkOrdersScreen } from "../screens/WorkOrdersScreen";
 import SignsHomeScreen from "../screens/SignsHomeScreen";
 import { MoreStack } from "./MoreStack";
 
@@ -47,9 +47,9 @@ export default function AppTabs() {
       />
       <Tab.Screen 
         name="Work" 
-        component={WorkListScreen} 
+        component={WorkOrdersScreen} 
         options={{ 
-          title: "Work Orders",
+          title: "Active Work Orders",
           tabBarIcon: ({ color, size }) => <Icon name="format-list-bulleted" size={size} color={color} />
         }} 
       />

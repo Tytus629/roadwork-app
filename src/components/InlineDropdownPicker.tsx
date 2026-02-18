@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from "react";
-import { View, Text, Pressable, TextInput, FlatList } from "react-native";
+import { View, Text, Pressable, TextInput, ScrollView } from "react-native";
 
 type Item = {
   key: string;          // unique id (ex: "R1-1")
@@ -75,13 +75,10 @@ export default function InlineDropdownPicker(props: Props) {
             />
           </View>
 
-          <FlatList
-            keyboardShouldPersistTaps="handled"
-            data={filtered}
-            keyExtractor={(it) => it.key}
-            style={{ maxHeight: 260 }}
-            renderItem={({ item }) => (
+          <ScrollView keyboardShouldPersistTaps="handled" style={{ maxHeight: 260 }}>
+            {filtered.map((item) => (
               <Pressable
+                key={item.key}
                 onPress={() => {
                   onSelect(item.key);
                   // CRITICAL: collapse + cleanup immediately
@@ -97,8 +94,8 @@ export default function InlineDropdownPicker(props: Props) {
               >
                 <Text>{item.label}</Text>
               </Pressable>
-            )}
-          />
+            ))}
+          </ScrollView>
         </View>
       )}
     </View>
