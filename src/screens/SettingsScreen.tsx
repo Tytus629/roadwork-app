@@ -35,9 +35,46 @@ export async function getNotificationSettings(): Promise<NotificationSettings> {
   }
 }
 
+function SettingsRow({
+  title,
+  subtitle,
+  destructive,
+  onPress,
+}: {
+  title: string;
+  subtitle?: string;
+  destructive?: boolean;
+  onPress: () => void;
+}) {
+  return (
+    <Pressable
+      onPress={onPress}
+      style={({ pressed }) => ({
+        paddingVertical: 14,
+        paddingHorizontal: 14,
+        borderRadius: 14,
+        borderWidth: 1,
+        borderColor: destructive ? "#fca5a5" : "#e5e7eb",
+        backgroundColor: destructive ? "#fef2f2" : "white",
+        opacity: pressed ? 0.7 : 1,
+        marginTop: 10,
+      })}
+    >
+      <Text style={{ fontSize: 16, fontWeight: "700", color: destructive ? "#dc2626" : "#111827" }}>
+        {title}
+      </Text>
+      {!!subtitle && (
+        <Text style={{ marginTop: 4, fontSize: 14, opacity: 0.7 }}>
+          {subtitle}
+        </Text>
+      )}
+    </Pressable>
+  );
+}
+
 export default function SettingsScreen() {
   const [settings, setSettings] = useState<NotificationSettings>(DEFAULTS);
-  const { clearOrgId } = useOrg();
+  const { orgId, clearOrgId } = useOrg();
 
   useEffect(() => {
     (async () => {
@@ -75,10 +112,28 @@ export default function SettingsScreen() {
     }
   };
 
-  const handleLogout = async () => {
+  async function onSwitchOrg() {
     Alert.alert(
-      "Sign Out",
-      "Are you sure you want to sign out?",
+      "Switch organization?",
+      "You'll return to the organization picker. Your account stays signed in.",
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Switch",
+          style: "default",
+          onPress: async () => {
+            await clearOrgId();
+            // RootGate will automatically show OrgPicker when orgId is cleared
+          },
+        },
+      ]
+    );
+  }
+
+  async function onSignOut() {
+    Alert.alert(
+      "Sign out?",
+      "You'll be signed out of your account and will need to sign in again.",
       [
         { text: "Cancel", style: "cancel" },
         {
@@ -86,10 +141,12 @@ export default function SettingsScreen() {
           style: "destructive",
           onPress: async () => {
             try {
+              // Clear org selection FIRST (so RootGate can route cleanly)
+              await clearOrgId();
               const auth = getAuth(getApp());
               await auth.signOut();
-              await clearOrgId();
               console.log("[Settings] Signed out successfully");
+              // RootGate will automatically show Auth screen when user is null
             } catch (e: any) {
               console.error("[Settings] Logout error:", e);
               Alert.alert("Error", "Failed to sign out. Please try again.");
@@ -98,29 +155,7 @@ export default function SettingsScreen() {
         },
       ]
     );
-  };
-
-  const handleSwitchOrg = async () => {
-    Alert.alert(
-      "Switch Organization",
-      "Choose a different organization?",
-      [
-        { text: "Cancel", style: "cancel" },
-        {
-          text: "Switch",
-          onPress: async () => {
-            try {
-              await clearOrgId();
-              console.log("[Settings] Cleared org selection");
-            } catch (e: any) {
-              console.error("[Settings] Switch org error:", e);
-              Alert.alert("Error", "Failed to switch organization");
-            }
-          },
-        },
-      ]
-    );
-  };
+  }
 
   return (
     <ScrollView style={styles.container}>
@@ -130,19 +165,18 @@ export default function SettingsScreen() {
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Account</Text>
         
-        <Pressable
-          onPress={handleSwitchOrg}
-          style={styles.switchOrgButton}
-        >
-          <Text style={styles.switchOrgButtonText}>Switch Organization</Text>
-        </Pressable>
+        <SettingsRow
+          title="Switch Organization"
+          subtitle={orgId ? `Current org: ${orgId.slice(0, 8)}...` : "No org selected"}
+          onPress={onSwitchOrg}
+        />
 
-        <Pressable
-          onPress={handleLogout}
-          style={styles.logoutButton}
-        >
-          <Text style={styles.logoutButtonText}>Sign Out</Text>
-        </Pressable>
+        <SettingsRow
+          title="Sign Out"
+          subtitle="Sign out of your account on this device."
+          destructive
+          onPress={onSignOut}
+        />
       </View>
 
       <View style={styles.section}>
@@ -337,21 +371,6 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: "#475569",
     lineHeight: 18,
-  },
-  switchOrgButton: {
-    paddingVertical: 14,
-    paddingHorizontal: 16,
-    borderWidth: 1,
-    borderColor: "#3b82f6",
-    borderRadius: 12,
-    backgroundColor: "#eff6ff",
-    alignItems: "center",
-    marginBottom: 12,
-  },
-  switchOrgButtonText: {
-    fontWeight: "700",
-    fontSize: 16,
-    color: "#3b82f6",
   },
   logoutButton: {
     paddingVertical: 14,

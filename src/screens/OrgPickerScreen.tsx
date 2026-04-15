@@ -8,7 +8,7 @@ import { useOrg } from "../state/OrgContext";
 
 type OrgRow = { orgId: string; name: string; role: string };
 
-export function OrgPickerScreen({ navigation }: any) {
+export function OrgPickerScreen() {
   const { setOrgId } = useOrg();
   const [orgs, setOrgs] = useState<OrgRow[]>([]);
   const [loading, setLoading] = useState(true);
@@ -29,21 +29,17 @@ export function OrgPickerScreen({ navigation }: any) {
     const unsubscribe = onSnapshot(
       q,
       async (snapshot) => {
-        console.log(`[OrgPicker] Found ${snapshot.docs.length} org memberships`);
+        console.log("[OrgPicker] memberships snap:", snapshot.size);
 
         const orgList: OrgRow[] = [];
 
-        for (const memberDoc of snapshot.docs) {
-          const memberData = memberDoc.data();
-          // Get orgId from document path: orgs/{orgId}/members/{uid}
-          const orgRef = memberDoc.ref.parent?.parent;
+        for (const docSnap of snapshot.docs) {
+          const orgRef = docSnap.ref.parent?.parent;
           const orgId = orgRef?.id;
-          const role = String(memberData.role ?? "member");
+          if (!orgId) continue;
 
-          if (!orgId) {
-            console.warn("[OrgPicker] Could not resolve orgId from membership path");
-            continue;
-          }
+          const memberData = docSnap.data();
+          const role = String(memberData.role ?? "member");
 
           try {
             const orgDocRef = doc(db, "orgs", orgId);
@@ -89,9 +85,16 @@ export function OrgPickerScreen({ navigation }: any) {
       console.log("[OrgPicker] DEV bootstrap OK:", res.data);
 
       const orgId = (res.data as any)?.orgId;
+      
+      // Automatically select the newly created org
+      if (orgId) {
+        await setOrgId(orgId);
+        console.log("[OrgPicker] Auto-selected bootstrapped org:", orgId);
+      }
+      
       Alert.alert(
         "Bootstrap Success ✅",
-        `Created org: ${orgId}\n\nThe org list should refresh automatically.`,
+        `Created and selected org: ${orgId}`,
         [{ text: "OK" }]
       );
     } catch (e: any) {
@@ -118,9 +121,6 @@ export function OrgPickerScreen({ navigation }: any) {
       <Text style={styles.title}>Choose Organization</Text>
 
       <View style={{ height: 12 }} />
-      <Button title="Create Organization" onPress={() => navigation.navigate("CreateOrg")} />
-
-      <View style={{ height: 8 }} />
       <Button title="DEV: Bootstrap Org (emulator)" onPress={devBootstrap} />
 
       <View style={{ height: 12 }} />
