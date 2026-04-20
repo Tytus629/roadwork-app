@@ -1,0 +1,27 @@
+--------- beginning of main
+04-05 10:39:15.842 I/ReactNativeJS( 9350): '[RemoteSync][assets] snapshot', { orgId: 'ZKzedc9znJlSJXPy7Ycf',
+04-05 10:39:15.842 I/ReactNativeJS( 9350):   totalDocs: 2,
+04-05 10:39:15.842 I/ReactNativeJS( 9350):   changes: 1,
+04-05 10:39:15.842 I/ReactNativeJS( 9350):   fromCache: false,
+04-05 10:39:15.842 I/ReactNativeJS( 9350):   applied: 1,
+04-05 10:39:15.842 I/ReactNativeJS( 9350):   removed: 0,
+04-05 10:39:15.842 I/ReactNativeJS( 9350):   skipped: 0 }
+04-05 10:39:15.990 I/ReactNativeJS( 9350): '[RemoteSync][assets] snapshot', { orgId: 'ZKzedc9znJlSJXPy7Ycf',
+04-05 10:39:15.990 I/ReactNativeJS( 9350):   totalDocs: 2,
+04-05 10:39:15.990 I/ReactNativeJS( 9350):   changes: 1,
+04-05 10:39:15.990 I/ReactNativeJS( 9350):   fromCache: false,
+04-05 10:39:15.990 I/ReactNativeJS( 9350):   applied: 1,
+04-05 10:39:15.990 I/ReactNativeJS( 9350):   removed: 0,
+04-05 10:39:15.990 I/ReactNativeJS( 9350):   skipped: 0 }
+04-05 10:39:16.193 I/ReactNativeJS( 9350): [RemoteSync][WO] snapshot size=6 changes=1
+04-05 10:39:16.195 I/ReactNativeJS( 9350): [RemoteSync][WO] applying doc id=a9bj8g3po7mnm1q2bf event=added
+04-05 10:39:16.195 I/ReactNativeJS( 9350): [RemoteSync][WO] local upsert success id=a9bj8g3po7mnm1q2bf geom=point
+04-05 10:39:16.202 I/ReactNativeJS( 9350): [RemoteSync][WO] emit refresh
+04-05 10:39:16.204 I/ReactNativeJS( 9350): '[RemoteSync][WO] snapshot summary', { orgId: 'ZKzedc9znJlSJXPy7Ycf',
+04-05 10:39:16.204 I/ReactNativeJS( 9350):   totalDocs: 6,
+04-05 10:39:16.204 I/ReactNativeJS( 9350):   changes: 1,
+04-05 10:39:16.204 I/ReactNativeJS( 9350):   fromCache: false,
+04-05 10:39:16.204 I/ReactNativeJS( 9350):   applied: 1,
+04-05 10:39:16.204 I/ReactNativeJS( 9350):   removed: 0,
+04-05 10:39:16.204 I/ReactNativeJS( 9350):   skipped: 0,
+04-05 10:39:16.204 I/ReactNativeJS( 9350):   failed: 0 }

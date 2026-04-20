@@ -1,6 +1,8 @@
 import React from "react";
 import { View, Text, TouchableOpacity, StyleSheet } from "react-native";
 import { useNavigation } from "@react-navigation/native";
+import { useOrg } from "../state/OrgContext";
+import { hasRolePermission } from "../permissions/rolePermissions";
 
 function Row({
   title,
@@ -21,16 +23,15 @@ function Row({
 
 export default function MoreScreen() {
   const navigation = useNavigation<any>();
+  const { role } = useOrg();
+  const validationAssetId = "asset_1775949152653_5712fe5c8babd4";
+  const canUseTools =
+    hasRolePermission("createDmi", role) ||
+    hasRolePermission("createCounter", role);
+  const canUseTailgate = hasRolePermission("createTailgate", role);
 
   return (
     <View style={styles.container}>
-      <View style={styles.header}>
-        <Text style={styles.headerTitle}>More</Text>
-        <Text style={styles.headerSubtitle}>
-          Logs, tools, and settings
-        </Text>
-      </View>
-
       <Row
         title="Log / Archive"
         subtitle="Audit trail and completed items"
@@ -42,9 +43,28 @@ export default function MoreScreen() {
         onPress={() => navigation.navigate("SignsDue")}
       />
       <Row
-        title="Tools"
-        subtitle="Field calculators and utilities"
-        onPress={() => navigation.navigate("Tools")}
+        title="DEV: Open Linked Asset Validation"
+        subtitle="Open known asset detail for timeline tap validation"
+        onPress={() => navigation.navigate("AssetDetail", { assetId: validationAssetId })}
+      />
+      {canUseTools ? (
+        <Row
+          title="Tools"
+          subtitle="Field calculators and utilities"
+          onPress={() => navigation.navigate("Tools")}
+        />
+      ) : null}
+      {canUseTailgate ? (
+        <Row
+          title="Tailgate Logs"
+          subtitle="Daily safety checklists"
+          onPress={() => navigation.navigate("TailgateLogs")}
+        />
+      ) : null}
+      <Row
+        title="Operations Lists"
+        subtitle="Shared program/route progress across crews"
+        onPress={() => navigation.navigate("OperationsLists")}
       />
       <Row
         title="Settings"
@@ -59,19 +79,6 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: "white",
-  },
-  header: {
-    padding: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: "#eee",
-  },
-  headerTitle: {
-    fontWeight: "800",
-    fontSize: 18,
-  },
-  headerSubtitle: {
-    marginTop: 6,
-    color: "#666",
   },
   row: {
     paddingVertical: 14,

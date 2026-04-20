@@ -222,7 +222,7 @@ export function MeasureDistanceScreen() {
         ref={mapRef}
         style={styles.map}
         provider={PROVIDER_GOOGLE}
-        mapType="satellite"
+        mapType="hybrid"
         onPress={onMapPress}
         showsUserLocation
         showsMyLocationButton={false}

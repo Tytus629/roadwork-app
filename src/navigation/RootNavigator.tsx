@@ -5,13 +5,19 @@ import ToolsScreen from "../screens/ToolsScreen";
 import WorkItemSheetScreen from "../screens/WorkItemSheetScreen";
 import { AsphaltCalculatorScreen } from "../tools/asphalt/AsphaltCalculatorScreen";
 import { MeasureDistanceScreen } from "../tools/measure/MeasureDistanceScreen";
+import AssetDetailScreen from "../screens/AssetDetailScreen";
+import DmiScreen from "../screens/DmiScreen";
+import CounterScreen from "../screens/CounterScreen";
 
 export type RootStackParamList = {
   MainTabs: undefined;
   Tools: undefined;
   WorkItemSheet: { id: string };
+  AssetDetail: { assetId: string };
   AsphaltCalculator: undefined;
   MeasureDistance: undefined;
+  Dmi: undefined;
+  Counter: undefined;
 };
 
 const Stack = createStackNavigator<RootStackParamList>();
@@ -34,6 +40,11 @@ export default function RootNavigator() {
         component={WorkItemSheetScreen}
         options={{ title: "Work Order", presentation: "modal" }}
       />
+      <Stack.Screen
+        name="AssetDetail"
+        component={AssetDetailScreen}
+        options={{ title: "Asset Detail" }}
+      />
       <Stack.Screen 
         name="AsphaltCalculator" 
         component={AsphaltCalculatorScreen}
@@ -43,6 +54,16 @@ export default function RootNavigator() {
         name="MeasureDistance" 
         component={MeasureDistanceScreen}
         options={{ title: "Measure Distance" }}
+      />
+      <Stack.Screen
+        name="Dmi"
+        component={DmiScreen}
+        options={{ title: "DMI" }}
+      />
+      <Stack.Screen
+        name="Counter"
+        component={CounterScreen}
+        options={{ title: "Counter" }}
       />
     </Stack.Navigator>
   );

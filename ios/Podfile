@@ -5,6 +5,20 @@ require Pod::Executable.execute_command('node', ['-p',
     {paths: [process.argv[1]]},
   )', __dir__]).strip
 
+# react-native-permissions — declare only the permissions actually used
+require Pod::Executable.execute_command('node', ['-p',
+  'require.resolve(
+    "react-native-permissions/scripts/setup.rb",
+    {paths: [process.argv[1]]},
+  )', __dir__]).strip
+
+setup_permissions([
+  'LocationWhenInUse',
+  'Camera',
+  'PhotoLibrary',
+  'Notifications',
+])
+
 # Firebase - use static frameworks for better compatibility
 $RNFirebaseAsStaticFramework = true
 

@@ -1,0 +1,410 @@
+--------- beginning of main
+04-05 10:41:26.977 I/ReactNativeJS(27786): '[CULVERT][ASSET] history load', { assetId: 'asset_1775403352606_84231781a2f23',
+04-05 10:41:26.977 I/ReactNativeJS(27786):   orgId: 'ZKzedc9znJlSJXPy7Ycf',
+04-05 10:41:26.977 I/ReactNativeJS(27786):   eventCount: 1,
+04-05 10:41:26.977 I/ReactNativeJS(27786):   hasDetails: false }
+04-05 10:41:26.978 I/ReactNativeJS(27786): '[CULVERT][ASSET] history load', { assetId: 'asset_1775403352606_84231781a2f23',
+04-05 10:41:26.978 I/ReactNativeJS(27786):   orgId: 'ZKzedc9znJlSJXPy7Ycf',
+04-05 10:41:26.978 I/ReactNativeJS(27786):   eventCount: 1,
+04-05 10:41:26.978 I/ReactNativeJS(27786):   hasDetails: false }
+04-05 10:41:26.986 I/ReactNativeJS(27786): '[AssetDetail][Repairs] projection', { assetId: 'asset_1775403352606_84231781a2f23',
+04-05 10:41:26.986 I/ReactNativeJS(27786):   orgId: 'ZKzedc9znJlSJXPy7Ycf',
+04-05 10:41:26.986 I/ReactNativeJS(27786):   candidateWOCount: 4,
+04-05 10:41:26.986 I/ReactNativeJS(27786):   linkedMatchCount: 4,
+04-05 10:41:26.986 I/ReactNativeJS(27786):   completedMatchCount: 1,
+04-05 10:41:26.986 I/ReactNativeJS(27786):   relevantTypeMatchCount: 1,
+04-05 10:41:26.986 I/ReactNativeJS(27786):   dedupedCount: 1,
+04-05 10:41:26.986 I/ReactNativeJS(27786):   finalRepairCount: 1,
+04-05 10:41:26.986 I/ReactNativeJS(27786):   excluded: 
+04-05 10:41:26.986 I/ReactNativeJS(27786):    { wrongAssetLink: 0,
+04-05 10:41:26.986 I/ReactNativeJS(27786):      wrongStatus: 3,
+04-05 10:41:26.986 I/ReactNativeJS(27786):      wrongType: 0,
+04-05 10:41:26.986 I/ReactNativeJS(27786):      duplicate: 0,
+04-05 10:41:26.986 I/ReactNativeJS(27786):      missingId: 0 } }
+04-05 10:41:27.999 I/ReactNativeJS(27786): [Map][SignRender] asset id=asset_1775403078267_0f760479a9a61d type=SIGN kind=UNKNOWN shape=unknown
+04-05 10:41:27.999 I/ReactNativeJS(27786): [Map][SignRender] final marker component=generic asset id=asset_1775403078267_0f760479a9a61d
+04-05 10:41:28.049 I/ReactNativeJS(27786): [MapScreen][SignVisual] total=1 fallback=1 styles=UNKNOWN:1 normalized=UNKNOWN:1
+04-05 10:41:28.050 I/ReactNativeJS(27786): [MapScreen] DB loaded 0 items in viewport
+04-05 10:41:28.051 I/ReactNativeJS(27786): [CULVERT][MAP] viewportRows=0 totalRows=0
+04-05 10:41:28.052 I/ReactNativeJS(27786):   [MapScreen] bbox minLat=46.9565 maxLat=47.0365 minLng=-120.5878 maxLng=-120.5078
+04-05 10:41:28.128 I/ReactNativeJS(27786): [MapScreen][SignVisual] total=0 fallback=0 styles=none normalized=none
+04-05 10:41:28.131 I/ReactNativeJS(27786): [MapScreen][SignVisual] total=0 fallback=0 styles=none normalized=none
+04-05 10:41:28.267 I/ReactNativeJS(27786): [MapScreen] onMapReady
+04-05 10:41:28.309 I/ReactNativeJS(27786): [MapScreen] onMapReady
+04-05 10:41:28.430 I/ReactNativeJS(27786): [MapScreen] markers unsuppressed
+04-05 10:41:28.434 I/ReactNativeJS(27786): '[MapScreen] applyFocus:', { workOrderId: 'asset:asset_1775403352606_84231781a2f23',
+04-05 10:41:28.434 I/ReactNativeJS(27786):   latitude: 0,
+04-05 10:41:28.434 I/ReactNativeJS(27786):   longitude: 0,
+04-05 10:41:28.434 I/ReactNativeJS(27786):   zoom: 'close' }
+04-05 10:41:28.434 I/ReactNativeJS(27786): '[CULVERT][FOCUS] applying', { workOrderId: 'asset:asset_1775403352606_84231781a2f23',
+04-05 10:41:28.434 I/ReactNativeJS(27786):   latitude: 0,
+04-05 10:41:28.434 I/ReactNativeJS(27786):   longitude: 0 }
+04-05 10:41:28.681 I/ReactNativeJS(27786): [MapScreen] DB loaded 2 items in viewport
+04-05 10:41:28.686 I/ReactNativeJS(27786): [CULVERT][MAP] viewportRows=2 totalRows=2
+04-05 10:41:28.689 I/ReactNativeJS(27786):   [MapScreen] sample[0] id=59raf7ht geom=point lat=0 lng=0 orgId=ZKzedc9z
+04-05 10:41:28.691 I/ReactNativeJS(27786):   [MapScreen] sample[1] id=3g2k29j4 geom=point lat=0 lng=0 orgId=ZKzedc9z
+04-05 10:41:28.693 I/ReactNativeJS(27786):   [MapScreen] bbox minLat=-0.0015 maxLat=0.0015 minLng=-0.0015 maxLng=0.0015
+04-05 10:41:28.696 I/ReactNativeJS(27786): [MapScreen] markers unsuppressed
+04-05 10:41:30.179 I/ReactNativeJS(27786): '[CULVERT][CREATE] staging work order', { workOrderId: '8jaw1yi3zynmnm1syah',
+04-05 10:41:30.179 I/ReactNativeJS(27786):   orgId: 'ZKzedc9znJlSJXPy7Ycf',
+04-05 10:41:30.179 I/ReactNativeJS(27786):   geomType: 'point',
+04-05 10:41:30.179 I/ReactNativeJS(27786):   point: { lat: 0, lng: 0 },
+04-05 10:41:30.179 I/ReactNativeJS(27786):   linePoints: 0,
+04-05 10:41:30.179 I/ReactNativeJS(27786):   center: { lat: 0, lng: 0 } }
+04-05 10:41:30.190 I/ReactNativeJS(27786): '[CULVERT][CREATE] enqueue payload', { workOrderId: '8jaw1yi3zynmnm1syah',
+04-05 10:41:30.190 I/ReactNativeJS(27786):   orgId: 'ZKzedc9znJlSJXPy7Ycf',
+04-05 10:41:30.190 I/ReactNativeJS(27786):   geomType: 'point',
+04-05 10:41:30.190 I/ReactNativeJS(27786):   linePoints: 0,
+04-05 10:41:30.190 I/ReactNativeJS(27786):   geo: { type: 'Point', coordinates: [ 0, 0 ] } }
+04-05 10:41:30.190 I/ReactNativeJS(27786): '[Offline] saveAndEnqueueWorkOrder START', { id: '8jaw1yi3zynmnm1syah',
+04-05 10:41:30.190 I/ReactNativeJS(27786):   orgId: 'ZKzedc9znJlSJXPy7Ycf',
+04-05 10:41:30.190 I/ReactNativeJS(27786):   type: 'culvert' }
+04-05 10:41:30.191 I/ReactNativeJS(27786): '[OutboxDiag][line-sanitized]', { originalCount: 0, cleanedCount: 0, sample: [] }
+04-05 10:41:30.191 I/ReactNativeJS(27786): '[OutboxDiag][geo-final]', '{"type":"Point","coordinates":[0,0]}'
+04-05 10:41:30.192 I/ReactNativeJS(27786): '[CULVERT][CREATE] geometry saved', { workOrderId: '8jaw1yi3zynmnm1syah',
+04-05 10:41:30.192 I/ReactNativeJS(27786):   orgId: 'ZKzedc9znJlSJXPy7Ycf',
+04-05 10:41:30.192 I/ReactNativeJS(27786):   geometryType: 'Point',
+04-05 10:41:30.192 I/ReactNativeJS(27786):   geo: { type: 'Point', coordinates: [ 0, 0 ] } }
+04-05 10:41:30.193 I/ReactNativeJS(27786): '[OutboxDiag][local] work-order row', { workOrderId: '8jaw1yi3zynmnm1syah',
+04-05 10:41:30.193 I/ReactNativeJS(27786):   orgId: 'ZKzedc9znJlSJXPy7Ycf',
+04-05 10:41:30.193 I/ReactNativeJS(27786):   type: 'culvert',
+04-05 10:41:30.193 I/ReactNativeJS(27786):   status: 'Needs',
+04-05 10:41:30.193 I/ReactNativeJS(27786):   priority: 'High',
+04-05 10:41:30.193 I/ReactNativeJS(27786):   geometryType: 'Point',
+04-05 10:41:30.193 I/ReactNativeJS(27786):   lat: 0,
+04-05 10:41:30.193 I/ReactNativeJS(27786):   lng: 0,
+04-05 10:41:30.193 I/ReactNativeJS(27786):   hasLineJson: false,
+04-05 10:41:30.193 I/ReactNativeJS(27786):   linePointCount: 0,
+04-05 10:41:30.193 I/ReactNativeJS(27786):   hasDetailsJson: false,
+04-05 10:41:30.193 I/ReactNativeJS(27786):   assetId: 'asset_1775403352606_84231781a2f23',
+04-05 10:41:30.193 I/ReactNativeJS(27786):   assetType: 'CULVERT',
+04-05 10:41:30.193 I/ReactNativeJS(27786):   assetMatchMethod: null,
+04-05 10:41:30.193 I/ReactNativeJS(27786):   assignedToUserId: null,
+04-05 10:41:30.193 I/ReactNativeJS(27786):   assignedToName: null,
+04-05 10:41:30.193 I/ReactNativeJS(27786):   createdBy: 'iTzyyLupjpMKz5QJyWmOxYkpN6gT',
+04-05 10:41:30.193 I/ReactNativeJS(27786):   createdByName: 'kyle',
+04-05 10:41:30.193 I/ReactNativeJS(27786):   updatedBy: null,
+04-05 10:41:30.193 I/ReactNativeJS(27786):   updatedByName: null }
+04-05 10:41:30.201 I/ReactNativeJS(27786): '[Offline] saveAndEnqueueWorkOrder COMMITTED', { id: '8jaw1yi3zynmnm1syah' }
+04-05 10:41:30.202 I/ReactNativeJS(27786): '[CULVERT][CREATE] saved+enqueued', { workOrderId: '8jaw1yi3zynmnm1syah',
+04-05 10:41:30.202 I/ReactNativeJS(27786):   geomType: 'point',
+04-05 10:41:30.202 I/ReactNativeJS(27786):   center: { lat: 0, lng: 0 } }
+04-05 10:41:30.207 I/ReactNativeJS(27786): '[Offline] Saved work order + enqueued UPSERT_WORK_ORDER', { workOrderId: '8jaw1yi3zynmnm1syah' }
+04-05 10:41:30.209 I/ReactNativeJS(27786): '[Sync] UPSERT_WORK_ORDER payload', { orgId: 'ZKzedc9znJlSJXPy7Ycf',
+04-05 10:41:30.209 I/ReactNativeJS(27786):   workOrderId: '8jaw1yi3zynmnm1syah',
+04-05 10:41:30.209 I/ReactNativeJS(27786):   type: 'culvert',
+04-05 10:41:30.209 I/ReactNativeJS(27786):   geometryType: 'Point',
+04-05 10:41:30.209 I/ReactNativeJS(27786):   hasGeo: true,
+04-05 10:41:30.209 I/ReactNativeJS(27786):   hasGeoArray: false,
+04-05 10:41:30.209 I/ReactNativeJS(27786):   hasGeoPointObject: true,
+04-05 10:41:30.209 I/ReactNativeJS(27786):   hasGeometryObject: true,
+04-05 10:41:30.209 I/ReactNativeJS(27786):   geometryShapeType: 'Point',
+04-05 10:41:30.209 I/ReactNativeJS(27786):   linePointCount: 0,
+04-05 10:41:30.209 I/ReactNativeJS(27786):   lineCoordCount: 2,
+04-05 10:41:30.209 I/ReactNativeJS(27786):   payloadGeoPresent: true,
+04-05 10:41:30.209 I/ReactNativeJS(27786):   payloadGeometryPresent: true,
+04-05 10:41:30.209 I/ReactNativeJS(27786):   hasDetails: false,
+04-05 10:41:30.209 I/ReactNativeJS(27786):   hasAssetId: true,
+04-05 10:41:30.209 I/ReactNativeJS(27786):   assetType: 'culvert',
+04-05 10:41:30.209 I/ReactNativeJS(27786):   assetTypeSource: 'payload',
+04-05 10:41:30.209 I/ReactNativeJS(27786):   assetMatchMethod: null,
+04-05 10:41:30.209 I/ReactNativeJS(27786):   hasAssetLinkageObject: true }
+04-05 10:41:30.209 I/ReactNativeJS(27786): '[Sync] UPSERT_WORK_ORDER linkage', { workOrderId: '8jaw1yi3zynmnm1syah',
+04-05 10:41:30.209 I/ReactNativeJS(27786):   assetId: 'asset_1775403352606_84231781a2f23',
+04-05 10:41:30.209 I/ReactNativeJS(27786):   assetType: 'culvert',
+04-05 10:41:30.209 I/ReactNativeJS(27786):   assetTypeSource: 'payload',
+04-05 10:41:30.209 I/ReactNativeJS(27786):   assetMatchMethod: null,
+04-05 10:41:30.209 I/ReactNativeJS(27786):   hasAssetLinkageObject: true }
+04-05 10:41:30.210 I/ReactNativeJS(27786): '[OutboxDiag][send-initial] roadwork_upsertWorkOrder', { rowId: '8jaw1yi3zynmnm1syah:UPSERT_WORK_ORDER:1775410890193',
+04-05 10:41:30.210 I/ReactNativeJS(27786):   workOrderId: '8jaw1yi3zynmnm1syah',
+04-05 10:41:30.210 I/ReactNativeJS(27786):   orgId: 'ZKzedc9znJlSJXPy7Ycf',
+04-05 10:41:30.210 I/ReactNativeJS(27786):   type: 'culvert',
+04-05 10:41:30.210 I/ReactNativeJS(27786):   status: 'Needs',
+04-05 10:41:30.210 I/ReactNativeJS(27786):   priority: 3,
+04-05 10:41:30.210 I/ReactNativeJS(27786):   geometryType: 'Point',
+04-05 10:41:30.210 I/ReactNativeJS(27786):   hasGeo: true,
+04-05 10:41:30.210 I/ReactNativeJS(27786):   pointLat: 0,
+04-05 10:41:30.210 I/ReactNativeJS(27786):   pointLng: 0,
+04-05 10:41:30.210 I/ReactNativeJS(27786):   linePointCount: 2,
+04-05 10:41:30.210 I/ReactNativeJS(27786):   hasDetails: false,
+04-05 10:41:30.210 I/ReactNativeJS(27786):   detailsKeys: [],
+04-05 10:41:30.210 I/ReactNativeJS(27786):   assetId: 'asset_1775403352606_84231781a2f23',
+04-05 10:41:30.210 I/ReactNativeJS(27786):   assetType: 'culvert',
+04-05 10:41:30.210 I/ReactNativeJS(27786):   assetMatchMethod: null,
+04-05 10:41:30.210 I/ReactNativeJS(27786):   hasAssetRef: true,
+04-05 10:41:30.210 I/ReactNativeJS(27786):   hasAssetLinkageObject: true,
+04-05 10:41:30.210 I/ReactNativeJS(27786):   linkageAssetId: 'asset_1775403352606_84231781a2f23',
+04-05 10:41:30.210 I/ReactNativeJS(27786):   linkageAssetType: 'culvert',
+04-05 10:41:30.210 I/ReactNativeJS(27786):   createdBy: 'iTzyyLupjpMKz5QJyWmOxYkpN6gT',
+04-05 10:41:30.210 I/ReactNativeJS(27786):   createdByName: 'kyle',
+04-05 10:41:30.210 I/ReactNativeJS(27786):   updatedBy: null,
+04-05 10:41:30.210 I/ReactNativeJS(27786):   updatedByName: null,
+04-05 10:41:30.210 I/ReactNativeJS(27786):   appVersion: null,
+04-05 10:41:30.210 I/ReactNativeJS(27786):   schemaVersion: null,
+04-05 10:41:30.210 I/ReactNativeJS(27786):   topLevelKeys: 
+04-05 10:41:30.210 I/ReactNativeJS(27786):    [ 'assetId',
+04-05 10:41:30.210 I/ReactNativeJS(27786):      'assetLinkage',
+04-05 10:41:30.210 I/ReactNativeJS(27786):      'assetMatch',
+04-05 10:41:30.210 I/ReactNativeJS(27786):      'assetRef',
+04-05 10:41:30.210 I/ReactNativeJS(27786):      'assetType',
+04-05 10:41:30.210 I/ReactNativeJS(27786):      'assignedToEmail',
+04-05 10:41:30.210 I/ReactNativeJS(27786):      'assignedToName',
+04-05 10:41:30.210 I/ReactNativeJS(27786):      'assignedToUid',
+04-05 10:41:30.210 I/ReactNativeJS(27786):      'createdByDisplayName',
+04-05 10:41:30.210 I/ReactNativeJS(27786):      'createdByEmail',
+04-05 10:41:30.210 I/ReactNativeJS(27786):      'createdByFirstName',
+04-05 10:41:30.210 I/ReactNativeJS(27786):      'createdByLastName',
+04-05 10:41:30.210 I/ReactNativeJS(27786):      'createdByUid',
+04-05 10:41:30.210 I/ReactNativeJS(27786):      'details',
+04-05 10:41:30.210 I/ReactNativeJS(27786):      'geo',
+04-05 10:41:30.210 I/ReactNativeJS(27786):      'geometry',
+04-05 10:41:30.210 I/ReactNativeJS(27786):      'geometryType',
+04-05 10:41:30.210 I/ReactNativeJS(27786):      'id',
+04-05 10:41:30.210 I/ReactNativeJS(27786):      'note',
+04-05 10:41:30.210 I/ReactNativeJS(27786):      'orgId',
+04-05 10:41:30.210 I/ReactNativeJS(27786):      'priority',
+04-05 10:41:30.210 I/ReactNativeJS(27786):      'status',
+04-05 10:41:30.210 I/ReactNativeJS(27786):      'type',
+04-05 10:41:30.210 I/ReactNativeJS(27786):      'updatedAt' ] }
+04-05 10:41:30.211 I/ReactNativeJS(27786): '[OutboxDebug] sending roadwork_upsertWorkOrder', { rowId: '8jaw1yi3zynmnm1syah:UPSERT_WORK_ORDER:1775410890193',
+04-05 10:41:30.211 I/ReactNativeJS(27786):   kind: 'UPSERT_WORK_ORDER',
+04-05 10:41:30.211 I/ReactNativeJS(27786):   attemptCount: 0,
+04-05 10:41:30.211 I/ReactNativeJS(27786):   payload: 
+04-05 10:41:30.211 I/ReactNativeJS(27786):    { workOrderId: '8jaw1yi3zynmnm1syah',
+04-05 10:41:30.211 I/ReactNativeJS(27786):      type: 'culvert',
+04-05 10:41:30.211 I/ReactNativeJS(27786):      orgId: 'ZKzedc9znJlSJXPy7Ycf',
+04-05 10:41:30.211 I/ReactNativeJS(27786):      assetId: 'asset_1775403352606_84231781a2f23',
+04-05 10:41:30.211 I/ReactNativeJS(27786):      assetType: 'culvert',
+04-05 10:41:30.211 I/ReactNativeJS(27786):      assetMatchMethod: null,
+04-05 10:41:30.211 I/ReactNativeJS(27786):      hasDetails: false,
+04-05 10:41:30.211 I/ReactNativeJS(27786):      status: 'Needs',
+04-05 10:41:30.211 I/ReactNativeJS(27786):      hasGeometry: true } }
+04-05 10:41:30.211 I/ReactNativeJS(27786): [Sync] step 1 START — calling roadwork_upsertWorkOrder
+04-05 10:41:30.212 I/ReactNativeJS(27786): '[Sync] roadwork_upsertWorkOrder outgoing', { stage: 'initial',
+04-05 10:41:30.212 I/ReactNativeJS(27786):   rowId: '8jaw1yi3zynmnm1syah:UPSERT_WORK_ORDER:1775410890193',
+04-05 10:41:30.212 I/ReactNativeJS(27786):   workOrderId: '8jaw1yi3zynmnm1syah',
+04-05 10:41:30.212 I/ReactNativeJS(27786):   type: 'culvert',
+04-05 10:41:30.212 I/ReactNativeJS(27786):   assetId: 'asset_1775403352606_84231781a2f23',
+04-05 10:41:30.212 I/ReactNativeJS(27786):   assetType: 'culvert',
+04-05 10:41:30.212 I/ReactNativeJS(27786):   assetMatchMethod: null,
+04-05 10:41:30.212 I/ReactNativeJS(27786):   hasAssetLinkageObject: true,
+04-05 10:41:30.212 I/ReactNativeJS(27786):   linkageAssetId: 'asset_1775403352606_84231781a2f23',
+04-05 10:41:30.212 I/ReactNativeJS(27786):   linkageAssetType: 'culvert',
+04-05 10:41:30.212 I/ReactNativeJS(27786):   linkageTypeAlias: 'culvert',
+04-05 10:41:30.212 I/ReactNativeJS(27786):   linkageNestedAssetType: 'culvert',
+04-05 10:41:30.212 I/ReactNativeJS(27786):   assetRefAssetType: 'culvert',
+04-05 10:41:30.212 I/ReactNativeJS(27786):   hasGeoArray: false,
+04-05 10:41:30.212 I/ReactNativeJS(27786):   hasGeoPointObject: true,
+04-05 10:41:30.212 I/ReactNativeJS(27786):   hasGeometryObject: true,
+04-05 10:41:30.212 I/ReactNativeJS(27786):   geometryShapeType: 'Point',
+04-05 10:41:30.212 I/ReactNativeJS(27786):   linePointCount: 0,
+04-05 10:41:30.212 I/ReactNativeJS(27786):   lineCoordCount: 2,
+04-05 10:41:30.212 I/ReactNativeJS(27786):   payloadGeoPresent: true,
+04-05 10:41:30.212 I/ReactNativeJS(27786):   payloadGeometryPresent: true }
+04-05 10:41:30.238 I/ReactNativeJS(27786): '[Sync][HTTP] roadwork_upsertWorkOrder request', { workOrderId: '8jaw1yi3zynmnm1syah',
+04-05 10:41:30.238 I/ReactNativeJS(27786):   type: 'culvert',
+04-05 10:41:30.238 I/ReactNativeJS(27786):   assetId: 'asset_1775403352606_84231781a2f23',
+04-05 10:41:30.238 I/ReactNativeJS(27786):   assetType: 'culvert',
+04-05 10:41:30.238 I/ReactNativeJS(27786):   assetMatchMethod: null,
+04-05 10:41:30.238 I/ReactNativeJS(27786):   hasAssetLinkageObject: true,
+04-05 10:41:30.238 I/ReactNativeJS(27786):   linkageAssetType: 'culvert',
+04-05 10:41:30.238 I/ReactNativeJS(27786):   linkageNestedAssetType: 'culvert',
+04-05 10:41:30.238 I/ReactNativeJS(27786):   assetRefAssetType: 'culvert',
+04-05 10:41:30.238 I/ReactNativeJS(27786):   assetRefTypeAlias: 'culvert' }
+04-05 10:41:30.239 I/ReactNativeJS(27786): '[OutboxDiag][wire-request] roadwork_upsertWorkOrder', { functionName: 'roadwork_upsertWorkOrder',
+04-05 10:41:30.239 I/ReactNativeJS(27786):   workOrderId: '8jaw1yi3zynmnm1syah',
+04-05 10:41:30.239 I/ReactNativeJS(27786):   orgId: 'ZKzedc9znJlSJXPy7Ycf',
+04-05 10:41:30.239 I/ReactNativeJS(27786):   type: 'culvert',
+04-05 10:41:30.239 I/ReactNativeJS(27786):   status: 'Needs',
+04-05 10:41:30.239 I/ReactNativeJS(27786):   priority: 3,
+04-05 10:41:30.239 I/ReactNativeJS(27786):   geometryType: 'Point',
+04-05 10:41:30.239 I/ReactNativeJS(27786):   typeRaw: 'culvert',
+04-05 10:41:30.239 I/ReactNativeJS(27786):   statusRaw: 'Needs',
+04-05 10:41:30.239 I/ReactNativeJS(27786):   priorityRaw: 3,
+04-05 10:41:30.239 I/ReactNativeJS(27786):   geometryTypeRaw: 'Point',
+04-05 10:41:30.239 I/ReactNativeJS(27786):   assetMatchMethodRaw: null,
+04-05 10:41:30.239 I/ReactNativeJS(27786):   hasGeo: true,
+04-05 10:41:30.239 I/ReactNativeJS(27786):   hasGeoArray: false,
+04-05 10:41:30.239 I/ReactNativeJS(27786):   hasGeoPointObject: true,
+04-05 10:41:30.239 I/ReactNativeJS(27786):   hasGeometryObject: true,
+04-05 10:41:30.239 I/ReactNativeJS(27786):   geometryShapeType: 'Point',
+04-05 10:41:30.239 I/ReactNativeJS(27786):   payloadGeoPresent: true,
+04-05 10:41:30.239 I/ReactNativeJS(27786):   payloadGeometryPresent: true,
+04-05 10:41:30.239 I/ReactNativeJS(27786):   pointLat: 0,
+04-05 10:41:30.239 I/ReactNativeJS(27786):   pointLng: 0,
+04-05 10:41:30.239 I/ReactNativeJS(27786):   linePointCount: 2,
+04-05 10:41:30.239 I/ReactNativeJS(27786):   lineCoordCount: 2,
+04-05 10:41:30.239 I/ReactNativeJS(27786):   topLevelKeys: 
+04-05 10:41:30.239 I/ReactNativeJS(27786):    [ 'assetId',
+04-05 10:41:30.239 I/ReactNativeJS(27786):      'assetLinkage',
+04-05 10:41:30.239 I/ReactNativeJS(27786):      'assetMatch',
+04-05 10:41:30.239 I/ReactNativeJS(27786):      'assetRef',
+04-05 10:41:30.239 I/ReactNativeJS(27786):      'assetType',
+04-05 10:41:30.239 I/ReactNativeJS(27786):      'assignedToEmail',
+04-05 10:41:30.239 I/ReactNativeJS(27786):      'assignedToName',
+04-05 10:41:30.239 I/ReactNativeJS(27786):      'assignedToUid',
+04-05 10:41:30.239 I/ReactNativeJS(27786):      'createdByDisplayName',
+04-05 10:41:30.239 I/ReactNativeJS(27786):      'createdByEmail',
+04-05 10:41:30.239 I/ReactNativeJS(27786):      'createdByFirstName',
+04-05 10:41:30.239 I/ReactNativeJS(27786):      'createdByLastName',
+04-05 10:41:30.239 I/ReactNativeJS(27786):      'createdByUid',
+04-05 10:41:30.239 I/ReactNativeJS(27786):      'details',
+04-05 10:41:30.239 I/ReactNativeJS(27786):      'geo',
+04-05 10:41:30.239 I/ReactNativeJS(27786):      'geometry',
+04-05 10:41:30.239 I/ReactNativeJS(27786):      'geometryType',
+04-05 10:41:30.239 I/ReactNativeJS(27786):      'id',
+04-05 10:41:30.239 I/ReactNativeJS(27786):      'note',
+04-05 10:41:30.239 I/ReactNativeJS(27786):      'orgId',
+04-05 10:41:30.239 I/ReactNativeJS(27786):      'priority',
+04-05 10:41:30.239 I/ReactNativeJS(27786):      'status',
+04-05 10:41:30.239 I/ReactNativeJS(27786):      'type',
+04-05 10:41:30.239 I/ReactNativeJS(27786):      'updatedAt' ],
+04-05 10:41:30.239 I/ReactNativeJS(27786):   detailsKeys: [],
+04-05 10:41:30.239 I/ReactNativeJS(27786):   assetLinkageFields: 
+04-05 10:41:30.239 I/ReactNativeJS(27786):    [ 'asset',
+04-05 10:41:30.239 I/ReactNativeJS(27786):      'assetId',
+04-05 10:41:30.239 I/ReactNativeJS(27786):      'assetType',
+04-05 10:41:30.239 I/ReactNativeJS(27786):      'asset_type',
+04-05 10:41:30.239 I/ReactNativeJS(27786):      'matchMethod',
+04-05 10:41:30.239 I/ReactNativeJS(27786):      'method',
+04-05 10:41:30.239 I/ReactNativeJS(27786):      'type' ],
+04-05 10:41:30.239 I/ReactNativeJS(27786):   hasAssetRef: true,
+04-05 10:41:30.239 I/ReactNativeJS(27786):   assetRefFields: [ 'assetId', 'assetType', 'id', 'matchMethod', 'method', 'type' ] }
+04-05 10:41:30.245 I/ReactNativeJS(27786): '[CULVERT][ASSET] history load', { assetId: 'asset_1775403352606_84231781a2f23',
+04-05 10:41:30.245 I/ReactNativeJS(27786):   orgId: 'ZKzedc9znJlSJXPy7Ycf',
+04-05 10:41:30.245 I/ReactNativeJS(27786):   eventCount: 1,
+04-05 10:41:30.245 I/ReactNativeJS(27786):   hasDetails: false }
+04-05 10:41:30.253 I/ReactNativeJS(27786): '[AssetDetail][Repairs] projection', { assetId: 'asset_1775403352606_84231781a2f23',
+04-05 10:41:30.253 I/ReactNativeJS(27786):   orgId: 'ZKzedc9znJlSJXPy7Ycf',
+04-05 10:41:30.253 I/ReactNativeJS(27786):   candidateWOCount: 5,
+04-05 10:41:30.253 I/ReactNativeJS(27786):   linkedMatchCount: 5,
+04-05 10:41:30.253 I/ReactNativeJS(27786):   completedMatchCount: 1,
+04-05 10:41:30.253 I/ReactNativeJS(27786):   relevantTypeMatchCount: 1,
+04-05 10:41:30.253 I/ReactNativeJS(27786):   dedupedCount: 1,
+04-05 10:41:30.253 I/ReactNativeJS(27786):   finalRepairCount: 1,
+04-05 10:41:30.253 I/ReactNativeJS(27786):   excluded: 
+04-05 10:41:30.253 I/ReactNativeJS(27786):    { wrongAssetLink: 0,
+04-05 10:41:30.253 I/ReactNativeJS(27786):      wrongStatus: 4,
+04-05 10:41:30.253 I/ReactNativeJS(27786):      wrongType: 0,
+04-05 10:41:30.253 I/ReactNativeJS(27786):      duplicate: 0,
+04-05 10:41:30.253 I/ReactNativeJS(27786):      missingId: 0 } }
+04-05 10:41:30.272 I/ReactNativeJS(27786): [MapScreen] DB loaded 3 items in viewport
+04-05 10:41:30.274 I/ReactNativeJS(27786): [CULVERT][MAP] viewportRows=3 totalRows=3
+04-05 10:41:30.276 I/ReactNativeJS(27786):   [MapScreen] sample[0] id=8jaw1yi3 geom=point lat=0 lng=0 orgId=ZKzedc9z
+04-05 10:41:30.277 I/ReactNativeJS(27786):   [MapScreen] sample[1] id=59raf7ht geom=point lat=0 lng=0 orgId=ZKzedc9z
+04-05 10:41:30.279 I/ReactNativeJS(27786):   [MapScreen] sample[2] id=3g2k29j4 geom=point lat=0 lng=0 orgId=ZKzedc9z
+04-05 10:41:30.280 I/ReactNativeJS(27786):   [MapScreen] bbox minLat=-0.0015 maxLat=0.0015 minLng=-0.0015 maxLng=0.0015
+04-05 10:41:30.338 I/ReactNativeJS(27786): '[Sync] step 1 OK — response:', undefined
+04-05 10:41:30.339 I/ReactNativeJS(27786): [Sync] step 2 START — markSynced + deleteOutbox
+04-05 10:41:30.352 I/ReactNativeJS(27786): [Sync] step 2 OK
+04-05 10:41:30.386 I/ReactNativeJS(27786): [RemoteSync][WO] snapshot size=7 changes=1
+04-05 10:41:30.388 I/ReactNativeJS(27786): [RemoteSync][WO] applying doc id=8jaw1yi3zynmnm1syah event=added
+04-05 10:41:30.388 I/ReactNativeJS(27786): [RemoteSync][WO] local upsert success id=8jaw1yi3zynmnm1syah geom=point
+04-05 10:41:30.393 I/ReactNativeJS(27786): [RemoteSync][WO] emit refresh
+04-05 10:41:30.394 I/ReactNativeJS(27786): '[RemoteSync][WO] snapshot summary', { orgId: 'ZKzedc9znJlSJXPy7Ycf',
+04-05 10:41:30.394 I/ReactNativeJS(27786):   totalDocs: 7,
+04-05 10:41:30.394 I/ReactNativeJS(27786):   changes: 1,
+04-05 10:41:30.394 I/ReactNativeJS(27786):   fromCache: false,
+04-05 10:41:30.394 I/ReactNativeJS(27786):   applied: 1,
+04-05 10:41:30.394 I/ReactNativeJS(27786):   removed: 0,
+04-05 10:41:30.394 I/ReactNativeJS(27786):   skipped: 0,
+04-05 10:41:30.394 I/ReactNativeJS(27786):   failed: 0 }
+04-05 10:41:30.419 I/ReactNativeJS(27786): '[CULVERT][ASSET] history load', { assetId: 'asset_1775403352606_84231781a2f23',
+04-05 10:41:30.419 I/ReactNativeJS(27786):   orgId: 'ZKzedc9znJlSJXPy7Ycf',
+04-05 10:41:30.419 I/ReactNativeJS(27786):   eventCount: 1,
+04-05 10:41:30.419 I/ReactNativeJS(27786):   hasDetails: false }
+04-05 10:41:30.420 I/ReactNativeJS(27786): '[LocalDB] counts', { orgId: 'ZKzedc9znJlSJXPy7Ycf', workOrders: 7, outbox: 0 }
+04-05 10:41:30.421 I/ReactNativeJS(27786): '[LocalDB] row[0]', { id: '8jaw1yi3zynmnm1syah',
+04-05 10:41:30.421 I/ReactNativeJS(27786):   orgId: 'ZKzedc9znJlSJXPy7Ycf',
+04-05 10:41:30.421 I/ReactNativeJS(27786):   type: 'culvert',
+04-05 10:41:30.421 I/ReactNativeJS(27786):   geomType: 'point',
+04-05 10:41:30.421 I/ReactNativeJS(27786):   lat: 0,
+04-05 10:41:30.421 I/ReactNativeJS(27786):   lng: 0,
+04-05 10:41:30.421 I/ReactNativeJS(27786):   status: 'Needs',
+04-05 10:41:30.421 I/ReactNativeJS(27786):   priority: 'High' }
+04-05 10:41:30.421 I/ReactNativeJS(27786): '[LocalDB] row[1]', { id: 'a9bj8g3po7mnm1q2bf',
+04-05 10:41:30.421 I/ReactNativeJS(27786):   orgId: 'ZKzedc9znJlSJXPy7Ycf',
+04-05 10:41:30.421 I/ReactNativeJS(27786):   type: 'sign',
+04-05 10:41:30.421 I/ReactNativeJS(27786):   geomType: 'point',
+04-05 10:41:30.421 I/ReactNativeJS(27786):   lat: 46.94595037,
+04-05 10:41:30.421 I/ReactNativeJS(27786):   lng: -120.49984314,
+04-05 10:41:30.421 I/ReactNativeJS(27786):   status: 'Needs',
+04-05 10:41:30.421 I/ReactNativeJS(27786):   priority: 'High' }
+04-05 10:41:30.421 I/ReactNativeJS(27786): '[LocalDB] row[2]', { id: '59raf7htmtcmnly2rcm',
+04-05 10:41:30.421 I/ReactNativeJS(27786):   orgId: 'ZKzedc9znJlSJXPy7Ycf',
+04-05 10:41:30.421 I/ReactNativeJS(27786):   type: 'culvert',
+04-05 10:41:30.421 I/ReactNativeJS(27786):   geomType: 'point',
+04-05 10:41:30.421 I/ReactNativeJS(27786):   lat: 0,
+04-05 10:41:30.421 I/ReactNativeJS(27786):   lng: 0,
+04-05 10:41:30.421 I/ReactNativeJS(27786):   status: 'Needs',
+04-05 10:41:30.421 I/ReactNativeJS(27786):   priority: 'High' }
+04-05 10:41:30.422 I/ReactNativeJS(27786): '[LocalDB] row[3]', { id: '3g2k29j4h2pmnly1ald',
+04-05 10:41:30.422 I/ReactNativeJS(27786):   orgId: 'ZKzedc9znJlSJXPy7Ycf',
+04-05 10:41:30.422 I/ReactNativeJS(27786):   type: 'culvert',
+04-05 10:41:30.422 I/ReactNativeJS(27786):   geomType: 'point',
+04-05 10:41:30.422 I/ReactNativeJS(27786):   lat: 0,
+04-05 10:41:30.422 I/ReactNativeJS(27786):   lng: 0,
+04-05 10:41:30.422 I/ReactNativeJS(27786):   status: 'Needs',
+04-05 10:41:30.422 I/ReactNativeJS(27786):   priority: 'High' }
+04-05 10:41:30.422 I/ReactNativeJS(27786): '[LocalDB] row[4]', { id: '4tbsajr6czemnlxcly9',
+04-05 10:41:30.422 I/ReactNativeJS(27786):   orgId: 'ZKzedc9znJlSJXPy7Ycf',
+04-05 10:41:30.422 I/ReactNativeJS(27786):   type: 'culvert',
+04-05 10:41:30.422 I/ReactNativeJS(27786):   geomType: 'point',
+04-05 10:41:30.422 I/ReactNativeJS(27786):   lat: 0,
+04-05 10:41:30.422 I/ReactNativeJS(27786):   lng: 0,
+04-05 10:41:30.422 I/ReactNativeJS(27786):   status: 'Done',
+04-05 10:41:30.422 I/ReactNativeJS(27786):   priority: 'High' }
+04-05 10:41:30.428 I/ReactNativeJS(27786): '[AssetDetail][Repairs] projection', { assetId: 'asset_1775403352606_84231781a2f23',
+04-05 10:41:30.428 I/ReactNativeJS(27786):   orgId: 'ZKzedc9znJlSJXPy7Ycf',
+04-05 10:41:30.428 I/ReactNativeJS(27786):   candidateWOCount: 5,
+04-05 10:41:30.428 I/ReactNativeJS(27786):   linkedMatchCount: 5,
+04-05 10:41:30.428 I/ReactNativeJS(27786):   completedMatchCount: 1,
+04-05 10:41:30.428 I/ReactNativeJS(27786):   relevantTypeMatchCount: 1,
+04-05 10:41:30.428 I/ReactNativeJS(27786):   dedupedCount: 1,
+04-05 10:41:30.428 I/ReactNativeJS(27786):   finalRepairCount: 1,
+04-05 10:41:30.428 I/ReactNativeJS(27786):   excluded: 
+04-05 10:41:30.428 I/ReactNativeJS(27786):    { wrongAssetLink: 0,
+04-05 10:41:30.428 I/ReactNativeJS(27786):      wrongStatus: 4,
+04-05 10:41:30.428 I/ReactNativeJS(27786):      wrongType: 0,
+04-05 10:41:30.428 I/ReactNativeJS(27786):      duplicate: 0,
+04-05 10:41:30.428 I/ReactNativeJS(27786):      missingId: 0 } }
+04-05 10:41:30.439 I/ReactNativeJS(27786): '[notify] Creating notification:', 'HIGH Priority Work Order', 'Culvert created'
+04-05 10:41:30.450 I/ReactNativeJS(27786): '[notify] Notification displayed with ID:', 'FVsVZw9HBp58Lkh76W01'
+04-05 10:41:30.451 I/ReactNativeJS(27786): '[MapScreen] Notification sent for', '8jaw1yi3zynmnm1syah'
+04-05 10:41:35.647 I/ReactNativeJS(27786): [RemoteSync][WO] snapshot size=8 changes=1
+04-05 10:41:35.649 I/ReactNativeJS(27786): [RemoteSync][WO] applying doc id=8zvu84z19wjmnm1t2ea event=added
+04-05 10:41:35.650 I/ReactNativeJS(27786): [RemoteSync][WO] local upsert success id=8zvu84z19wjmnm1t2ea geom=point
+04-05 10:41:35.658 I/ReactNativeJS(27786): [RemoteSync][WO] emit refresh
+04-05 10:41:35.662 I/ReactNativeJS(27786): '[RemoteSync][WO] snapshot summary', { orgId: 'ZKzedc9znJlSJXPy7Ycf',
+04-05 10:41:35.662 I/ReactNativeJS(27786):   totalDocs: 8,
+04-05 10:41:35.662 I/ReactNativeJS(27786):   changes: 1,
+04-05 10:41:35.662 I/ReactNativeJS(27786):   fromCache: false,
+04-05 10:41:35.662 I/ReactNativeJS(27786):   applied: 1,
+04-05 10:41:35.662 I/ReactNativeJS(27786):   removed: 0,
+04-05 10:41:35.662 I/ReactNativeJS(27786):   skipped: 0,
+04-05 10:41:35.662 I/ReactNativeJS(27786):   failed: 0 }
+04-05 10:41:35.683 I/ReactNativeJS(27786): '[CULVERT][ASSET] history load', { assetId: 'asset_1775403352606_84231781a2f23',
+04-05 10:41:35.683 I/ReactNativeJS(27786):   orgId: 'ZKzedc9znJlSJXPy7Ycf',
+04-05 10:41:35.683 I/ReactNativeJS(27786):   eventCount: 1,
+04-05 10:41:35.683 I/ReactNativeJS(27786):   hasDetails: false }
+04-05 10:41:35.692 I/ReactNativeJS(27786): '[AssetDetail][Repairs] projection', { assetId: 'asset_1775403352606_84231781a2f23',
+04-05 10:41:35.692 I/ReactNativeJS(27786):   orgId: 'ZKzedc9znJlSJXPy7Ycf',
+04-05 10:41:35.692 I/ReactNativeJS(27786):   candidateWOCount: 5,
+04-05 10:41:35.692 I/ReactNativeJS(27786):   linkedMatchCount: 5,
+04-05 10:41:35.692 I/ReactNativeJS(27786):   completedMatchCount: 1,
+04-05 10:41:35.692 I/ReactNativeJS(27786):   relevantTypeMatchCount: 1,
+04-05 10:41:35.692 I/ReactNativeJS(27786):   dedupedCount: 1,
+04-05 10:41:35.692 I/ReactNativeJS(27786):   finalRepairCount: 1,
+04-05 10:41:35.692 I/ReactNativeJS(27786):   excluded: 
+04-05 10:41:35.692 I/ReactNativeJS(27786):    { wrongAssetLink: 0,
+04-05 10:41:35.692 I/ReactNativeJS(27786):      wrongStatus: 4,
+04-05 10:41:35.692 I/ReactNativeJS(27786):      wrongType: 0,
+04-05 10:41:35.692 I/ReactNativeJS(27786):      duplicate: 0,
+04-05 10:41:35.692 I/ReactNativeJS(27786):      missingId: 0 } }
+04-05 10:41:35.708 I/ReactNativeJS(27786): [MapScreen] DB loaded 4 items in viewport
+04-05 10:41:35.709 I/ReactNativeJS(27786): [CULVERT][MAP] viewportRows=1 totalRows=4
+04-05 10:41:35.711 I/ReactNativeJS(27786):   [MapScreen] sample[0] id=8zvu84z1 geom=point lat=46.94598744 lng=-120.49984851 orgId=ZKzedc9z
+04-05 10:41:35.712 I/ReactNativeJS(27786):   [MapScreen] sample[1] id=a9bj8g3p geom=point lat=46.94595037 lng=-120.49984314 orgId=ZKzedc9z
+04-05 10:41:35.714 I/ReactNativeJS(27786):   [MapScreen] sample[2] id=my3qhcz7 geom=line lat=null lng=null orgId=ZKzedc9z
+04-05 10:41:35.715 I/ReactNativeJS(27786):   [MapScreen] sample[3] id=fo6tkc1o geom=point lat=46.94598744 lng=-120.49984851 orgId=ZKzedc9z
+04-05 10:41:35.717 I/ReactNativeJS(27786):   [MapScreen] bbox minLat=46.9308 maxLat=46.9611 minLng=-120.5098 maxLng=-120.4898

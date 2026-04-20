@@ -3,7 +3,13 @@ import { View, Text, StyleSheet, ScrollView, Pressable, Modal, Alert } from "rea
 import type { SignAsset, SignInspection } from "../types/Sign";
 import { useSignsContext } from "../state/SignsContext";
 import { SignInspectionForm } from "../components/SignInspectionForm";
-import { persistAuditLog } from "../utils/audit";
+import { formatPersonDisplayName } from "../utils/userIdentity";
+// Audit logging stub — module was removed; calls are best-effort no-ops
+const persistAuditLog = (
+  _id: string,
+  _event: string,
+  _data?: Record<string, unknown>,
+): Promise<void> => Promise.resolve();
 
 /**
  * Sign Detail Screen
@@ -31,7 +37,7 @@ export function SignDetailScreen({ sign, onClose }: Props) {
     persistAuditLog(sign.id, "sign_inspection_added", {
       result: formData.retroResult,
       method: formData.retroMethod,
-    }).catch((e) => console.warn("[SignDetail] Failed to log inspection:", e));
+    }).catch((e: unknown) => console.warn("[SignDetail] Failed to log inspection:", e));
 
     setShowInspectionForm(false);
     Alert.alert("Success", "Inspection saved successfully");
@@ -150,6 +156,17 @@ function InspectionCard({ inspection }: { inspection: SignInspection }) {
     return new Date(ts).toLocaleString();
   };
 
+  const inspectorLabel = formatPersonDisplayName(
+    inspection as Record<string, unknown> | null | undefined,
+    {
+      nameKeys: ["inspectedByName", "inspector", "byName", "name"],
+      displayNameKeys: ["inspectedByDisplayName", "byDisplayName", "displayName"],
+      emailKeys: ["inspectedByEmail", "byEmail", "email"],
+      uidKeys: ["inspectedByUid", "byUid", "uid"],
+      unknownLabel: "Unknown",
+    },
+  );
+
   const issues = [];
   if (inspection.damaged) issues.push("Damaged");
   if (inspection.missing) issues.push("Missing");
@@ -173,9 +190,7 @@ function InspectionCard({ inspection }: { inspection: SignInspection }) {
         </Text>
       </View>
       
-      {inspection.inspector && (
-        <Text style={styles.inspectorText}>Inspector: {inspection.inspector}</Text>
-      )}
+      <Text style={styles.inspectorText}>Inspector: {inspectorLabel}</Text>
       
       <Text style={styles.methodText}>Method: {inspection.retroMethod.replace(/_/g, " ")}</Text>
       

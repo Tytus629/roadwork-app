@@ -1,11 +1,14 @@
+import type { WorkOrderDetails } from "../types/WorkOrder";
+
 export type WorkStatus = "Needs" | "In Progress" | "Done" | "Deferred";
-export type Priority = "Low" | "Medium" | "High" | "Urgent";
+export type Priority = "None" | "Low" | "Medium" | "High" | "Urgent";
 export type GeomType = "point" | "line";
 
 export type LatLng = { lat: number; lng: number };
 
 export type WorkOrderRow = {
   id: string;
+  orgId?: string | null;
   type: string;
   createdAt: number;
   updatedAt: number;
@@ -22,6 +25,24 @@ export type WorkOrderRow = {
   minLng: number;
   maxLat: number;
   maxLng: number;
+
+  createdByUid?: string | null;
+  createdByEmail?: string | null;
+  createdByFirstName?: string | null;
+  createdByLastName?: string | null;
+  createdByDisplayName?: string | null;
+  assignedToUid?: string | null;
+  assignedToName?: string | null;
+  assignedToEmail?: string | null;
+
+  assetId?: string | null;
+  assetMatch?: {
+    method: "USER_SELECTED" | "AUTO_MATCH" | "AUTO_CREATE";
+    confidence?: number;
+    radiusM?: number;
+  } | null;
+
+  details?: WorkOrderDetails | null;
 };
 
 export type SignDetailsRow = {

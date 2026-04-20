@@ -1,0 +1,13 @@
+--------- beginning of system
+04-05 09:14:40.813 21270 21270 D ActivityThread: com.roadworktracker will use render engine as VK
+04-05 09:14:41.852 21270 21404 V ResourcesManager: The following library key has been added: ResourcesKey{ mHash=f2dd1dd9 mResDir=null mSplitDirs=[] mOverlayDirs=[/product/overlay/NavigationBarMode3Button/NavigationBarMode3ButtonOverlay.apk] mLibDirs=[/data/app/~~kADBdDbTStsfdXIK00Czbg==/com.google.android.webview-35Ay-XD0eG5SDzDjWPz25w==/base.apk,/system/framework/android.test.base.jar,/system_ext/framework/androidx.window.extensions.jar] mDisplayId=0 mOverrideConfig=v35 mCompatInfo={450dpi always-compat} mLoaders=[]}
+--------- beginning of main
+04-05 09:54:41.179 21270 21639 W OkHttpClientTransport: io.grpc.okhttp.OkHttpClientTransport$ClientFrameHandler@ba2d121: Received GOAWAY with ENHANCE_YOUR_CALM. Debug data: too_many_pings
+04-05 09:54:41.180 21270 21639 W AtomicBackoff: Increased {0} to {1}
+04-05 09:54:41.183 21270 21439 W Firestore: (26.1.0) [WatchStream]: (eab68d3) Stream closed with status: Status{code=RESOURCE_EXHAUSTED, description=HTTP/2 error code: ENHANCE_YOUR_CALM (Bandwidth exhausted)
+04-05 09:54:41.183 21270 21439 W Firestore: Received Goaway
+04-05 09:54:41.183 21270 21439 W Firestore: too_many_pings, cause=null}.
+04-05 09:58:04.080 21270 21270 W Choreographer: Frame time is 0.234817 ms in the future!  Check that graphics HAL is generating vsync timestamps using the correct timebase.
+04-05 10:19:39.657 21270 25767 W System  : Ignoring header X-Firebase-Locale because its value was null.
+04-05 10:19:39.677 21270 25767 W LocalRequestInterceptor: Error getting App Check token; using placeholder token instead. Error: com.google.firebase.FirebaseException: No AppCheckProvider installed.
+04-05 10:19:39.745 21270 25767 D FirebaseAuth: Notifying id token listeners about user ( iTzyyLupjpMKz5QJyWmOxYkpN6gT ).

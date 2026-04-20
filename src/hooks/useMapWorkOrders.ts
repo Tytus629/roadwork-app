@@ -66,7 +66,7 @@ import { subscribeDbChanged, getDbTick } from "../state/DbEvents";
  * @param filter - Additional filter criteria (types, priority, status)
  * @returns Array of work orders in bbox, max 2500
  */
-export function useMapWorkOrders(bbox: BBox | null, filter: WorkOrderFilter) {
+export function useMapWorkOrders(bbox: BBox | null, filter: WorkOrderFilter, orgId?: string | null) {
   const [items, setItems] = useState<WorkOrderRow[]>([]);
   const [dbTick, setDbTick] = useState(0);
 
@@ -76,13 +76,13 @@ export function useMapWorkOrders(bbox: BBox | null, filter: WorkOrderFilter) {
 
   const key = useMemo(() => {
     if (!bbox) return "no-bbox";
-    return JSON.stringify({ bbox, filter, dbTick });
-  }, [bbox, filter, dbTick]);
+    return JSON.stringify({ bbox, filter, dbTick, orgId });
+  }, [bbox, filter, dbTick, orgId]);
 
   useEffect(() => {
     if (!bbox) return;
     const padded = padBBox(bbox, 0.002);
-    const rows = listWorkOrdersInBBox(padded, filter, 2500);
+    const rows = listWorkOrdersInBBox(padded, filter, 2500, orgId);
     setItems(rows);
   }, [key]);
 

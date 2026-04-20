@@ -1,8 +1,11 @@
 export type WorkType =
   | "pothole"
+  | "pavement_repair"
+  | "asphalt_patch"
+  | "roadway_surface_repair"
   | "spraying"
   | "brushing"
-  | "asphalt"
+  | "asphalt" // legacy alias retained for backward compatibility
   | "culvert"
   | "ditching"
   | "danger_tree"
@@ -176,6 +179,7 @@ export type WorkItem = {
   dangerTreeDetails?: DangerTreeDetails;
   ditchingDetails?: DitchingDetails;
   asphaltDetails?: AsphaltDetails;
+  pavementRepairDetails?: PavementRepairDetails;
 };
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -212,6 +216,36 @@ export type SignDetails = {
   action?: "Replace" | "Repair" | "Clean" | "Install" | null;
 };
 
+/** Sign details stored in the canonical `details` JSON blob (work_orders.detailsJson). */
+export type SideOfRoad = "right" | "left" | "median" | "overhead" | "unknown";
+
+export type SignDetailsInfo = {
+  signType: string;
+  MUTCDCode?: string;
+  size?: string;
+  material?: string;
+  mountType?: string;
+  supportType?: string;
+  sheetingType?: string;
+  legend?: string;
+  sideOfRoad?: SideOfRoad;
+  note?: string;
+  // Optional multi-sign payload for a single post/work order.
+  signs?: Array<{
+    signTypeId?: string | null;
+    signName?: string | null;
+    signType?: string | null;
+    signCode?: string | null;
+    MUTCDCode?: string | null;
+    category?: string | null;
+    position?: number;
+  }>;
+  signTypeId?: string | null;
+  signName?: string | null;
+  signCode?: string | null;
+  category?: string | null;
+};
+
 export type SprayingDetails = {
   target?: "weeds" | "brush" | "invasive" | "other";
   areaType?: "shoulder" | "ditch" | "median" | "around_signs" | "other";
@@ -224,37 +258,67 @@ export type BrushingDetails = {
   areaType?: "shoulder" | "ditch" | "around_signs" | "guardrail_line" | "other";
   sightDistanceIssue?: boolean;
   debrisLeft?: boolean;
+  actionNeeded?: string | string[] | null;
+  actionNeededList?: string[];
 };
 
 export type CulvertDetails = {
-  issue?: "plugged" | "damaged" | "washed_out" | "collapse" | "other";
+  issue?:
+    | "plugged"
+    | "ends_crushed"
+    | "separation_needs_repair"
+    | "damaged"
+    | "washed_out"
+    | "collapse"
+    | "other";
+
+  plugged?: boolean;
+  endsCrushed?: boolean;
+  separationNeedsRepair?: boolean;
+
   standingWater?: boolean;
   inletBlocked?: boolean;
   outletBlocked?: boolean;
   needsJetting?: boolean;
+  erosionAroundEnds?: boolean;
+  underminingPresent?: boolean;
+  needsReplacement?: boolean;
+  captureInletOutletFromLine?: boolean;
+  actionNeeded?: string | null;
+  note?: string;
+};
+
+export type GuardrailParts = {
+  posts?: number;
+  blocks?: number;
+  rail?: number;
+  bolts?: number;
+  terminals?: number;
+  crashCushions?: number;
+  endCaps?: number;
+  reflectors?: number;
+  other?: number;
 };
 
 export type GuardrailDetails = {
-  component?: "w_beam" | "thrie_beam" | "posts" | "blocks" | "end_treatment" | "other";
-  endTreatmentType?: "impact_head" | "ram_head" | "unknown";
-  damageLevel?: "minor" | "moderate" | "severe";
-  brokenPosts?: boolean;
-  brokenBlocks?: boolean;
-  railBent?: boolean;
-  endTreatmentDamaged?: boolean;
-  needsReplacement?: boolean;
+  parts?: GuardrailParts;
+  otherLabel?: string;
+  actionNeeded?: string | null;
+  note?: string;
 };
 
 export type DangerTreeDetails = {
   issue?: "in_road" | "leaning" | "downed" | "hanging_limb" | "blocking_view" | "other";
   blockingLane?: boolean;
   needsTrafficControl?: boolean;
+  actionNeeded?: string | null;
   removed?: boolean;             // set when completed (optional)
 };
 
 export type DitchingDetails = {
   issue?: "silted" | "erosion" | "standing_water" | "washout" | "other";
   equipmentNeeded?: "hand" | "mini_ex" | "excavator" | "grader" | "other";
+  actionNeeded?: string | null;
 };
 
 export type AsphaltDetails = {
@@ -262,4 +326,75 @@ export type AsphaltDetails = {
   mix?: "g_mix" | "s_mix" | "b_mix" | "warm_mix" | "cold_patch" | "unknown";
   depthIn?: number | null;       // optional: target depth
   areaFt2?: number | null;       // optional: estimated area
+};
+
+export type PavementIssueCategory =
+  | "pothole"
+  | "failed_patch"
+  | "edge_break"
+  | "utility_cut_failure"
+  | "alligator_cracking"
+  | "rutting"
+  | "settlement"
+  | "frost_heave"
+  | "shoulder_dropoff"
+  | "drainage_failure"
+  | "other";
+
+// Backward-compatible alias for older imports.
+export type PavementRepairCategory = PavementIssueCategory;
+
+export type PavementRepairMethod =
+  | "cold_mix"
+  | "hot_mix"
+  | "spray_patch"
+  | "skin_patch"
+  | "grind_inlay"
+  | "mill_fill"
+  | "full_depth_patch"
+  | "digout_rebuild"
+  | "crack_seal"
+  | "wedge_patch"
+  | "shoulder_backup"
+  | "other";
+
+export type PavementLanePosition =
+  | "center_lane"
+  | "wheel_path_left"
+  | "wheel_path_right"
+  | "edge"
+  | "shoulder"
+  | "intersection"
+  | "bridge_approach"
+  | "other";
+
+export type PavementSurfaceType =
+  | "asphalt"
+  | "chip_seal"
+  | "gravel"
+  | "concrete"
+  | "other";
+
+export type PavementRepairDetails = {
+  issueCategory?: PavementIssueCategory | null;
+  repairMethod?: PavementRepairMethod | null;
+  lanePosition?: PavementLanePosition | null;
+  surfaceType?: PavementSurfaceType | null;
+
+  temporaryRepair?: boolean | null;
+  followUpNeeded?: boolean | null;
+  trafficControlNeeded?: boolean | null;
+  grinderNeeded?: boolean | null;
+  sawCutNeeded?: boolean | null;
+  rollerNeeded?: boolean | null;
+  drainageIssuePresent?: boolean | null;
+
+  estimatedLengthFt?: number | null;
+  estimatedWidthFt?: number | null;
+  estimatedDepthIn?: number | null;
+  estimatedTons?: number | null;
+
+  materialNote?: string | null;
+  causeNote?: string | null;
+  followUpAction?: string | null;
 };

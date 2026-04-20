@@ -2,6 +2,17 @@
   "extends": "@react-native/typescript-config",
   "compilerOptions": {
     "types": ["jest"],
+    "lib": [
+      "ES2019",
+      "ES2020",
+      "ES2021.Promise",
+      "ES2021.String",
+      "ES2021.WeakRef",
+      "ES2022.Array",
+      "ES2022.Object",
+      "ES2022.String"
+    ],
+    "forceConsistentCasingInFileNames": true
   },
   "include": ["**/*.ts", "**/*.tsx"],
   "exclude": [

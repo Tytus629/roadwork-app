@@ -1,0 +1,72 @@
+04-11 16:12:49.947 14359 14436 I ReactNativeJS: [Map][SignRender] asset id=asset_1775949152653_5712fe5c8babd4 type=SIGN kind=UNKNOWN shape=unknown
+04-11 16:12:49.947 14359 14436 I ReactNativeJS: [Map][SignRender] final marker component=generic asset id=asset_1775949152653_5712fe5c8babd4
+04-11 16:12:52.144 14359 14436 I ReactNativeJS: '[AssetDetail][Repairs] projection', { assetId: 'asset_1775949152653_5712fe5c8babd4',
+04-11 16:12:55.042 14359 14436 I ReactNativeJS: '[CFA][AssetDetail] tap', { assetId: 'asset_1775949152653_5712fe5c8babd4',
+04-11 16:12:55.044 14359 14436 I ReactNativeJS: '[CFA][Map] payload', { assetId: 'asset_1775949152653_5712fe5c8babd4',
+04-11 16:12:55.086 14359 14436 I ReactNativeJS: [Map][SignRender] asset id=asset_1775949152653_5712fe5c8babd4 type=SIGN kind=UNKNOWN shape=unknown
+04-11 16:12:55.086 14359 14436 I ReactNativeJS: [Map][SignRender] final marker component=generic asset id=asset_1775949152653_5712fe5c8babd4
+04-11 16:12:55.901 14359 14436 I ReactNativeJS: '[CFA][Map] validate', { assetId: 'asset_1775949152653_5712fe5c8babd4',
+04-11 16:12:55.906 14359 14436 I ReactNativeJS: '[MapScreen] applyFocus:', { workOrderId: 'asset:asset_1775949152653_5712fe5c8babd4',
+04-11 16:12:55.908 14359 14436 I ReactNativeJS: '[CULVERT][FOCUS] applying', { workOrderId: 'asset:asset_1775949152653_5712fe5c8babd4',
+04-11 16:12:55.912 14359 14436 I ReactNativeJS: '[CFA][Map] draft_ready', { assetId: 'asset_1775949152653_5712fe5c8babd4',
+04-11 16:13:01.359 14359 14436 I ReactNativeJS: '[Offline] saveAndEnqueueWorkOrder START', { id: 'vi0z35ssg4mnuyae93',
+04-11 16:13:01.370 14359 14436 I ReactNativeJS: '[OutboxDiag][local] work-order row', { workOrderId: 'vi0z35ssg4mnuyae93',
+04-11 16:13:01.370 14359 14436 I ReactNativeJS:   assetId: 'asset_1775949152653_5712fe5c8babd4',
+04-11 16:13:01.396 14359 14436 I ReactNativeJS: '[Offline] saveAndEnqueueWorkOrder COMMITTED', { id: 'vi0z35ssg4mnuyae93' }
+04-11 16:13:01.461 14359 14436 I ReactNativeJS: '[Offline] Saved work order + enqueued UPSERT_WORK_ORDER', { workOrderId: 'vi0z35ssg4mnuyae93' }
+04-11 16:13:01.473 14359 14436 I ReactNativeJS:   workOrderId: 'vi0z35ssg4mnuyae93',
+04-11 16:13:01.473 14359 14436 I ReactNativeJS:   hasAssetId: true,
+04-11 16:13:01.473 14359 14436 I ReactNativeJS:   hasAssetLinkageObject: true }
+04-11 16:13:01.476 14359 14436 I ReactNativeJS: '[Sync] UPSERT_WORK_ORDER linkage', { workOrderId: 'vi0z35ssg4mnuyae93',
+04-11 16:13:01.476 14359 14436 I ReactNativeJS:   assetId: 'asset_1775949152653_5712fe5c8babd4',
+04-11 16:13:01.476 14359 14436 I ReactNativeJS:   hasAssetLinkageObject: true }
+04-11 16:13:01.483 14359 14436 I ReactNativeJS: '[OutboxDiag][send-initial] roadwork_upsertWorkOrder', { rowId: 'vi0z35ssg4mnuyae93:UPSERT_WORK_ORDER:1775949181371',
+04-11 16:13:01.483 14359 14436 I ReactNativeJS:   workOrderId: 'vi0z35ssg4mnuyae93',
+04-11 16:13:01.483 14359 14436 I ReactNativeJS:   assetId: 'asset_1775949152653_5712fe5c8babd4',
+04-11 16:13:01.483 14359 14436 I ReactNativeJS:   hasAssetLinkageObject: true,
+04-11 16:13:01.483 14359 14436 I ReactNativeJS:   linkageAssetId: 'asset_1775949152653_5712fe5c8babd4',
+04-11 16:13:01.483 14359 14436 I ReactNativeJS:   linkageAssetType: 'sign',
+04-11 16:13:01.483 14359 14436 I ReactNativeJS:    [ 'assetId',
+04-11 16:13:01.483 14359 14436 I ReactNativeJS:      'assetLinkage',
+04-11 16:13:01.484 14359 14436 I ReactNativeJS: '[OutboxDebug] sending roadwork_upsertWorkOrder', { rowId: 'vi0z35ssg4mnuyae93:UPSERT_WORK_ORDER:1775949181371',
+04-11 16:13:01.484 14359 14436 I ReactNativeJS:    { workOrderId: 'vi0z35ssg4mnuyae93',
+04-11 16:13:01.484 14359 14436 I ReactNativeJS:      assetId: 'asset_1775949152653_5712fe5c8babd4',
+04-11 16:13:01.489 14359 14436 I ReactNativeJS:   rowId: 'vi0z35ssg4mnuyae93:UPSERT_WORK_ORDER:1775949181371',
+04-11 16:13:01.489 14359 14436 I ReactNativeJS:   workOrderId: 'vi0z35ssg4mnuyae93',
+04-11 16:13:01.489 14359 14436 I ReactNativeJS:   assetId: 'asset_1775949152653_5712fe5c8babd4',
+04-11 16:13:01.489 14359 14436 I ReactNativeJS:   hasAssetLinkageObject: true,
+04-11 16:13:01.489 14359 14436 I ReactNativeJS:   linkageAssetId: 'asset_1775949152653_5712fe5c8babd4',
+04-11 16:13:01.489 14359 14436 I ReactNativeJS:   linkageAssetType: 'sign',
+04-11 16:13:01.489 14359 14436 I ReactNativeJS:   linkageTypeAlias: 'sign',
+04-11 16:13:01.489 14359 14436 I ReactNativeJS:   linkageNestedAssetType: 'sign',
+04-11 16:13:01.498 14359 14436 I ReactNativeJS: '[Sync][HTTP] roadwork_upsertWorkOrder request', { workOrderId: 'vi0z35ssg4mnuyae93',
+04-11 16:13:01.498 14359 14436 I ReactNativeJS:   assetId: 'asset_1775949152653_5712fe5c8babd4',
+04-11 16:13:01.498 14359 14436 I ReactNativeJS:   hasAssetLinkageObject: true,
+04-11 16:13:01.498 14359 14436 I ReactNativeJS:   linkageAssetType: 'sign',
+04-11 16:13:01.498 14359 14436 I ReactNativeJS:   linkageNestedAssetType: 'sign',
+04-11 16:13:01.502 14359 14436 I ReactNativeJS:   workOrderId: 'vi0z35ssg4mnuyae93',
+04-11 16:13:01.502 14359 14436 I ReactNativeJS:    [ 'assetId',
+04-11 16:13:01.502 14359 14436 I ReactNativeJS:      'assetLinkage',
+04-11 16:13:01.502 14359 14436 I ReactNativeJS:   assetLinkageFields: 
+04-11 16:13:01.502 14359 14436 I ReactNativeJS:      'assetId',
+04-11 16:13:01.502 14359 14436 I ReactNativeJS:   assetRefFields: [ 'assetId', 'assetType', 'id', 'matchMethod', 'method', 'type' ] }
+04-11 16:13:01.790 14359 14436 I ReactNativeJS: '[AssetDetail][Repairs] projection', { assetId: 'asset_1775949152653_5712fe5c8babd4',
+04-11 16:13:01.912 14359 14436 I ReactNativeJS: [RemoteSync][WO] applying doc id=vi0z35ssg4mnuyae93 event=added
+04-11 16:13:01.914 14359 14436 I ReactNativeJS: [RemoteSync][WO] local upsert success id=vi0z35ssg4mnuyae93 geom=point
+04-11 16:13:02.080 14359 14436 I ReactNativeJS: '[LocalDB] row[0]', { id: 'vi0z35ssg4mnuyae93',
+04-11 16:13:02.193 14359 14436 I ReactNativeJS: '[AssetDetail][Repairs] projection', { assetId: 'asset_1775949152653_5712fe5c8babd4',
+04-11 16:13:02.399 14359 14436 I ReactNativeJS: '[MapScreen] Notification sent for', 'vi0z35ssg4mnuyae93'
+04-11 16:49:34.268 14359 14436 I ReactNativeJS: '[AssetDetail][Repairs] projection', { assetId: 'asset_1775949152653_5712fe5c8babd4',
+04-11 16:53:30.104 14359 14436 I ReactNativeJS: '[AssetDetail][Repairs] projection', { assetId: 'asset_1775949152653_5712fe5c8babd4',
+04-11 16:56:57.847 14359 14436 I ReactNativeJS: '[AssetDetail][Repairs] projection', { assetId: 'asset_1775949152653_5712fe5c8babd4',
+04-11 16:58:01.453 14359 14436 I ReactNativeJS: '[CFA][Map] validate', { assetId: 'asset_1775949152653_5712fe5c8babd4',
+04-11 16:58:01.456 14359 14436 I ReactNativeJS: '[MapScreen] applyFocus:', { workOrderId: 'asset:asset_1775949152653_5712fe5c8babd4',
+04-11 16:58:01.457 14359 14436 I ReactNativeJS: '[CULVERT][FOCUS] applying', { workOrderId: 'asset:asset_1775949152653_5712fe5c8babd4',
+04-11 16:58:01.459 14359 14436 I ReactNativeJS: '[CFA][Map] draft_ready', { assetId: 'asset_1775949152653_5712fe5c8babd4',
+04-11 17:00:14.911 14359 14436 I ReactNativeJS: '[WorkItemSheet] Show on Map', { id: 'e7a3dqmh4y9mnutuuvf',
+04-11 17:00:14.911 14359 14436 I ReactNativeJS:      assetId: null,
+04-11 17:00:14.912 14359 14436 I ReactNativeJS: '[MapFocusEvents] focusMapOnWorkOrder:', { workOrderId: 'e7a3dqmh4y9mnutuuvf',
+04-11 17:00:14.958 14359 14436 I ReactNativeJS: [Map][SignRender] asset id=asset_1775949152653_5712fe5c8babd4 type=SIGN kind=UNKNOWN shape=unknown
+04-11 17:00:14.960 14359 14436 I ReactNativeJS: [Map][SignRender] final marker component=generic asset id=asset_1775949152653_5712fe5c8babd4
+04-11 17:00:16.242 14359 14436 I ReactNativeJS: '[MapScreen] applyFocus:', { workOrderId: 'e7a3dqmh4y9mnutuuvf',
+04-11 17:00:16.242 14359 14436 I ReactNativeJS: '[CULVERT][FOCUS] applying', { workOrderId: 'e7a3dqmh4y9mnutuuvf',

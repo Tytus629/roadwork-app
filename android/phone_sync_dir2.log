@@ -1,0 +1,5 @@
+04-11 14:09:01.964 I/ReactNativeJS(10243): [RemoteSync][WO] snapshot size=2 changes=1
+04-11 14:09:01.968 I/ReactNativeJS(10243): [RemoteSync][WO] applying doc id=e7a3dqmh4y9mnutuuvf event=added
+04-11 14:09:01.968 I/ReactNativeJS(10243): [RemoteSync][WO] local upsert success id=e7a3dqmh4y9mnutuuvf geom=point
+04-11 14:09:01.977 I/ReactNativeJS(10243): [RemoteSync][WO] emit refresh
+04-11 14:09:01.978 I/ReactNativeJS(10243): '[RemoteSync][WO] snapshot summary', { orgId: 'bJ6ERJxO0hs0UhAdFryP',

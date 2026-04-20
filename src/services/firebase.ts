@@ -34,8 +34,15 @@ import auth from "@react-native-firebase/auth";
 import firestore, {
   FirebaseFirestoreTypes,
 } from "@react-native-firebase/firestore";
-// TODO: Re-enable when google-services.json is added
-// import crashlytics from "@react-native-firebase/crashlytics";
+import { requireOrgId } from "../org/requireOrg";
+import {
+  getCrashlytics,
+  recordError as crashlyticsRecordError,
+  setAttribute as crashlyticsSetAttribute,
+  setUserId as crashlyticsSetUserId,
+} from "@react-native-firebase/crashlytics";
+
+const crashlyticsInstance = getCrashlytics();
 
 // ============================================================================
 // GEOHASH UTILITIES
@@ -209,25 +216,23 @@ export function onAuthStateChanged(
 
 /**
  * Log error to Crashlytics
- * TODO: Re-enable when google-services.json is added
  */
 export function logError(error: Error, context?: Record<string, string>) {
   console.error("[Firebase] Error:", error, context);
-  // if (context) {
-  //   Object.entries(context).forEach(([key, value]) => {
-  //     crashlytics().setAttribute(key, value);
-  //   });
-  // }
-  // crashlytics().recordError(error);
+  if (context) {
+    Object.entries(context).forEach(([key, value]) => {
+      void crashlyticsSetAttribute(crashlyticsInstance, key, value);
+    });
+  }
+  crashlyticsRecordError(crashlyticsInstance, error);
 }
 
 /**
  * Set user ID for crash reports
- * TODO: Re-enable when google-services.json is added
  */
 export function setCrashlyticsUserId(userId: string) {
-  console.log("[Firebase] Set user ID:", userId);
-  // crashlytics().setUserId(userId);
+  console.log("[Firebase] Set Crashlytics user ID:", userId);
+  void crashlyticsSetUserId(crashlyticsInstance, userId);
 }
 
 // ============================================================================
@@ -250,12 +255,13 @@ export function setCrashlyticsUserId(userId: string) {
  * @returns signId and whether it was newly created or merged
  */
 export async function upsertSignForWorkOrder(
-  orgId: string,
+  orgIdRaw: string,
   signInfo: SignInfo,
   lat: number,
   lng: number,
   workOrderId?: string
 ): Promise<UpsertSignResult> {
+  const orgId = requireOrgId(orgIdRaw);
   const signsRef = firestore().collection("orgs").doc(orgId).collection("signs");
   const geohash = encodeGeohash(lat, lng);
   const searchPrefix = geohash.substring(0, 7); // ~150m precision for search
@@ -414,7 +420,16 @@ export async function updateSign(
 // ORG MEMBERSHIP (Foundation for Backend Step A)
 // ============================================================================
 
-export type OrgRole = "viewer" | "member" | "admin" | "owner";
+export type OrgRole =
+  | "viewer"
+  | "crew_member"
+  | "asset_manager"
+  | "org_admin"
+  | "org_owner"
+  | "platform_owner"
+  | "member"
+  | "admin"
+  | "owner";
 
 export type OrgMember = {
   uid: string;
@@ -469,15 +484,25 @@ export async function assertRole(
   orgId: string,
   minRole: OrgRole
 ): Promise<void> {
-  const roleOrder: OrgRole[] = ["viewer", "member", "admin", "owner"];
+  const roleRank: Record<OrgRole, number> = {
+    viewer: 0,
+    crew_member: 1,
+    member: 1,
+    asset_manager: 2,
+    org_admin: 3,
+    admin: 3,
+    org_owner: 4,
+    owner: 4,
+    platform_owner: 5,
+  };
   const userRole = await getOrgRole(orgId);
 
   if (!userRole) {
     throw new Error("Not a member of this organization");
   }
 
-  const userRoleIndex = roleOrder.indexOf(userRole);
-  const minRoleIndex = roleOrder.indexOf(minRole);
+  const userRoleIndex = roleRank[userRole] ?? -1;
+  const minRoleIndex = roleRank[minRole] ?? Number.MAX_SAFE_INTEGER;
 
   if (userRoleIndex < minRoleIndex) {
     throw new Error(`Insufficient permissions. Required: ${minRole}, Have: ${userRole}`);

@@ -1,14 +1,16 @@
 import React from "react";
 import { View, Text, StyleSheet, FlatList } from "react-native";
-import { useAppSelector } from "../store/hooks";
+import { useLogs } from "../hooks/useLogs";
+import { useOrg } from "../state/OrgContext";
 
 export default function LogScreen() {
-  const entries = useAppSelector(s => s.workLog.entries);
+  const { orgId } = useOrg();
+  const entries = useLogs(200, orgId);
 
   return (
     <View style={styles.container}>
       <Text style={styles.title}>Log / Archive</Text>
-      <Text style={styles.sub}>Local log entries: {entries.length}</Text>
+      <Text style={styles.sub}>Log entries: {entries.length}</Text>
 
       <FlatList
         data={entries}
@@ -16,13 +18,13 @@ export default function LogScreen() {
         ItemSeparatorComponent={() => <View style={{ height: 10 }} />}
         renderItem={({ item }) => (
           <View style={styles.card}>
-            <Text style={styles.cardTitle}>{item.action}</Text>
-            <Text style={styles.cardSub}>{new Date(item.at).toLocaleString()}</Text>
+            <Text style={styles.cardTitle}>{item.event}</Text>
+            <Text style={styles.cardSub}>{new Date(item.createdAt).toLocaleString()}</Text>
             <Text style={styles.cardMsg}>{item.message}</Text>
-            <Text style={styles.cardSub}>WorkItem: {item.workItemId}</Text>
+            <Text style={styles.cardSub}>WorkOrder: {item.workOrderId}</Text>
           </View>
         )}
-        ListEmptyComponent={<Text style={{ opacity: 0.6, marginTop: 12 }}>No log entries yet. Tap a marker and change status/priority.</Text>}
+        ListEmptyComponent={<Text style={{ opacity: 0.6, marginTop: 12 }}>No log entries yet. Create or edit a work order to see entries here.</Text>}
       />
     </View>
   );

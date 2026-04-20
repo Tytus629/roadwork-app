@@ -1,4 +1,4 @@
-import type { AsphaltMix } from "./asphaltMixes";
+// AsphaltMix type available from ./asphaltMixes if needed by future callers
 
 export type AsphaltInputs = {
   lengthFt: number;

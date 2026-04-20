@@ -1,12 +1,13 @@
 import { getFirestore, collection, doc, setDoc, serverTimestamp } from "@react-native-firebase/firestore";
 import { getAuth } from "@react-native-firebase/auth";
 import { getApp } from "@react-native-firebase/app";
+import { normalizeWorkOrderDetailsForType } from "../workOrders/pavementDetails";
 
 export type WorkOrder = {
   orgId: string;
   type: string; // "sign" | "pothole" | ...
   status: "needs" | "in_progress" | "done";
-  priority: "low" | "medium" | "high" | "urgent";
+  priority: "none" | "low" | "medium" | "high" | "urgent";
   createdAt?: any;
   updatedAt?: any;
   createdBy: string;
@@ -17,6 +18,7 @@ export type WorkOrder = {
   signCategory?: string;
   signCode?: string;
   signName?: string;
+  details?: Record<string, any> | null;
 };
 
 export async function createWorkOrder(orgId: string, wo: Omit<WorkOrder, "orgId" | "createdBy">) {
@@ -36,6 +38,7 @@ export async function createWorkOrder(orgId: string, wo: Omit<WorkOrder, "orgId"
     orgId,
     createdBy: uid,
     ...wo,
+    details: normalizeWorkOrderDetailsForType(wo.type, wo.details),
     createdAt: now,
     updatedAt: now
   };

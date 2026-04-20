@@ -22,7 +22,7 @@
  * DATA STRUCTURE:
  * - WorkOrderFilter: { types?, priority?, status?, bounds? }
  * - undefined = no filter (show all), array = filter by those values
- * - EMPTY constant: {} (no filters applied, show everything)
+ * - Default status filter excludes completed work orders unless user enables them
  * 
  * WHY CONTEXT INSTEAD OF REDUX?
  * - Simpler: No actions, reducers, or middleware needed
@@ -33,7 +33,7 @@
  * PATTERN USAGE:
  * - Read filter: const { filter } = useWorkOrderFilter();
  * - Update filter: setFilter({ ...filter, status: ["Needs", "In Progress"] });
- * - Clear filter: clearFilter(); // resets to EMPTY
+ * - Clear filter: clearFilter(); // resets to default active statuses
  * 
  * INTEGRATION POINTS:
  * - useWorkOrdersFiltered: Hook that fetches work orders matching the filter
@@ -49,27 +49,46 @@
 
 import React, { createContext, useContext, useMemo, useState } from "react";
 import type { WorkOrderFilter } from "../db/types";
+import type { AssetLayerFilter } from "../utils/assetLayer";
 
 type FilterContextValue = {
   filter: WorkOrderFilter;
   setFilter: (next: WorkOrderFilter) => void;
+  showAssets: boolean;
+  setShowAssets: (next: boolean) => void;
+  assetLayerFilter: AssetLayerFilter;
+  setAssetLayerFilter: (next: AssetLayerFilter) => void;
   clearFilter: () => void;
 };
 
 const FilterContext = createContext<FilterContextValue | null>(null);
 
-const EMPTY: WorkOrderFilter = {};
+function createDefaultFilter(): WorkOrderFilter {
+  return { status: ["Needs", "In Progress", "Deferred"] };
+}
+const DEFAULT_SHOW_ASSETS = true;
+const DEFAULT_ASSET_LAYER_FILTER: AssetLayerFilter = "all";
 
 export function FilterProvider({ children }: { children: React.ReactNode }) {
-  const [filter, setFilter] = useState<WorkOrderFilter>(EMPTY);
+  const [filter, setFilter] = useState<WorkOrderFilter>(() => createDefaultFilter());
+  const [showAssets, setShowAssets] = useState<boolean>(DEFAULT_SHOW_ASSETS);
+  const [assetLayerFilter, setAssetLayerFilter] = useState<AssetLayerFilter>(DEFAULT_ASSET_LAYER_FILTER);
 
   const value = useMemo(
     () => ({
       filter,
       setFilter,
-      clearFilter: () => setFilter(EMPTY),
+      showAssets,
+      setShowAssets,
+      assetLayerFilter,
+      setAssetLayerFilter,
+      clearFilter: () => {
+        setFilter(createDefaultFilter());
+        setShowAssets(DEFAULT_SHOW_ASSETS);
+        setAssetLayerFilter(DEFAULT_ASSET_LAYER_FILTER);
+      },
     }),
-    [filter]
+    [filter, showAssets, assetLayerFilter]
   );
 
   return <FilterContext.Provider value={value}>{children}</FilterContext.Provider>;

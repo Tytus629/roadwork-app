@@ -1,7 +1,8 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { Modal, ScrollView, Text, TouchableOpacity, View, StyleSheet } from "react-native";
+import { Modal, ScrollView, Text, TouchableOpacity, View, StyleSheet, Switch } from "react-native";
 import { useWorkOrderFilter } from "../state/FilterContext";
 import type { WorkOrderFilter } from "../db/types";
+import { ASSET_LAYER_FILTER_OPTIONS } from "../utils/assetLayer";
 import {
   PRIORITY_OPTIONS,
   SIGN_CATEGORY_OPTIONS,
@@ -10,10 +11,18 @@ import {
 } from "../constants/filterOptions";
 import { getDistinctWorkOrderTypes } from "../db/workOrdersRepo";
 import { subscribeDbChanged, getDbTick } from "../state/DbEvents";
+import { useOrg } from "../state/OrgContext";
 
 function toggleInList(list: string[] | undefined, value: string) {
   const cur = list ?? [];
   return cur.includes(value) ? cur.filter((x) => x !== value) : [...cur, value];
+}
+
+function formatStatusLabel(status: string): string {
+  if (status === "Needs") return "Needs Work";
+  if (status === "Done") return "Completed";
+  if (status === "Deferred") return "Archived";
+  return status;
 }
 
 function Chip({
@@ -44,7 +53,16 @@ export function WorkOrderFilterSheet({
   visible: boolean;
   onClose: () => void;
 }) {
-  const { filter, setFilter, clearFilter } = useWorkOrderFilter();
+  const {
+    filter,
+    setFilter,
+    clearFilter,
+    showAssets,
+    setShowAssets,
+    assetLayerFilter,
+    setAssetLayerFilter,
+  } = useWorkOrderFilter();
+  const { orgId } = useOrg();
 
   const [types, setTypes] = useState<string[]>([]);
   const [dbTick, setDbTick] = useState(0);
@@ -55,9 +73,9 @@ export function WorkOrderFilterSheet({
 
   useEffect(() => {
     if (!visible) return;
-    const t = getDistinctWorkOrderTypes();
+    const t = getDistinctWorkOrderTypes(orgId);
     setTypes(t);
-  }, [visible, dbTick]);
+  }, [visible, dbTick, orgId]);
 
   const safeTypes = useMemo(() => types, [types]);
 
@@ -75,6 +93,31 @@ export function WorkOrderFilterSheet({
           </View>
 
           <ScrollView style={styles.scroll}>
+            {/* MAP LAYERS */}
+            <Text style={styles.sectionTitle}>Map Layers</Text>
+            <View style={styles.toggleRow}>
+              <Text style={styles.toggleLabel}>Show Assets</Text>
+              <Switch
+                value={showAssets}
+                onValueChange={setShowAssets}
+                trackColor={{ false: "#ef4444", true: "#22c55e" }}
+                thumbColor={showAssets ? "#15803d" : "#b91c1c"}
+              />
+            </View>
+            <Text style={styles.toggleHint}>Signs, guardrails, culverts, and delineators</Text>
+
+            <Text style={styles.sectionTitle}>Asset Type</Text>
+            <View style={styles.chipRow}>
+              {ASSET_LAYER_FILTER_OPTIONS.map((opt) => (
+                <Chip
+                  key={opt.value}
+                  label={opt.label}
+                  active={assetLayerFilter === opt.value}
+                  onPress={() => setAssetLayerFilter(opt.value)}
+                />
+              ))}
+            </View>
+
             {/* TYPE */}
             <Text style={styles.sectionTitle}>Type</Text>
             <View style={styles.chipRow}>
@@ -94,7 +137,7 @@ export function WorkOrderFilterSheet({
               {STATUS_OPTIONS.map((s) => (
                 <Chip
                   key={s}
-                  label={s}
+                  label={formatStatusLabel(s)}
                   active={(filter.status ?? []).includes(s)}
                   onPress={() => next({ status: toggleInList(filter.status as any, s) as any })}
                 />
@@ -140,7 +183,7 @@ export function WorkOrderFilterSheet({
               ))}
             </View>
 
-            <View style={{ height: 12 }} />
+            <View style={styles.spacer12} />
 
             <TouchableOpacity onPress={clearFilter} style={styles.clearButton}>
               <Text style={styles.clearButtonText}>Clear all filters</Text>
@@ -150,7 +193,7 @@ export function WorkOrderFilterSheet({
               <Text style={styles.applyButtonText}>Apply</Text>
             </TouchableOpacity>
 
-            <View style={{ height: 20 }} />
+            <View style={styles.spacer20} />
           </ScrollView>
         </View>
       </View>
@@ -222,6 +265,28 @@ const styles = StyleSheet.create({
   },
   chipTextActive: {
     color: "white",
+  },
+  toggleRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingVertical: 8,
+  },
+  toggleLabel: {
+    fontSize: 15,
+    fontWeight: "700",
+    color: "#0f172a",
+  },
+  toggleHint: {
+    fontSize: 13,
+    color: "#64748b",
+    marginTop: 2,
+  },
+  spacer12: {
+    height: 12,
+  },
+  spacer20: {
+    height: 20,
   },
   clearButton: {
     padding: 14,

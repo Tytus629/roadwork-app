@@ -11,22 +11,44 @@
  */
 
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { getApp } from "@react-native-firebase/app";
+import { getAuth } from "@react-native-firebase/auth";
 
-const KEY_ORG_ID = "org.current.id";
-const KEY_ORG_NAME = "org.current.name";
+const LEGACY_KEY_ORG_ID = "org.current.id";
+const LEGACY_KEY_ORG_NAME = "org.current.name";
+const USER_KEY_ORG_ID_PREFIX = "org.current.id.uid:";
+const USER_KEY_ORG_NAME_PREFIX = "org.current.name.uid:";
 
 export type OrgSettings = {
   orgId: string | null;
   orgName: string | null;
 };
 
+function currentUidOrNull() {
+  try {
+    return getAuth(getApp()).currentUser?.uid ?? null;
+  } catch {
+    return null;
+  }
+}
+
+function keyOrgId(uid: string) {
+  return `${USER_KEY_ORG_ID_PREFIX}${uid}`;
+}
+
+function keyOrgName(uid: string) {
+  return `${USER_KEY_ORG_NAME_PREFIX}${uid}`;
+}
+
 /**
  * Get the current organization ID
  * Returns null if not configured
  */
-export async function getOrgId(): Promise<string | null> {
+export async function getOrgId(uid?: string | null): Promise<string | null> {
+  const safeUid = uid ?? currentUidOrNull();
+  if (!safeUid) return null;
   try {
-    return await AsyncStorage.getItem(KEY_ORG_ID);
+    return await AsyncStorage.getItem(keyOrgId(safeUid));
   } catch {
     return null;
   }
@@ -35,9 +57,11 @@ export async function getOrgId(): Promise<string | null> {
 /**
  * Get the current organization name
  */
-export async function getOrgName(): Promise<string | null> {
+export async function getOrgName(uid?: string | null): Promise<string | null> {
+  const safeUid = uid ?? currentUidOrNull();
+  if (!safeUid) return null;
   try {
-    return await AsyncStorage.getItem(KEY_ORG_NAME);
+    return await AsyncStorage.getItem(keyOrgName(safeUid));
   } catch {
     return null;
   }
@@ -46,24 +70,30 @@ export async function getOrgName(): Promise<string | null> {
 /**
  * Get full org settings
  */
-export async function getOrgSettings(): Promise<OrgSettings> {
-  const [orgId, orgName] = await Promise.all([getOrgId(), getOrgName()]);
+export async function getOrgSettings(uid?: string | null): Promise<OrgSettings> {
+  const [orgId, orgName] = await Promise.all([getOrgId(uid), getOrgName(uid)]);
   return { orgId, orgName };
 }
 
 /**
  * Set the current organization
  */
-export async function setOrgId(orgId: string, orgName?: string): Promise<void> {
-  await AsyncStorage.setItem(KEY_ORG_ID, orgId);
+export async function setOrgId(orgId: string, orgName?: string, uid?: string | null): Promise<void> {
+  const safeUid = uid ?? currentUidOrNull();
+  if (!safeUid) return;
+  await AsyncStorage.setItem(keyOrgId(safeUid), orgId);
   if (orgName) {
-    await AsyncStorage.setItem(KEY_ORG_NAME, orgName);
+    await AsyncStorage.setItem(keyOrgName(safeUid), orgName);
   }
 }
 
 /**
  * Clear org settings (logout scenario)
  */
-export async function clearOrgSettings(): Promise<void> {
-  await AsyncStorage.multiRemove([KEY_ORG_ID, KEY_ORG_NAME]);
+export async function clearOrgSettings(uid?: string | null): Promise<void> {
+  const safeUid = uid ?? currentUidOrNull();
+  if (safeUid) {
+    await AsyncStorage.multiRemove([keyOrgId(safeUid), keyOrgName(safeUid)]);
+  }
+  await AsyncStorage.multiRemove([LEGACY_KEY_ORG_ID, LEGACY_KEY_ORG_NAME]);
 }

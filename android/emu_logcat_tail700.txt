@@ -1,0 +1,700 @@
+04-11 17:39:48.236  1353 27612 D android.hardware.gnss-service.ranchu: Gnss:onGnssLocationCb:311
+04-11 17:39:48.236  1353 27612 D android.hardware.gnss-service.ranchu: Gnss:onGnssLocationCb:321
+04-11 17:39:48.534   792   824 W libbinder.IPCThreadState: Sending oneway calls to frozen process.
+04-11 17:39:48.538   792   892 D ActivityManager: sync unfroze 18386 com.google.android.apps.photos for 6
+04-11 17:39:48.548   792  2004 W ProcessStats: Tracking association SourceState{12f1d37 system/1000 ImpBg #16595} whose proc state 6 is better than process ProcessState{2fed5f9 com.google.android.apps.photos/10170 pkg=com.google.android.apps.photos} proc state 14 (0 skipped)
+04-11 17:39:48.573   792  2004 W JobScheduler: Job didn't exist in JobStore: e71765e #u0a170/1034 com.google.android.apps.photos/com.google.android.libraries.social.mediamonitor.MediaMonitorJobSchedulerService
+04-11 17:39:48.582   792  2004 W UriGrantsManagerService: No permission grants found for com.google.android.apps.photos
+04-11 17:39:48.583   792  2004 W UriGrantsManagerService: No permission grants found for com.google.android.apps.photos
+04-11 17:39:48.606   792  2004 W UriGrantsManagerService: No permission grants found for com.google.android.apps.photos
+04-11 17:39:48.607   792  2004 W UriGrantsManagerService: No permission grants found for com.google.android.apps.photos
+04-11 17:39:48.616   792   809 W UriGrantsManagerService: No permission grants found for com.google.android.apps.photos
+04-11 17:39:48.616   792   809 W UriGrantsManagerService: No permission grants found for com.google.android.apps.photos
+04-11 17:39:49.233  1353 27612 D android.hardware.gnss-service.ranchu: GnssHwListener:consume:87 sz=64
+04-11 17:39:49.237  1353 27612 D android.hardware.gnss-service.ranchu: GnssHwListener:consume:87 sz=64
+04-11 17:39:49.237  1353 27612 D android.hardware.gnss-service.ranchu: Gnss:onGnssLocationCb:311
+04-11 17:39:49.237  1353 27612 D android.hardware.gnss-service.ranchu: Gnss:onGnssLocationCb:333
+04-11 17:39:49.246  6210  6342 I FusedLocation: (REDACTED) location delivery to %s blocked - too close
+04-11 17:39:49.249  6210  6342 I FusedLocation: (REDACTED) location delivery to %s blocked - too close
+04-11 17:39:49.249  6210  6342 I FusedLocation: (REDACTED) location delivery to %s blocked - too close
+04-11 17:39:50.234  1353 27612 D android.hardware.gnss-service.ranchu: GnssHwListener:consume:87 sz=64
+04-11 17:39:50.238  1353 27612 D android.hardware.gnss-service.ranchu: GnssHwListener:consume:87 sz=64
+04-11 17:39:50.238  1353 27612 D android.hardware.gnss-service.ranchu: Gnss:onGnssLocationCb:311
+04-11 17:39:50.238  1353 27612 D android.hardware.gnss-service.ranchu: Gnss:onGnssLocationCb:333
+04-11 17:39:50.243  6210  6342 I FusedLocation: (REDACTED) location delivery to %s blocked - too close
+04-11 17:39:50.244  6210  6342 I FusedLocation: (REDACTED) location delivery to %s blocked - too close
+04-11 17:39:50.244  6210  6342 I FusedLocation: (REDACTED) location delivery to %s blocked - too close
+04-11 17:39:50.834   792  1179 I HalDevMgr: bestIfaceCreationProposal is null, requestIface=STA, existingIface=[name=wlan0 type=STA]
+04-11 17:39:50.999 27722 27722 W libbinder.BackendUnifiedServiceManager: Thread Pool max thread count is 0. Cannot cache binder as linkToDeath cannot be implemented. serviceName: package
+04-11 17:39:51.210  9148  9149 I artd    : GetBestInfo: odex next to the dex file (/data/app/~~BxKKM3Xf8f4nQf8MwvCHfg==/com.google.android.gms-L714tyckm78Cp3q38drFDA==/oat/x86_64/base.odex) is kOatUpToDate with filter 'speed-profile' executable 'false'
+04-11 17:39:51.212  9148  9149 I artd    : GetBestInfo: odex next to the dex file (/data/app/~~BxKKM3Xf8f4nQf8MwvCHfg==/com.google.android.gms-L714tyckm78Cp3q38drFDA==/oat/x86_64/split_AdsDynamite_installtime.odex) is kOatUpToDate with filter 'speed' executable 'false'
+04-11 17:39:51.214  9148  9149 I artd    : GetBestInfo: odex next to the dex file (/data/app/~~BxKKM3Xf8f4nQf8MwvCHfg==/com.google.android.gms-L714tyckm78Cp3q38drFDA==/oat/x86_64/split_CronetDynamite_installtime.odex) is kOatUpToDate with filter 'speed' executable 'false'
+04-11 17:39:51.216  9148  9149 I artd    : GetBestInfo: odex next to the dex file (/data/app/~~BxKKM3Xf8f4nQf8MwvCHfg==/com.google.android.gms-L714tyckm78Cp3q38drFDA==/oat/x86_64/split_DynamiteLoader_installtime.odex) is kOatUpToDate with filter 'speed' executable 'false'
+04-11 17:39:51.218  9148  9149 I artd    : GetBestInfo: odex next to the dex file (/data/app/~~BxKKM3Xf8f4nQf8MwvCHfg==/com.google.android.gms-L714tyckm78Cp3q38drFDA==/oat/x86_64/split_DynamiteModulesA_installtime.odex) is kOatUpToDate with filter 'speed' executable 'false'
+04-11 17:39:51.219  9148  9149 I artd    : GetBestInfo: odex next to the dex file (/data/app/~~BxKKM3Xf8f4nQf8MwvCHfg==/com.google.android.gms-L714tyckm78Cp3q38drFDA==/oat/x86_64/split_DynamiteModulesC_installtime.odex) is kOatUpToDate with filter 'speed' executable 'false'
+04-11 17:39:51.222  9148  9149 I artd    : GetBestInfo: odex next to the dex file (/data/app/~~BxKKM3Xf8f4nQf8MwvCHfg==/com.google.android.gms-L714tyckm78Cp3q38drFDA==/oat/x86_64/split_GoogleCertificates_installtime.odex) is kOatUpToDate with filter 'speed' executable 'false'
+04-11 17:39:51.225  9148  9149 I artd    : GetBestInfo: odex next to the dex file (/data/app/~~BxKKM3Xf8f4nQf8MwvCHfg==/com.google.android.gms-L714tyckm78Cp3q38drFDA==/oat/x86_64/split_MapsDynamite_installtime.odex) is kOatUpToDate with filter 'speed' executable 'false'
+04-11 17:39:51.227  9148  9149 I artd    : GetBestInfo: odex next to the dex file (/data/app/~~BxKKM3Xf8f4nQf8MwvCHfg==/com.google.android.gms-L714tyckm78Cp3q38drFDA==/oat/x86_64/split_MeasurementDynamite_installtime.odex) is kOatUpToDate with filter 'speed' executable 'false'
+04-11 17:39:51.229  9148  9149 I artd    : GetBestInfo: odex next to the dex file (/data/app/~~BxKKM3Xf8f4nQf8MwvCHfg==/com.google.android.gms-L714tyckm78Cp3q38drFDA==/oat/x86_64/split_all_locale_splits.odex) is kOatUpToDate with filter 'speed' executable 'false'
+04-11 17:39:51.231  9148  9149 I artd    : GetBestInfo: /data/user_de/0/com.google.android.gms/app_chimera/m/00000001/CronetDynamite.apk has no usable artifacts
+04-11 17:39:51.233  9148  9149 I artd    : GetBestInfo: vdex next to the dex file (/data/user/0/com.google.android.gms/app_dg_cache/BB2AE5A47BB198AF36C19CFD2B6407061A1BAF30/oat/x86_64/the.vdex) is kOatUpToDate with filter 'verify' executable 'false'
+04-11 17:39:51.234  9148  9149 I artd    : GetBestInfo: /data/user_de/0/com.google.android.gms/app_chimera/m/00000002/DynamiteLoader.apk has no usable artifacts
+04-11 17:39:51.235  1353 27612 D android.hardware.gnss-service.ranchu: GnssHwListener:consume:87 sz=64
+04-11 17:39:51.236  9148  9149 I artd    : GetBestInfo: /data/user_de/0/com.google.android.gms/app_chimera/m/00000005/GoogleCertificates.apk has no usable artifacts
+04-11 17:39:51.238  9148  9149 I artd    : GetBestInfo: /data/user_de/0/com.google.android.gms/app_chimera/m/00000009/dl-VisionOcr.optional_261233100000.apk has no usable artifacts
+04-11 17:39:51.242  9148  9149 I artd    : GetBestInfo: /data/user_de/0/com.google.android.gms/app_chimera/m/0000000f/dl-Appsearch.optional_261233100800.apk has no usable artifacts
+04-11 17:39:51.242  1353 27612 D android.hardware.gnss-service.ranchu: GnssHwListener:consume:87 sz=64
+04-11 17:39:51.242  1353 27612 D android.hardware.gnss-service.ranchu: Gnss:onGnssLocationCb:311
+04-11 17:39:51.242  1353 27612 D android.hardware.gnss-service.ranchu: Gnss:onGnssLocationCb:333
+04-11 17:39:51.244  9148  9149 I artd    : GetBestInfo: /data/user_de/0/com.google.android.gms/app_chimera/m/00000008/dl-TfliteDynamiteDynamite.integ_252130102100800.apk has no usable artifacts
+04-11 17:39:51.247  9148  9149 I artd    : GetBestInfo: /data/user_de/0/com.google.android.gms/app_chimera/m/0000000b/dl-MlkitOcrCommon.optional_261233100800.apk has no usable artifacts
+04-11 17:39:51.251  9148  9149 I artd    : GetBestInfo: /data/user_de/0/com.google.android.gms/app_chimera/m/00000007/MeasurementDynamite.apk has no usable artifacts
+04-11 17:39:51.251  9148  9149 I artd    : GetBestInfo: /data/user_de/0/com.google.android.gms/app_chimera/m/0000000a/dl-MlkitBarcodeUi.optional_261233100800.apk has no usable artifacts
+04-11 17:39:51.254  9148  9149 I artd    : GetBestInfo: /data/user_de/0/com.google.android.gms/app_chimera/m/0000000d/dl-MapsCoreDynamite.integ_260830201100800.apk has no usable artifacts
+04-11 17:39:51.257  6210  6342 I FusedLocation: (REDACTED) location delivery to %s blocked - too close
+04-11 17:39:51.258  6210  6342 I FusedLocation: (REDACTED) location delivery to %s blocked - too close
+04-11 17:39:51.259  6210  6342 I FusedLocation: (REDACTED) location delivery to %s blocked - too close
+04-11 17:39:52.234  1353 27612 D android.hardware.gnss-service.ranchu: GnssHwListener:consume:87 sz=64
+04-11 17:39:52.237  1353 27612 D android.hardware.gnss-service.ranchu: GnssHwListener:consume:87 sz=64
+04-11 17:39:52.237  1353 27612 D android.hardware.gnss-service.ranchu: Gnss:onGnssLocationCb:311
+04-11 17:39:52.237  1353 27612 D android.hardware.gnss-service.ranchu: Gnss:onGnssLocationCb:321
+04-11 17:39:53.236  1353 27612 D android.hardware.gnss-service.ranchu: GnssHwListener:consume:87 sz=64
+04-11 17:39:53.238  1353 27612 D android.hardware.gnss-service.ranchu: GnssHwListener:consume:87 sz=64
+04-11 17:39:53.239  1353 27612 D android.hardware.gnss-service.ranchu: Gnss:onGnssLocationCb:311
+04-11 17:39:53.240  1353 27612 D android.hardware.gnss-service.ranchu: Gnss:onGnssLocationCb:333
+04-11 17:39:53.246  6210  6342 I FusedLocation: (REDACTED) location delivery to %s blocked - too close
+04-11 17:39:53.247  6210  6342 I FusedLocation: (REDACTED) location delivery to %s blocked - too close
+04-11 17:39:53.247  6210  6342 I FusedLocation: (REDACTED) location delivery to %s blocked - too close
+04-11 17:39:53.583   792  1185 D InetDiagMessage: Destroyed 0 sockets, proto=IPPROTO_TCP, family=AF_INET, states=14
+04-11 17:39:53.584   792  1185 D InetDiagMessage: Destroyed 0 sockets, proto=IPPROTO_TCP, family=AF_INET6, states=14
+04-11 17:39:53.584   792  1185 D InetDiagMessage: Destroyed live tcp sockets for uids={10170} in 2ms
+04-11 17:39:53.585   792  1185 D InetDiagMessage: Destroyed 0 sockets, proto=IPPROTO_TCP, family=AF_INET, states=14
+04-11 17:39:53.586   792  1185 D InetDiagMessage: Destroyed 0 sockets, proto=IPPROTO_TCP, family=AF_INET6, states=14
+04-11 17:39:53.586   792  1185 D InetDiagMessage: Destroyed live tcp sockets for uids={20170} in 2ms
+04-11 17:39:53.847   792  1179 I HalDevMgr: bestIfaceCreationProposal is null, requestIface=STA, existingIface=[name=wlan0 type=STA]
+04-11 17:39:54.236  1353 27612 D android.hardware.gnss-service.ranchu: GnssHwListener:consume:87 sz=64
+04-11 17:39:54.241  1353 27612 D android.hardware.gnss-service.ranchu: GnssHwListener:consume:87 sz=64
+04-11 17:39:54.241  1353 27612 D android.hardware.gnss-service.ranchu: Gnss:onGnssLocationCb:311
+04-11 17:39:54.241  1353 27612 D android.hardware.gnss-service.ranchu: Gnss:onGnssLocationCb:333
+04-11 17:39:54.246  6210  6342 I FusedLocation: (REDACTED) location delivery to %s blocked - too close
+04-11 17:39:54.247  6210  6342 I FusedLocation: (REDACTED) location delivery to %s blocked - too close
+04-11 17:39:54.248  6210  6342 I FusedLocation: (REDACTED) location delivery to %s blocked - too close
+04-11 17:39:54.450  1449  1610 D SatelliteController: iisInCarrierRoamingNbIotNtn: satellite is disabled
+04-11 17:39:54.452  1449  1610 D SatelliteController: getCarrierRoamingNtnConnectType: Falling back to global carrier config connect type: 0
+04-11 17:39:55.237  1353 27612 D android.hardware.gnss-service.ranchu: GnssHwListener:consume:87 sz=64
+04-11 17:39:55.241  1353 27612 D android.hardware.gnss-service.ranchu: GnssHwListener:consume:87 sz=64
+04-11 17:39:55.241  1353 27612 D android.hardware.gnss-service.ranchu: Gnss:onGnssLocationCb:311
+04-11 17:39:55.241  1353 27612 D android.hardware.gnss-service.ranchu: Gnss:onGnssLocationCb:333
+04-11 17:39:55.247  6210  6342 I FusedLocation: (REDACTED) location delivery to %s blocked - too close
+04-11 17:39:55.249  6210  6342 I FusedLocation: (REDACTED) location delivery to %s blocked - too close
+04-11 17:39:55.249  6210  6342 I FusedLocation: (REDACTED) location delivery to %s blocked - too close
+04-11 17:39:55.667   792   900 D ActivityManager: freezing 24450 com.google.android.gms
+04-11 17:39:56.237  1353 27612 D android.hardware.gnss-service.ranchu: GnssHwListener:consume:87 sz=64
+04-11 17:39:56.240  1353 27612 D android.hardware.gnss-service.ranchu: GnssHwListener:consume:87 sz=64
+04-11 17:39:56.240  1353 27612 D android.hardware.gnss-service.ranchu: Gnss:onGnssLocationCb:311
+04-11 17:39:56.240  1353 27612 D android.hardware.gnss-service.ranchu: Gnss:onGnssLocationCb:321
+04-11 17:39:56.855   792  1179 I HalDevMgr: bestIfaceCreationProposal is null, requestIface=STA, existingIface=[name=wlan0 type=STA]
+04-11 17:39:57.237  1353 27612 D android.hardware.gnss-service.ranchu: GnssHwListener:consume:87 sz=64
+04-11 17:39:57.241  1353 27612 D android.hardware.gnss-service.ranchu: GnssHwListener:consume:87 sz=64
+04-11 17:39:57.241  1353 27612 D android.hardware.gnss-service.ranchu: Gnss:onGnssLocationCb:311
+04-11 17:39:57.241  1353 27612 D android.hardware.gnss-service.ranchu: Gnss:onGnssLocationCb:333
+04-11 17:39:57.248  6210  6342 I FusedLocation: (REDACTED) location delivery to %s blocked - too close
+04-11 17:39:57.249  6210  6342 I FusedLocation: (REDACTED) location delivery to %s blocked - too close
+04-11 17:39:57.251  6210  6342 I FusedLocation: (REDACTED) location delivery to %s blocked - too close
+04-11 17:39:58.237  1353 27612 D android.hardware.gnss-service.ranchu: GnssHwListener:consume:87 sz=64
+04-11 17:39:58.240  1353 27612 D android.hardware.gnss-service.ranchu: GnssHwListener:consume:87 sz=64
+04-11 17:39:58.240  1353 27612 D android.hardware.gnss-service.ranchu: Gnss:onGnssLocationCb:311
+04-11 17:39:58.240  1353 27612 D android.hardware.gnss-service.ranchu: Gnss:onGnssLocationCb:321
+04-11 17:39:58.586   792   900 D ActivityManager: freezing 18386 com.google.android.apps.photos
+04-11 17:39:58.589   792  1185 D InetDiagMessage: Destroyed 0 sockets, proto=IPPROTO_TCP, family=AF_INET, states=14
+04-11 17:39:58.589   792  1185 D InetDiagMessage: Destroyed 0 sockets, proto=IPPROTO_TCP, family=AF_INET6, states=14
+04-11 17:39:58.590   792  1185 D InetDiagMessage: Destroyed live tcp sockets for uids={10170} in 0ms
+04-11 17:39:59.135   792   809 W AS.PlaybackActivityMon: No piid assigned for invalid/internal port id 19
+04-11 17:39:59.142   638   733 D AudioFlinger: mixer(0x77beb7cad790) throttle end: throttle time(32)
+04-11 17:39:59.211 27732 27732 D AndroidRuntime: >>>>>> START com.android.internal.os.RuntimeInit uid 2000 <<<<<<
+04-11 17:39:59.214 27732 27732 I AndroidRuntime: Using default boot image
+04-11 17:39:59.215 27732 27732 I AndroidRuntime: Leaving lock profiling enabled
+04-11 17:39:59.218 27732 27732 I app_process: Using CollectorTypeCMC GC.
+04-11 17:39:59.240  1353 27612 D android.hardware.gnss-service.ranchu: GnssHwListener:consume:87 sz=64
+04-11 17:39:59.253  1353 27612 D android.hardware.gnss-service.ranchu: GnssHwListener:consume:87 sz=64
+04-11 17:39:59.253  1353 27612 D android.hardware.gnss-service.ranchu: Gnss:onGnssLocationCb:311
+04-11 17:39:59.253  1353 27612 D android.hardware.gnss-service.ranchu: Gnss:onGnssLocationCb:333
+04-11 17:39:59.262  6210  6342 I FusedLocation: (REDACTED) location delivery to %s blocked - too close
+04-11 17:39:59.267  6210  6342 I FusedLocation: (REDACTED) location delivery to %s blocked - too close
+04-11 17:39:59.267  6210  6342 I FusedLocation: (REDACTED) location delivery to %s blocked - too close
+04-11 17:39:59.295 27732 27732 D nativeloader: InitDefaultPublicLibraries for_preload=1: libandroid.so:libaaudio.so:libamidi.so:libbinder_ndk.so:libc.so:libcamera2ndk.so:libdl.so:libEGL.so:libGLESv1_CM.so:libGLESv2.so:libGLESv3.so:libicu.so:libicui18n.so:libicuuc.so:libjnigraphics.so:liblog.so:libmediandk.so:libm.so:libnativehelper.so:libnativewindow.so:libOpenMAXAL.so:libOpenSLES.so:libRS.so:libstdc++.so:libsync.so:libvulkan.so:libwebviewchromium_plat_support.so:libz.so
+04-11 17:39:59.299 27481 27561 I ReactNativeJS: '[AssetDetail][Repairs] projection', { assetId: 'asset_1775949152653_5712fe5c8babd4',
+04-11 17:39:59.299 27481 27561 I ReactNativeJS:   orgId: 'bJ6ERJxO0hs0UhAdFryP',
+04-11 17:39:59.299 27481 27561 I ReactNativeJS:   candidateWOCount: 3,
+04-11 17:39:59.299 27481 27561 I ReactNativeJS:   linkedMatchCount: 3,
+04-11 17:39:59.299 27481 27561 I ReactNativeJS:   completedMatchCount: 1,
+04-11 17:39:59.299 27481 27561 I ReactNativeJS:   relevantTypeMatchCount: 1,
+04-11 17:39:59.299 27481 27561 I ReactNativeJS:   dedupedCount: 1,
+04-11 17:39:59.299 27481 27561 I ReactNativeJS:   finalRepairCount: 1,
+04-11 17:39:59.299 27481 27561 I ReactNativeJS:   excluded: 
+04-11 17:39:59.299 27481 27561 I ReactNativeJS:    { wrongAssetLink: 0,
+04-11 17:39:59.299 27481 27561 I ReactNativeJS:      wrongStatus: 2,
+04-11 17:39:59.299 27481 27561 I ReactNativeJS:      wrongType: 0,
+04-11 17:39:59.299 27481 27561 I ReactNativeJS:      duplicate: 0,
+04-11 17:39:59.299 27481 27561 I ReactNativeJS:      missingId: 0 } }
+04-11 17:39:59.302 27732 27732 D nativeloader: Load libicu_jni.so using APEX ns com_android_art for caller /apex/com.android.art/javalib/core-oj.jar: ok
+04-11 17:39:59.302 27732 27732 D app_process: u_setTimeZoneFilesDirectory("/apex/com.android.tzdata/etc/tz/versioned/9/icu") succeeded. 
+04-11 17:39:59.302 27732 27732 D app_process: I18n APEX ICU file found: /apex/com.android.i18n/etc/icu/icudt76l.dat
+04-11 17:39:59.302 27732 27732 D nativeloader: Load libjavacore.so using APEX ns com_android_art for caller /apex/com.android.art/javalib/core-oj.jar: ok
+04-11 17:39:59.303 27732 27732 D nativeloader: Load libopenjdk.so using APEX ns com_android_art for caller /apex/com.android.art/javalib/core-oj.jar: ok
+04-11 17:39:59.303 27732 27732 I app_process: Priority-to-niceness mapping: 19, 16, 13, 10, 0, -2, -4, -5, -6, -8
+04-11 17:39:59.304 27732 27732 W app_process: Unexpected CPU variant for x86: x86_64.
+04-11 17:39:59.304 27732 27732 W app_process: Known variants: atom, sandybridge, silvermont, goldmont, goldmont-plus, goldmont-without-sha-xsaves, tremont, kabylake, alderlake, default
+04-11 17:39:59.307 27732 27732 W app_process: ClassLoaderContext shared library size mismatch. Expected=2, found=0 (PCL[]{PCL[/system/framework/android.test.base.jar*1947731759]#PCL[/system/framework/android.test.mock.jar*3673435773]} | PCL[])
+04-11 17:39:59.308 27732 27732 W app_process: ClassLoaderContext classpath size mismatch. expected=0, found=1 (PCL[]{PCL[/system/framework/android.test.runner.jar*3527284906]{PCL[/system/framework/android.test.base.jar*1947731759]#PCL[/system/framework/android.test.mock.jar*3673435773]}#PCL[/system/framework/android.test.base.jar*1947731759]} | PCL[/system/framework/android.test.runner.jar*3527284906])
+04-11 17:39:59.330 27732 27732 D nativeloader: Load libframework-connectivity-tiramisu-jni.so using APEX ns com_android_tethering for caller /apex/com.android.tethering/javalib/framework-connectivity-t.jar: ok
+04-11 17:39:59.331 27732 27732 D AndroidRuntime: Calling main entry com.android.commands.uiautomator.Launcher
+04-11 17:39:59.338 27732 27732 I AconfigPackage: android.media.swcodec.flags is mapped to com.android.media.swcodec
+04-11 17:39:59.338 27732 27732 I AconfigPackage: com.android.permission.flags is mapped to com.android.permission
+04-11 17:39:59.338 27732 27732 I AconfigPackage: com.android.permissioncontroller.flags is mapped to com.android.permission
+04-11 17:39:59.338 27732 27732 I AconfigPackage: com.android.icu is mapped to com.android.i18n
+04-11 17:39:59.338 27732 27732 I AconfigPackage: com.android.appsearch.flags is mapped to com.android.appsearch
+04-11 17:39:59.338 27732 27732 I AconfigPackage: android.uprobestats.mainline.flags is mapped to com.android.uprobestats
+04-11 17:39:59.339 27732 27732 I AconfigPackage: com.android.crashrecovery.flags is mapped to com.android.crashrecovery
+04-11 17:39:59.339 27732 27732 I AconfigPackage: android.provider.flags is mapped to com.android.configinfrastructure
+04-11 17:39:59.339 27732 27732 I AconfigPackage: com.android.server.deviceconfig is mapped to com.android.configinfrastructure
+04-11 17:39:59.339 27732 27732 I AconfigPackage: com.android.compos.flags is mapped to com.android.compos
+04-11 17:39:59.339 27732 27732 I AconfigPackage: com.android.art.flags is mapped to com.android.art
+04-11 17:39:59.339 27732 27732 I AconfigPackage: com.android.art.rw.flags is mapped to com.android.art
+04-11 17:39:59.339 27732 27732 I AconfigPackage: com.android.libcore is mapped to com.android.art
+04-11 17:39:59.339 27732 27732 I AconfigPackage: com.android.telephony.flags is mapped to com.android.telephonycore
+04-11 17:39:59.339 27732 27732 I AconfigPackage: com.android.media.extractor.flags is mapped to com.android.media
+04-11 17:39:59.339 27732 27732 I AconfigPackage: com.android.media.mainline.flags is mapped to com.android.media
+04-11 17:39:59.339 27732 27732 I AconfigPackage: com.android.wifi.flags is mapped to com.android.wifi
+04-11 17:39:59.340 27732 27732 I AconfigPackage: com.android.org.conscrypt.flags is mapped to com.android.conscrypt
+04-11 17:39:59.340 27732 27732 I AconfigPackage: com.android.org.conscrypt.net.flags is mapped to com.android.conscrypt
+04-11 17:39:59.340 27732 27732 I AconfigPackage: com.android.healthfitness.flags is mapped to com.android.healthfitness
+04-11 17:39:59.340 27732 27732 I AconfigPackage: com.android.ipsec.flags is mapped to com.android.ipsec
+04-11 17:39:59.342 27732 27732 I AconfigPackage: com.android.nfc.module.flags is mapped to com.android.nfcservices
+04-11 17:39:59.342 27732 27732 I AconfigPackage: com.android.adservices.ondevicepersonalization.flags is mapped to com.android.ondevicepersonalization
+04-11 17:39:59.342 27732 27732 I AconfigPackage: com.android.adbd.flags is mapped to com.android.adbd
+04-11 17:39:59.342 27732 27732 I AconfigPackage: com.android.bluetooth.flags is mapped to com.android.bt
+04-11 17:39:59.343 27732 27732 I AconfigPackage: com.android.devicelock.flags is mapped to com.android.devicelock
+04-11 17:39:59.343 27732 27732 I AconfigPackage: android.os.profiling is mapped to com.android.profiling
+04-11 17:39:59.344 27732 27732 I AconfigPackage: android.os.profiling.anomaly.flags is mapped to com.android.profiling
+04-11 17:39:59.344 27732 27732 I AconfigPackage: com.android.os.statsd.flags is mapped to com.android.os.statsd
+04-11 17:39:59.344 27732 27732 I AconfigPackage: com.android.rkpd.flags is mapped to com.android.rkpd
+04-11 17:39:59.344 27732 27732 I AconfigPackage: com.android.cellbroadcastreceiver.flags is mapped to com.android.cellbroadcast
+04-11 17:39:59.344 27732 27732 I AconfigPackage: com.android.adservices.flags is mapped to com.android.adservices
+04-11 17:39:59.344 27732 27732 I AconfigPackage: com.android.sdksandbox.flags is mapped to com.android.adservices
+04-11 17:39:59.344 27732 27732 I AconfigPackage: com.android.uwb.flags is mapped to com.android.uwb
+04-11 17:39:59.344 27732 27732 I AconfigPackage: com.android.ranging.flags is mapped to com.android.uwb
+04-11 17:39:59.344 27732 27732 I AconfigPackage: android.graphics.pdf.flags is mapped to com.android.mediaprovider
+04-11 17:39:59.344 27732 27732 I AconfigPackage: com.android.providers.media.flags is mapped to com.android.mediaprovider
+04-11 17:39:59.344 27732 27732 I AconfigPackage: android.graphics.pdf.flags.readonly is mapped to com.android.mediaprovider
+04-11 17:39:59.344 27732 27732 I AconfigPackage: com.android.tethering.mainline.beta is mapped to com.android.tethering
+04-11 17:39:59.344 27732 27732 I AconfigPackage: android.net.http is mapped to com.android.tethering
+04-11 17:39:59.344 27732 27732 I AconfigPackage: com.android.tethering.readonly.flags is mapped to com.android.tethering
+04-11 17:39:59.344 27732 27732 I AconfigPackage: android.net.vcn is mapped to com.android.tethering
+04-11 17:39:59.346 27732 27732 I AconfigPackage: com.android.net.flags is mapped to com.android.tethering
+04-11 17:39:59.347 27732 27732 I AconfigPackage: com.android.tethering.beta.test is mapped to com.android.tethering
+04-11 17:39:59.347 27732 27732 I AconfigPackage: com.android.nearby.flags is mapped to com.android.tethering
+04-11 17:39:59.347 27732 27732 I AconfigPackage: com.android.net.ct.flags is mapped to com.android.tethering
+04-11 17:39:59.347 27732 27732 I AconfigPackage: com.android.net.thread.flags is mapped to com.android.tethering
+04-11 17:39:59.347 27732 27732 I AconfigPackage: com.android.system.virtualmachine.flags is mapped to com.android.virt
+04-11 17:39:59.347 27732 27732 E FeatureFlagsImplExport: android.os.flagging.AconfigStorageReadException: ERROR_PACKAGE_NOT_FOUND: package android.xr cannot be found on the device
+04-11 17:39:59.353 27732 27732 D UiAutomationConnection: Created on user UserHandle{0}
+04-11 17:39:59.353 27732 27732 I UiAutomation: Initialized for user 0 on display 0
+04-11 17:39:59.353 27732 27732 W UiAutomation: Created with deprecatead constructor, assumes DEFAULT_DISPLAY
+04-11 17:39:59.357   792  2004 D AccessibilityManagerService: changeCurrentUserForTestAutomationIfNeededLocked(0): ignoring because device doesn't support visible background users
+04-11 17:39:59.357   792  2004 I UiAutomationManager: Registering UiTestAutomationService (id=com.android.server.accessibility/UiAutomation, flags=0x0) when called by user 0
+04-11 17:39:59.359   792  2004 V AccessibilityManagerService: onUserStateChangedLocked for userId: 0, forceUpdate: false
+04-11 17:39:59.362   792  2004 V AccessibilityUserState: updateShortcutTargets: type:accessibility_shortcut_target_service, current:{}, new:{}
+04-11 17:39:59.362   792  2004 V AccessibilityUserState: updateShortcutTargets: type:accessibility_button_targets, current:{}, new:{}
+04-11 17:39:59.362   792  2004 V AccessibilityUserState: updateShortcutTargets: type:accessibility_gesture_targets, current:{}, new:{}
+04-11 17:39:59.362   792  2004 V AccessibilityUserState: updateShortcutTargets: type:accessibility_qs_targets, current:{}, new:{}
+04-11 17:39:59.362   792  2004 V AccessibilityUserState: updateShortcutTargets: type:accessibility_key_gesture_targets, current:{}, new:{}
+04-11 17:39:59.362   792  2004 W MagnificationConnectionManager: requestConnection duplicated request: connect=false, mConnectionState=DISCONNECTED
+04-11 17:39:59.363  1943  5799 I AiAiEcho: Settings changed for uri: content://settings/secure/accessibility_enabled
+04-11 17:39:59.367   792   792 W libbinder.IPCThreadState: Sending oneway calls to frozen process.
+04-11 17:39:59.368  1943  2200 I AiAiEcho: Predicting[0]:  [CONTEXT sampling_count=5 ]
+04-11 17:39:59.369  1943  2200 I AiAiEcho: EchoTargets: 
+04-11 17:39:59.369  1943  2200 I AiAiEcho: Filtered by AiAi flag check: 
+04-11 17:39:59.369  1943  2200 I AiAiEcho: [CONTEXT ratelimit_period="10 SECONDS" ]
+04-11 17:39:59.369   792   792 W libbinder.IPCThreadState: Sending oneway calls to frozen process.
+04-11 17:39:59.370   792   792 W libbinder.IPCThreadState: Sending oneway calls to frozen process.
+04-11 17:39:59.371   792   792 W libbinder.IPCThreadState: Sending oneway calls to frozen process.
+04-11 17:39:59.371   792   792 W libbinder.IPCThreadState: Sending oneway calls to frozen process.
+04-11 17:39:59.371   792   792 W libbinder.IPCThreadState: Sending oneway calls to frozen process.
+04-11 17:39:59.372   792   792 W libbinder.IPCThreadState: Sending oneway calls to frozen process.
+04-11 17:39:59.372   792   792 W libbinder.IPCThreadState: Sending oneway calls to frozen process.
+04-11 17:39:59.372   792   792 W libbinder.IPCThreadState: Sending oneway calls to frozen process.
+04-11 17:39:59.372   792   792 W libbinder.IPCThreadState: Sending oneway calls to frozen process.
+04-11 17:39:59.372   792   792 W libbinder.IPCThreadState: Sending oneway calls to frozen process.
+04-11 17:39:59.372   792   792 W libbinder.IPCThreadState: Sending oneway calls to frozen process.
+04-11 17:39:59.372   792   792 W libbinder.IPCThreadState: Sending oneway calls to frozen process.
+04-11 17:39:59.372   792  2004 V AccessibilityManagerService: onUserStateChangedLocked for userId: 0, forceUpdate: false
+04-11 17:39:59.372   792   792 W libbinder.IPCThreadState: Sending oneway calls to frozen process.
+04-11 17:39:59.373   792   792 W libbinder.IPCThreadState: Sending oneway calls to frozen process.
+04-11 17:39:59.374   792  2004 V AccessibilityUserState: updateShortcutTargets: type:accessibility_shortcut_target_service, current:{}, new:{}
+04-11 17:39:59.374   792  2004 V AccessibilityUserState: updateShortcutTargets: type:accessibility_button_targets, current:{}, new:{}
+04-11 17:39:59.374   792  2004 V AccessibilityUserState: updateShortcutTargets: type:accessibility_gesture_targets, current:{}, new:{}
+04-11 17:39:59.374   792  2004 V AccessibilityUserState: updateShortcutTargets: type:accessibility_qs_targets, current:{}, new:{}
+04-11 17:39:59.374   792  2004 V AccessibilityUserState: updateShortcutTargets: type:accessibility_key_gesture_targets, current:{}, new:{}
+04-11 17:39:59.374   792   792 W libbinder.IPCThreadState: Sending oneway calls to frozen process.
+04-11 17:39:59.374   792  2004 W MagnificationConnectionManager: requestConnection duplicated request: connect=false, mConnectionState=DISCONNECTED
+04-11 17:39:59.375  1943  5619 I AiAiEcho: Settings changed for uri: content://settings/secure/accessibility_enabled
+04-11 17:39:59.378   792   792 W libbinder.IPCThreadState: Sending oneway calls to frozen process.
+04-11 17:39:59.378   792   792 W libbinder.IPCThreadState: Sending oneway calls to frozen process.
+04-11 17:39:59.378   792   792 W libbinder.IPCThreadState: Sending oneway calls to frozen process.
+04-11 17:39:59.378   792   792 W libbinder.IPCThreadState: Sending oneway calls to frozen process.
+04-11 17:39:59.379   792   792 W libbinder.IPCThreadState: Sending oneway calls to frozen process.
+04-11 17:39:59.379   792   792 W libbinder.IPCThreadState: Sending oneway calls to frozen process.
+04-11 17:39:59.379   792   792 W libbinder.IPCThreadState: Sending oneway calls to frozen process.
+04-11 17:39:59.379   792   792 W libbinder.IPCThreadState: Sending oneway calls to frozen process.
+04-11 17:39:59.380   792   792 W libbinder.IPCThreadState: Sending oneway calls to frozen process.
+04-11 17:39:59.380   792   792 W libbinder.IPCThreadState: Sending oneway calls to frozen process.
+04-11 17:39:59.380  1943  2200 I AiAiEcho: #remoteViewsTwiddler: feature disabled.
+04-11 17:39:59.380   792   792 W libbinder.IPCThreadState: Sending oneway calls to frozen process.
+04-11 17:39:59.380   792   792 W libbinder.IPCThreadState: Sending oneway calls to frozen process.
+04-11 17:39:59.380   792   792 W libbinder.IPCThreadState: Sending oneway calls to frozen process.
+04-11 17:39:59.380   792   792 W libbinder.IPCThreadState: Sending oneway calls to frozen process.
+04-11 17:39:59.380  1943  2200 I AiAiEcho: Predicting[0]:  [CONTEXT sampling_count=5 ]
+04-11 17:39:59.380  1943  2200 I AiAiEcho: EchoTargets: 
+04-11 17:39:59.380  1943  2200 I AiAiEcho: Filtered by AiAi flag check: 
+04-11 17:39:59.380  1943  2200 I AiAiEcho: [CONTEXT ratelimit_period="10 SECONDS" ]
+04-11 17:39:59.380   792   792 W libbinder.IPCThreadState: Sending oneway calls to frozen process.
+04-11 17:39:59.380   792   792 W libbinder.IPCThreadState: Sending oneway calls to frozen process.
+04-11 17:39:59.382  1943  2200 I AiAiEcho: #remoteViewsTwiddler: feature disabled.
+04-11 17:39:59.382   792   792 W libbinder.IPCThreadState: Sending oneway calls to frozen process.
+04-11 17:39:59.382   792   792 W libbinder.IPCThreadState: Sending oneway calls to frozen process.
+04-11 17:39:59.382  1943  2200 I AiAiEcho: Predicting[0]:  [CONTEXT sampling_count=5 ]
+04-11 17:39:59.382   792   792 W libbinder.IPCThreadState: Sending oneway calls to frozen process.
+04-11 17:39:59.382   792   792 W libbinder.IPCThreadState: Sending oneway calls to frozen process.
+04-11 17:39:59.382   792   792 W libbinder.IPCThreadState: Sending oneway calls to frozen process.
+04-11 17:39:59.382   792   792 W libbinder.IPCThreadState: Sending oneway calls to frozen process.
+04-11 17:39:59.383  1943  2200 I AiAiEcho: EchoTargets: 
+04-11 17:39:59.383  1943  2200 I AiAiEcho: Filtered by AiAi flag check: 
+04-11 17:39:59.383  1943  2200 I AiAiEcho: [CONTEXT ratelimit_period="10 SECONDS" ]
+04-11 17:39:59.383   792   792 W libbinder.IPCThreadState: Sending oneway calls to frozen process.
+04-11 17:39:59.384   792   792 W libbinder.IPCThreadState: Sending oneway calls to frozen process.
+04-11 17:39:59.384   792   792 D BatterySaverPolicy: accessibility changed to true, updating policy.
+04-11 17:39:59.384  1943  2200 I AiAiEcho: #remoteViewsTwiddler: feature disabled.
+04-11 17:39:59.387  1943  2200 I AiAiEcho: Predicting[0]:  [CONTEXT sampling_count=5 ]
+04-11 17:39:59.387  1943  2200 I AiAiEcho: EchoTargets: 
+04-11 17:39:59.387  1943  2200 I AiAiEcho: Filtered by AiAi flag check: 
+04-11 17:39:59.387  1943  2200 I AiAiEcho: [CONTEXT ratelimit_period="10 SECONDS" ]
+04-11 17:39:59.394  1943  2200 I AiAiEcho: #remoteViewsTwiddler: feature disabled.
+04-11 17:39:59.395  1943  2200 I AiAiEcho: Predicting[0]:  [CONTEXT sampling_count=5 ]
+04-11 17:39:59.395  1943  2200 I AiAiEcho: EchoTargets: 
+04-11 17:39:59.395  1943  2200 I AiAiEcho: Filtered by AiAi flag check: 
+04-11 17:39:59.395  1943  2200 I AiAiEcho: [CONTEXT ratelimit_period="10 SECONDS" ]
+04-11 17:39:59.396  1943  2200 I AiAiEcho: #remoteViewsTwiddler: feature disabled.
+04-11 17:39:59.397  1943  2200 I AiAiEcho: Predicting[0]:  [CONTEXT sampling_count=5 ]
+04-11 17:39:59.397  1943  2200 I AiAiEcho: EchoTargets: 
+04-11 17:39:59.397  1943  2200 I AiAiEcho: Filtered by AiAi flag check: 
+04-11 17:39:59.397  1943  2200 I AiAiEcho: [CONTEXT ratelimit_period="10 SECONDS" ]
+04-11 17:39:59.398  1943  2200 I AiAiEcho: #remoteViewsTwiddler: feature disabled.
+04-11 17:39:59.401  1943  2200 I AiAiEcho: #postPredictionTargets: Sending updates to UISurface ambientcue with targets# 0 (types=[])
+04-11 17:39:59.403  1273  1412 I AmbientCueRepository: Receiving SmartSpace targets # 0
+04-11 17:39:59.406   792  1752 D AccessibilityManagerService: .getAccessibilityShortcutTargets {shortcutType=32, userId=0}
+04-11 17:39:59.410  1943  2200 I AiAiEcho: #postPredictionTargets: Sending updates to UISurface home with targets# 0 (types=[])
+04-11 17:39:59.411  1943  2200 I AiAiEcho: #postPredictionTargets: Sending updates to UISurface lockscreen with targets# 0 (types=[])
+04-11 17:39:59.412  1943  2200 I AiAiEcho: #postPredictionTargets: Sending updates to UISurface ambientcue with targets# 0 (types=[])
+04-11 17:39:59.413  1943  2200 I AiAiEcho: #postPredictionTargets: Sending updates to UISurface home with targets# 0 (types=[])
+04-11 17:39:59.413  1273  1273 W SsPagerDots: Total number of pages invalid: 0. Assuming 1 page.
+04-11 17:39:59.414  1273  1412 I AmbientCueRepository: Receiving SmartSpace targets # 0
+04-11 17:39:59.415  1943  2200 I AiAiEcho: #postPredictionTargets: Sending updates to UISurface lockscreen with targets# 0 (types=[])
+04-11 17:39:59.416  1273  1273 W SsPagerDots: Total number of pages invalid: 0. Assuming 1 page.
+04-11 17:39:59.423 27481 27481 I roadworktracker: hiddenapi: Accessing hidden field Landroid/widget/ScrollView;->mScroller:Landroid/widget/OverScroller; (runtime_flags=0, domain=platform, api=unsupported) from Lcom/facebook/react/views/scroll/ReactScrollView; (domain=app, TargetSdkVersion=36) using reflection: allowed
+04-11 17:39:59.725 27481 27642 W m140.fih: Destroying egl surface
+04-11 17:39:59.862   792  1179 I HalDevMgr: bestIfaceCreationProposal is null, requestIface=STA, existingIface=[name=wlan0 type=STA]
+04-11 17:40:00.237  1353 27612 D android.hardware.gnss-service.ranchu: GnssHwListener:consume:87 sz=64
+04-11 17:40:00.242  1353 27612 D android.hardware.gnss-service.ranchu: GnssHwListener:consume:87 sz=64
+04-11 17:40:00.242  1353 27612 D android.hardware.gnss-service.ranchu: Gnss:onGnssLocationCb:311
+04-11 17:40:00.242  1353 27612 D android.hardware.gnss-service.ranchu: Gnss:onGnssLocationCb:321
+04-11 17:40:00.852  1916  2065 W MediaProvider: isAppCloneUserPair for user 0: false
+04-11 17:40:00.865 27732 27732 I AccessibilityNodeInfoDumper: Skipping invisible child: android.view.accessibility.AccessibilityNodeInfo@2524d; boundsInParent: Rect(0, 0 - 1080, 0); boundsInScreen: Rect(0, 0 - 1080, 0); boundsInWindow: Rect(0, 0 - 1080, 0); packageName: com.roadworktracker; className: android.view.ViewGroup; text: null; error: null; maxTextLength: -1; stateDescription: null; contentDescription: null; tooltipText: null; containerTitle: null; viewIdResName: null; uniqueId: null; checkable: false; checked: false; focusable: false; focused: false; selected: false; clickable: false; longClickable: false; contextClickable: false; enabled: true; password: false; scrollable: false; granularScrollingSupported: false; importantForAccessibility: false; visible: false; actions: [AccessibilityAction: ACTION_SELECT - null, AccessibilityAction: ACTION_CLEAR_SELECTION - null, AccessibilityAction: ACTION_ACCESSIBILITY_FOCUS - null, AccessibilityAction: ACTION_SHOW_ON_SCREEN - null]; isTextSelectable: false
+04-11 17:40:00.877 27732 27732 I AccessibilityNodeInfoDumper: Skipping invisible child: android.view.accessibility.AccessibilityNodeInfo@aa1c; boundsInParent: Rect(0, 0 - 1080, 157); boundsInScreen: Rect(0, 2557 - 1080, 2400); boundsInWindow: Rect(0, 2557 - 1080, 2400); packageName: com.roadworktracker; className: android.view.ViewGroup; text: null; error: null; maxTextLength: -1; stateDescription: null; contentDescription: null; tooltipText: null; containerTitle: null; viewIdResName: toastAnimatedContainer; uniqueId: null; checkable: false; checked: false; focusable: false; focused: false; selected: false; clickable: false; longClickable: false; contextClickable: false; enabled: true; password: false; scrollable: false; granularScrollingSupported: false; importantForAccessibility: true; visible: false; actions: [AccessibilityAction: ACTION_SELECT - null, AccessibilityAction: ACTION_CLEAR_SELECTION - null, AccessibilityAction: ACTION_ACCESSIBILITY_FOCUS - null, AccessibilityAction: ACTION_SHOW_ON_SCREEN - null]; isTextSelectable: false
+04-11 17:40:00.879 27732 27732 W AccessibilityNodeInfoDumper: Fetch time: 31ms
+04-11 17:40:00.881   792  1983 V AccessibilityManagerService: onUserStateChangedLocked for userId: 0, forceUpdate: false
+04-11 17:40:00.883   792  1983 V AccessibilityUserState: updateShortcutTargets: type:accessibility_shortcut_target_service, current:{}, new:{}
+04-11 17:40:00.883   792  1983 V AccessibilityUserState: updateShortcutTargets: type:accessibility_button_targets, current:{}, new:{}
+04-11 17:40:00.883   792  1983 V AccessibilityUserState: updateShortcutTargets: type:accessibility_gesture_targets, current:{}, new:{}
+04-11 17:40:00.883   792  1983 V AccessibilityUserState: updateShortcutTargets: type:accessibility_qs_targets, current:{}, new:{}
+04-11 17:40:00.883   792  1983 V AccessibilityUserState: updateShortcutTargets: type:accessibility_key_gesture_targets, current:{}, new:{}
+04-11 17:40:00.884   792  1983 W MagnificationConnectionManager: requestConnection duplicated request: connect=false, mConnectionState=DISCONNECTED
+04-11 17:40:00.884  1943  5619 I AiAiEcho: Settings changed for uri: content://settings/secure/accessibility_enabled
+04-11 17:40:00.884   792  1983 D AccessibilityManagerService: restoreCurrentUserForTestAutomationIfNeededLocked(): ignoring because device doesn't support visible background users
+04-11 17:40:00.886  1943  2200 I AiAiEcho: Predicting[0]:  [CONTEXT sampling_count=5 ]
+04-11 17:40:00.887   792   792 W libbinder.IPCThreadState: Sending oneway calls to frozen process.
+04-11 17:40:00.887   792   792 W libbinder.IPCThreadState: Sending oneway calls to frozen process.
+04-11 17:40:00.887  1943  2200 I AiAiEcho: EchoTargets: 
+04-11 17:40:00.887  1943  2200 I AiAiEcho: Filtered by AiAi flag check: 
+04-11 17:40:00.887  1943  2200 I AiAiEcho: [CONTEXT ratelimit_period="10 SECONDS" ]
+04-11 17:40:00.887   792   792 W libbinder.IPCThreadState: Sending oneway calls to frozen process.
+04-11 17:40:00.888   792   792 W libbinder.IPCThreadState: Sending oneway calls to frozen process.
+04-11 17:40:00.888   792   792 W libbinder.IPCThreadState: Sending oneway calls to frozen process.
+04-11 17:40:00.888 27732 27732 D AndroidRuntime: Shutting down VM
+04-11 17:40:00.888   792   792 W libbinder.IPCThreadState: Sending oneway calls to frozen process.
+04-11 17:40:00.888  1943  2200 I AiAiEcho: #remoteViewsTwiddler: feature disabled.
+04-11 17:40:00.889  1943  2200 I AiAiEcho: Predicting[0]:  [CONTEXT sampling_count=5 ]
+04-11 17:40:00.889 27732 27744 W libbinder.IPCThreadState: call to talkWithDriver in joinThreadPool returned error: -9 (Bad file descriptor), FD: -1
+04-11 17:40:00.889 27732 27745 W libbinder.IPCThreadState: call to talkWithDriver in joinThreadPool returned error: -9 (Bad file descriptor), FD: -1
+04-11 17:40:00.889  1943  2200 I AiAiEcho: EchoTargets: 
+04-11 17:40:00.889  1943  2200 I AiAiEcho: Filtered by AiAi flag check: 
+04-11 17:40:00.889  1943  2200 I AiAiEcho: [CONTEXT ratelimit_period="10 SECONDS" ]
+04-11 17:40:00.889   792   792 W libbinder.IPCThreadState: Sending oneway calls to frozen process.
+04-11 17:40:00.889   792   792 W libbinder.IPCThreadState: Sending oneway calls to frozen process.
+04-11 17:40:00.890   792   792 W libbinder.IPCThreadState: Sending oneway calls to frozen process.
+04-11 17:40:00.891  1943  2200 I AiAiEcho: #remoteViewsTwiddler: feature disabled.
+04-11 17:40:00.891   792   792 W libbinder.IPCThreadState: Sending oneway calls to frozen process.
+04-11 17:40:00.891   792   792 W libbinder.IPCThreadState: Sending oneway calls to frozen process.
+04-11 17:40:00.892   792   792 W libbinder.IPCThreadState: Sending oneway calls to frozen process.
+04-11 17:40:00.892   792   792 W libbinder.IPCThreadState: Sending oneway calls to frozen process.
+04-11 17:40:00.893   792   792 W libbinder.IPCThreadState: Sending oneway calls to frozen process.
+04-11 17:40:00.893   792   792 W libbinder.IPCThreadState: Sending oneway calls to frozen process.
+04-11 17:40:00.893   792   792 W libbinder.IPCThreadState: Sending oneway calls to frozen process.
+04-11 17:40:00.895  1943  2200 I AiAiEcho: Predicting[0]:  [CONTEXT sampling_count=5 ]
+04-11 17:40:00.895   792   792 W libbinder.IPCThreadState: Sending oneway calls to frozen process.
+04-11 17:40:00.895  1943  2200 I AiAiEcho: EchoTargets: 
+04-11 17:40:00.895  1943  2200 I AiAiEcho: Filtered by AiAi flag check: 
+04-11 17:40:00.895  1943  2200 I AiAiEcho: [CONTEXT ratelimit_period="10 SECONDS" ]
+04-11 17:40:00.895   792   792 W libbinder.IPCThreadState: Sending oneway calls to frozen process.
+04-11 17:40:00.895   792   792 W libbinder.IPCThreadState: Sending oneway calls to frozen process.
+04-11 17:40:00.895   792   792 W libbinder.IPCThreadState: Sending oneway calls to frozen process.
+04-11 17:40:00.895   792   792 W libbinder.IPCThreadState: Sending oneway calls to frozen process.
+04-11 17:40:00.896   792   792 W libbinder.IPCThreadState: Sending oneway calls to frozen process.
+04-11 17:40:00.896   792   792 W libbinder.IPCThreadState: Sending oneway calls to frozen process.
+04-11 17:40:00.896  1943  2200 I AiAiEcho: #remoteViewsTwiddler: feature disabled.
+04-11 17:40:00.897   792   792 W libbinder.IPCThreadState: Sending oneway calls to frozen process.
+04-11 17:40:00.897   792   792 D BatterySaverPolicy: accessibility changed to false, updating policy.
+04-11 17:40:00.899  1943  2200 I AiAiEcho: #postPredictionTargets: Sending updates to UISurface ambientcue with targets# 0 (types=[])
+04-11 17:40:00.903  1273  1412 I AmbientCueRepository: Receiving SmartSpace targets # 0
+04-11 17:40:00.907  1943  2200 I AiAiEcho: #postPredictionTargets: Sending updates to UISurface home with targets# 0 (types=[])
+04-11 17:40:00.908  1943  2200 I AiAiEcho: #postPredictionTargets: Sending updates to UISurface lockscreen with targets# 0 (types=[])
+04-11 17:40:00.916  1273  1273 W SsPagerDots: Total number of pages invalid: 0. Assuming 1 page.
+04-11 17:40:00.994 27748 27748 W libbinder.BackendUnifiedServiceManager: Thread Pool max thread count is 0. Cannot cache binder as linkToDeath cannot be implemented. serviceName: package
+04-11 17:40:01.187  9148  9150 I artd    : GetBestInfo: odex next to the dex file (/data/app/~~BxKKM3Xf8f4nQf8MwvCHfg==/com.google.android.gms-L714tyckm78Cp3q38drFDA==/oat/x86_64/base.odex) is kOatUpToDate with filter 'speed-profile' executable 'false'
+04-11 17:40:01.192  9148  9150 I artd    : GetBestInfo: odex next to the dex file (/data/app/~~BxKKM3Xf8f4nQf8MwvCHfg==/com.google.android.gms-L714tyckm78Cp3q38drFDA==/oat/x86_64/split_AdsDynamite_installtime.odex) is kOatUpToDate with filter 'speed' executable 'false'
+04-11 17:40:01.194  9148  9150 I artd    : GetBestInfo: odex next to the dex file (/data/app/~~BxKKM3Xf8f4nQf8MwvCHfg==/com.google.android.gms-L714tyckm78Cp3q38drFDA==/oat/x86_64/split_CronetDynamite_installtime.odex) is kOatUpToDate with filter 'speed' executable 'false'
+04-11 17:40:01.197  9148  9150 I artd    : GetBestInfo: odex next to the dex file (/data/app/~~BxKKM3Xf8f4nQf8MwvCHfg==/com.google.android.gms-L714tyckm78Cp3q38drFDA==/oat/x86_64/split_DynamiteLoader_installtime.odex) is kOatUpToDate with filter 'speed' executable 'false'
+04-11 17:40:01.198  9148  9150 I artd    : GetBestInfo: odex next to the dex file (/data/app/~~BxKKM3Xf8f4nQf8MwvCHfg==/com.google.android.gms-L714tyckm78Cp3q38drFDA==/oat/x86_64/split_DynamiteModulesA_installtime.odex) is kOatUpToDate with filter 'speed' executable 'false'
+04-11 17:40:01.199  9148  9150 I artd    : GetBestInfo: odex next to the dex file (/data/app/~~BxKKM3Xf8f4nQf8MwvCHfg==/com.google.android.gms-L714tyckm78Cp3q38drFDA==/oat/x86_64/split_DynamiteModulesC_installtime.odex) is kOatUpToDate with filter 'speed' executable 'false'
+04-11 17:40:01.203  9148  9150 I artd    : GetBestInfo: odex next to the dex file (/data/app/~~BxKKM3Xf8f4nQf8MwvCHfg==/com.google.android.gms-L714tyckm78Cp3q38drFDA==/oat/x86_64/split_GoogleCertificates_installtime.odex) is kOatUpToDate with filter 'speed' executable 'false'
+04-11 17:40:01.205  9148  9150 I artd    : GetBestInfo: odex next to the dex file (/data/app/~~BxKKM3Xf8f4nQf8MwvCHfg==/com.google.android.gms-L714tyckm78Cp3q38drFDA==/oat/x86_64/split_MapsDynamite_installtime.odex) is kOatUpToDate with filter 'speed' executable 'false'
+04-11 17:40:01.209  9148  9150 I artd    : GetBestInfo: odex next to the dex file (/data/app/~~BxKKM3Xf8f4nQf8MwvCHfg==/com.google.android.gms-L714tyckm78Cp3q38drFDA==/oat/x86_64/split_MeasurementDynamite_installtime.odex) is kOatUpToDate with filter 'speed' executable 'false'
+04-11 17:40:01.210  9148  9150 I artd    : GetBestInfo: odex next to the dex file (/data/app/~~BxKKM3Xf8f4nQf8MwvCHfg==/com.google.android.gms-L714tyckm78Cp3q38drFDA==/oat/x86_64/split_all_locale_splits.odex) is kOatUpToDate with filter 'speed' executable 'false'
+04-11 17:40:01.211  9148  9150 I artd    : GetBestInfo: /data/user_de/0/com.google.android.gms/app_chimera/m/00000001/CronetDynamite.apk has no usable artifacts
+04-11 17:40:01.213  9148  9150 I artd    : GetBestInfo: vdex next to the dex file (/data/user/0/com.google.android.gms/app_dg_cache/BB2AE5A47BB198AF36C19CFD2B6407061A1BAF30/oat/x86_64/the.vdex) is kOatUpToDate with filter 'verify' executable 'false'
+04-11 17:40:01.214  9148  9150 I artd    : GetBestInfo: /data/user_de/0/com.google.android.gms/app_chimera/m/00000002/DynamiteLoader.apk has no usable artifacts
+04-11 17:40:01.216  9148  9150 I artd    : GetBestInfo: /data/user_de/0/com.google.android.gms/app_chimera/m/00000005/GoogleCertificates.apk has no usable artifacts
+04-11 17:40:01.218  9148  9150 I artd    : GetBestInfo: /data/user_de/0/com.google.android.gms/app_chimera/m/00000009/dl-VisionOcr.optional_261233100000.apk has no usable artifacts
+04-11 17:40:01.220  9148  9150 I artd    : GetBestInfo: /data/user_de/0/com.google.android.gms/app_chimera/m/0000000f/dl-Appsearch.optional_261233100800.apk has no usable artifacts
+04-11 17:40:01.222  9148  9150 I artd    : GetBestInfo: /data/user_de/0/com.google.android.gms/app_chimera/m/00000008/dl-TfliteDynamiteDynamite.integ_252130102100800.apk has no usable artifacts
+04-11 17:40:01.223  9148  9150 I artd    : GetBestInfo: /data/user_de/0/com.google.android.gms/app_chimera/m/0000000b/dl-MlkitOcrCommon.optional_261233100800.apk has no usable artifacts
+04-11 17:40:01.224  9148  9150 I artd    : GetBestInfo: /data/user_de/0/com.google.android.gms/app_chimera/m/00000007/MeasurementDynamite.apk has no usable artifacts
+04-11 17:40:01.225  9148  9150 I artd    : GetBestInfo: /data/user_de/0/com.google.android.gms/app_chimera/m/0000000a/dl-MlkitBarcodeUi.optional_261233100800.apk has no usable artifacts
+04-11 17:40:01.226  9148  9150 I artd    : GetBestInfo: /data/user_de/0/com.google.android.gms/app_chimera/m/0000000d/dl-MapsCoreDynamite.integ_260830201100800.apk has no usable artifacts
+04-11 17:40:01.238  1353 27612 D android.hardware.gnss-service.ranchu: GnssHwListener:consume:87 sz=64
+04-11 17:40:01.243  1353 27612 D android.hardware.gnss-service.ranchu: GnssHwListener:consume:87 sz=64
+04-11 17:40:01.243  1353 27612 D android.hardware.gnss-service.ranchu: Gnss:onGnssLocationCb:311
+04-11 17:40:01.243  1353 27612 D android.hardware.gnss-service.ranchu: Gnss:onGnssLocationCb:333
+04-11 17:40:01.251  6210  6342 I FusedLocation: (REDACTED) location delivery to %s blocked - too close
+04-11 17:40:01.255  6210  6342 I FusedLocation: (REDACTED) location delivery to %s blocked - too close
+04-11 17:40:01.255  6210  6342 I FusedLocation: (REDACTED) location delivery to %s blocked - too close
+04-11 17:40:01.704   792  1982 D ActivityManager: sync unfroze 24450 com.google.android.gms for 6
+04-11 17:40:01.708   792  1982 W ProcessStats: Tracking association SourceState{41dea4d com.google.android.gms.persistent/10155 ImpBg #16599} whose proc state 6 is better than process ProcessState{5593933 com.google.android.gms/10155 pkg=com.google.android.gms} proc state 14 (0 skipped)
+04-11 17:40:01.715  6210 27334 I NetworkScheduler.Stats: (REDACTED) Task %s/%s started execution. cause:%s exec_start_elapsed_seconds: %s
+04-11 17:40:01.726  6210 27660 I NetworkScheduler.Stats: (REDACTED) Task %s/%s finished executing. cause:%s result: %s elapsed_millis: %s uptime_millis: %s exec_start_elapsed_seconds: %s
+04-11 17:40:01.953 27481 27481 D WindowOnBackDispatcher: setTopOnBackInvokedCallback (unwrapped): android.widget.PopupWindow$PopupDecorView$$ExternalSyntheticLambda1@d446627
+04-11 17:40:01.954   792  2004 D CoreBackPreview: Window{4a149e9 u0 PopupWindow:97104b}: Setting back callback OnBackInvokedCallbackInfo{mCallback=android.window.IOnBackInvokedCallback$Stub$Proxy@7eb910f, mPriority=0, mIsAnimationCallback=false, mOverrideBehavior=0}
+04-11 17:40:01.983 27481 27481 D WindowOnBackDispatcher: setTopOnBackInvokedCallback (unwrapped): null
+04-11 17:40:01.987   792  1982 D CoreBackPreview: Window{4a149e9 u0 PopupWindow:97104b}: Setting back callback null
+04-11 17:40:02.180   586  2978 D android.hardware.audio@7.1-impl.ranchu: threadLoop: entering standby, frames: 28297792
+04-11 17:40:02.180   586  2978 D android.hardware.audio@7.1-impl.ranchu: ~TinyalsaSink: joining consumeThread
+04-11 17:40:02.200   586 27731 D android.hardware.audio@7.1-impl.ranchu: consumeThread: exiting
+04-11 17:40:02.201   586  2978 D android.hardware.audio@7.1-impl.ranchu: ~TinyalsaSink: stopping PCM stream
+04-11 17:40:02.239  1353 27612 D android.hardware.gnss-service.ranchu: GnssHwListener:consume:87 sz=64
+04-11 17:40:02.243  1353 27612 D android.hardware.gnss-service.ranchu: GnssHwListener:consume:87 sz=64
+04-11 17:40:02.243  1353 27612 D android.hardware.gnss-service.ranchu: Gnss:onGnssLocationCb:311
+04-11 17:40:02.243  1353 27612 D android.hardware.gnss-service.ranchu: Gnss:onGnssLocationCb:333
+04-11 17:40:02.250  6210  6342 I FusedLocation: (REDACTED) location delivery to %s blocked - too close
+04-11 17:40:02.255  6210  6342 I FusedLocation: (REDACTED) location delivery to %s blocked - too close
+04-11 17:40:02.256  6210  6342 I FusedLocation: (REDACTED) location delivery to %s blocked - too close
+04-11 17:40:02.869   792  1179 I HalDevMgr: bestIfaceCreationProposal is null, requestIface=STA, existingIface=[name=wlan0 type=STA]
+04-11 17:40:03.239  1353 27612 D android.hardware.gnss-service.ranchu: GnssHwListener:consume:87 sz=64
+04-11 17:40:03.243  1353 27612 D android.hardware.gnss-service.ranchu: GnssHwListener:consume:87 sz=64
+04-11 17:40:03.243  1353 27612 D android.hardware.gnss-service.ranchu: Gnss:onGnssLocationCb:311
+04-11 17:40:03.243  1353 27612 D android.hardware.gnss-service.ranchu: Gnss:onGnssLocationCb:333
+04-11 17:40:03.247  6210  6342 I FusedLocation: (REDACTED) location delivery to %s blocked - too close
+04-11 17:40:03.249  6210  6342 I FusedLocation: (REDACTED) location delivery to %s blocked - too close
+04-11 17:40:03.249  6210  6342 I FusedLocation: (REDACTED) location delivery to %s blocked - too close
+04-11 17:40:04.240  1353 27612 D android.hardware.gnss-service.ranchu: GnssHwListener:consume:87 sz=64
+04-11 17:40:04.245  1353 27612 D android.hardware.gnss-service.ranchu: GnssHwListener:consume:87 sz=64
+04-11 17:40:04.245  1353 27612 D android.hardware.gnss-service.ranchu: Gnss:onGnssLocationCb:311
+04-11 17:40:04.245  1353 27612 D android.hardware.gnss-service.ranchu: Gnss:onGnssLocationCb:333
+04-11 17:40:04.254  6210  6342 I FusedLocation: (REDACTED) location delivery to %s blocked - too close
+04-11 17:40:04.256  6210  6342 I FusedLocation: (REDACTED) location delivery to %s blocked - too close
+04-11 17:40:04.256  6210  6342 I FusedLocation: (REDACTED) location delivery to %s blocked - too close
+04-11 17:40:04.450  1449  1610 D SatelliteController: iisInCarrierRoamingNbIotNtn: satellite is disabled
+04-11 17:40:04.451  1449  1610 D SatelliteController: getCarrierRoamingNtnConnectType: Falling back to global carrier config connect type: 0
+04-11 17:40:05.241  1353 27612 D android.hardware.gnss-service.ranchu: GnssHwListener:consume:87 sz=64
+04-11 17:40:05.246  1353 27612 D android.hardware.gnss-service.ranchu: GnssHwListener:consume:87 sz=64
+04-11 17:40:05.246  1353 27612 D android.hardware.gnss-service.ranchu: Gnss:onGnssLocationCb:311
+04-11 17:40:05.246  1353 27612 D android.hardware.gnss-service.ranchu: Gnss:onGnssLocationCb:333
+04-11 17:40:05.253  6210  6342 I FusedLocation: (REDACTED) location delivery to %s blocked - too close
+04-11 17:40:05.255  6210  6342 I FusedLocation: (REDACTED) location delivery to %s blocked - too close
+04-11 17:40:05.255  6210  6342 I FusedLocation: (REDACTED) location delivery to %s blocked - too close
+04-11 17:40:05.877   792  1179 I HalDevMgr: bestIfaceCreationProposal is null, requestIface=STA, existingIface=[name=wlan0 type=STA]
+04-11 17:40:06.242  1353 27612 D android.hardware.gnss-service.ranchu: GnssHwListener:consume:87 sz=64
+04-11 17:40:06.245  1353 27612 D android.hardware.gnss-service.ranchu: GnssHwListener:consume:87 sz=64
+04-11 17:40:06.245  1353 27612 D android.hardware.gnss-service.ranchu: Gnss:onGnssLocationCb:311
+04-11 17:40:06.245  1353 27612 D android.hardware.gnss-service.ranchu: Gnss:onGnssLocationCb:321
+04-11 17:40:07.242  1353 27612 D android.hardware.gnss-service.ranchu: GnssHwListener:consume:87 sz=64
+04-11 17:40:07.244  1353 27612 D android.hardware.gnss-service.ranchu: GnssHwListener:consume:87 sz=64
+04-11 17:40:07.244  1353 27612 D android.hardware.gnss-service.ranchu: Gnss:onGnssLocationCb:311
+04-11 17:40:07.244  1353 27612 D android.hardware.gnss-service.ranchu: Gnss:onGnssLocationCb:333
+04-11 17:40:07.250  6210  6342 I FusedLocation: (REDACTED) location delivery to %s blocked - too close
+04-11 17:40:07.252  6210  6342 I FusedLocation: (REDACTED) location delivery to %s blocked - too close
+04-11 17:40:07.252  6210  6342 I FusedLocation: (REDACTED) location delivery to %s blocked - too close
+04-11 17:40:08.242  1353 27612 D android.hardware.gnss-service.ranchu: GnssHwListener:consume:87 sz=64
+04-11 17:40:08.245  1353 27612 D android.hardware.gnss-service.ranchu: GnssHwListener:consume:87 sz=64
+04-11 17:40:08.245  1353 27612 D android.hardware.gnss-service.ranchu: Gnss:onGnssLocationCb:311
+04-11 17:40:08.245  1353 27612 D android.hardware.gnss-service.ranchu: Gnss:onGnssLocationCb:333
+04-11 17:40:08.251  6210  6342 I FusedLocation: (REDACTED) location delivery to %s blocked - too close
+04-11 17:40:08.251  6210  6342 I FusedLocation: (REDACTED) location delivery to %s blocked - too close
+04-11 17:40:08.255  6210  6342 I FusedLocation: (REDACTED) location delivery to %s blocked - too close
+04-11 17:40:08.883   792  1179 I HalDevMgr: bestIfaceCreationProposal is null, requestIface=STA, existingIface=[name=wlan0 type=STA]
+04-11 17:40:09.243  1353 27612 D android.hardware.gnss-service.ranchu: GnssHwListener:consume:87 sz=64
+04-11 17:40:09.246  1353 27612 D android.hardware.gnss-service.ranchu: GnssHwListener:consume:87 sz=64
+04-11 17:40:09.246  1353 27612 D android.hardware.gnss-service.ranchu: Gnss:onGnssLocationCb:311
+04-11 17:40:09.246  1353 27612 D android.hardware.gnss-service.ranchu: Gnss:onGnssLocationCb:333
+04-11 17:40:09.252  6210  6342 I FusedLocation: (REDACTED) location delivery to %s blocked - too close
+04-11 17:40:09.255  6210  6342 I FusedLocation: (REDACTED) location delivery to %s blocked - too close
+04-11 17:40:09.256  6210  6342 I FusedLocation: (REDACTED) location delivery to %s blocked - too close
+04-11 17:40:09.413   792   824 W libbinder.IPCThreadState: Sending oneway calls to frozen process.
+04-11 17:40:09.413   792   824 W libbinder.IPCThreadState: Sending oneway calls to frozen process.
+04-11 17:40:10.244  1353 27612 D android.hardware.gnss-service.ranchu: GnssHwListener:consume:87 sz=64
+04-11 17:40:10.248  1353 27612 D android.hardware.gnss-service.ranchu: GnssHwListener:consume:87 sz=64
+04-11 17:40:10.248  1353 27612 D android.hardware.gnss-service.ranchu: Gnss:onGnssLocationCb:311
+04-11 17:40:10.248  1353 27612 D android.hardware.gnss-service.ranchu: Gnss:onGnssLocationCb:333
+04-11 17:40:10.257  6210  6342 I FusedLocation: (REDACTED) location delivery to %s blocked - too close
+04-11 17:40:10.259  6210  6342 I FusedLocation: (REDACTED) location delivery to %s blocked - too close
+04-11 17:40:10.260  6210  6342 I FusedLocation: (REDACTED) location delivery to %s blocked - too close
+04-11 17:40:10.883   792   892 D ActivityManager: sync unfroze 18386 com.google.android.apps.photos for 6
+04-11 17:40:10.892   792   824 W libbinder.IPCThreadState: Sending oneway calls to frozen process.
+04-11 17:40:10.914   792  2004 W JobScheduler: Job didn't exist in JobStore: 6d00568 #u0a170/1034 com.google.android.apps.photos/com.google.android.libraries.social.mediamonitor.MediaMonitorJobSchedulerService
+04-11 17:40:10.923 18386 18389 W oid.apps.photos: Missing inline cache for int bkbf.a(java.lang.Object)
+04-11 17:40:10.931   792  2181 W UriGrantsManagerService: No permission grants found for com.google.android.apps.photos
+04-11 17:40:10.934   792  2181 W UriGrantsManagerService: No permission grants found for com.google.android.apps.photos
+04-11 17:40:10.966   792  2181 W UriGrantsManagerService: No permission grants found for com.google.android.apps.photos
+04-11 17:40:10.970   792  2181 W UriGrantsManagerService: No permission grants found for com.google.android.apps.photos
+04-11 17:40:10.985   792  2181 W UriGrantsManagerService: No permission grants found for com.google.android.apps.photos
+04-11 17:40:10.986   792  2181 W UriGrantsManagerService: No permission grants found for com.google.android.apps.photos
+04-11 17:40:11.007 27754 27754 W libbinder.BackendUnifiedServiceManager: Thread Pool max thread count is 0. Cannot cache binder as linkToDeath cannot be implemented. serviceName: package
+04-11 17:40:11.161  9148  9150 I artd    : GetBestInfo: odex next to the dex file (/data/app/~~BxKKM3Xf8f4nQf8MwvCHfg==/com.google.android.gms-L714tyckm78Cp3q38drFDA==/oat/x86_64/base.odex) is kOatUpToDate with filter 'speed-profile' executable 'false'
+04-11 17:40:11.166  9148  9150 I artd    : GetBestInfo: odex next to the dex file (/data/app/~~BxKKM3Xf8f4nQf8MwvCHfg==/com.google.android.gms-L714tyckm78Cp3q38drFDA==/oat/x86_64/split_AdsDynamite_installtime.odex) is kOatUpToDate with filter 'speed' executable 'false'
+04-11 17:40:11.168  9148  9150 I artd    : GetBestInfo: odex next to the dex file (/data/app/~~BxKKM3Xf8f4nQf8MwvCHfg==/com.google.android.gms-L714tyckm78Cp3q38drFDA==/oat/x86_64/split_CronetDynamite_installtime.odex) is kOatUpToDate with filter 'speed' executable 'false'
+04-11 17:40:11.169  9148  9150 I artd    : GetBestInfo: odex next to the dex file (/data/app/~~BxKKM3Xf8f4nQf8MwvCHfg==/com.google.android.gms-L714tyckm78Cp3q38drFDA==/oat/x86_64/split_DynamiteLoader_installtime.odex) is kOatUpToDate with filter 'speed' executable 'false'
+04-11 17:40:11.171  9148  9150 I artd    : GetBestInfo: odex next to the dex file (/data/app/~~BxKKM3Xf8f4nQf8MwvCHfg==/com.google.android.gms-L714tyckm78Cp3q38drFDA==/oat/x86_64/split_DynamiteModulesA_installtime.odex) is kOatUpToDate with filter 'speed' executable 'false'
+04-11 17:40:11.174  9148  9150 I artd    : GetBestInfo: odex next to the dex file (/data/app/~~BxKKM3Xf8f4nQf8MwvCHfg==/com.google.android.gms-L714tyckm78Cp3q38drFDA==/oat/x86_64/split_DynamiteModulesC_installtime.odex) is kOatUpToDate with filter 'speed' executable 'false'
+04-11 17:40:11.176  9148  9150 I artd    : GetBestInfo: odex next to the dex file (/data/app/~~BxKKM3Xf8f4nQf8MwvCHfg==/com.google.android.gms-L714tyckm78Cp3q38drFDA==/oat/x86_64/split_GoogleCertificates_installtime.odex) is kOatUpToDate with filter 'speed' executable 'false'
+04-11 17:40:11.178  9148  9150 I artd    : GetBestInfo: odex next to the dex file (/data/app/~~BxKKM3Xf8f4nQf8MwvCHfg==/com.google.android.gms-L714tyckm78Cp3q38drFDA==/oat/x86_64/split_MapsDynamite_installtime.odex) is kOatUpToDate with filter 'speed' executable 'false'
+04-11 17:40:11.179  9148  9150 I artd    : GetBestInfo: odex next to the dex file (/data/app/~~BxKKM3Xf8f4nQf8MwvCHfg==/com.google.android.gms-L714tyckm78Cp3q38drFDA==/oat/x86_64/split_MeasurementDynamite_installtime.odex) is kOatUpToDate with filter 'speed' executable 'false'
+04-11 17:40:11.181  9148  9150 I artd    : GetBestInfo: odex next to the dex file (/data/app/~~BxKKM3Xf8f4nQf8MwvCHfg==/com.google.android.gms-L714tyckm78Cp3q38drFDA==/oat/x86_64/split_all_locale_splits.odex) is kOatUpToDate with filter 'speed' executable 'false'
+04-11 17:40:11.183  9148  9150 I artd    : GetBestInfo: /data/user_de/0/com.google.android.gms/app_chimera/m/00000001/CronetDynamite.apk has no usable artifacts
+04-11 17:40:11.186  9148  9150 I artd    : GetBestInfo: vdex next to the dex file (/data/user/0/com.google.android.gms/app_dg_cache/BB2AE5A47BB198AF36C19CFD2B6407061A1BAF30/oat/x86_64/the.vdex) is kOatUpToDate with filter 'verify' executable 'false'
+04-11 17:40:11.187  9148  9150 I artd    : GetBestInfo: /data/user_de/0/com.google.android.gms/app_chimera/m/00000002/DynamiteLoader.apk has no usable artifacts
+04-11 17:40:11.189  9148  9150 I artd    : GetBestInfo: /data/user_de/0/com.google.android.gms/app_chimera/m/00000005/GoogleCertificates.apk has no usable artifacts
+04-11 17:40:11.191  9148  9150 I artd    : GetBestInfo: /data/user_de/0/com.google.android.gms/app_chimera/m/00000009/dl-VisionOcr.optional_261233100000.apk has no usable artifacts
+04-11 17:40:11.193  9148  9150 I artd    : GetBestInfo: /data/user_de/0/com.google.android.gms/app_chimera/m/0000000f/dl-Appsearch.optional_261233100800.apk has no usable artifacts
+04-11 17:40:11.195  9148  9150 I artd    : GetBestInfo: /data/user_de/0/com.google.android.gms/app_chimera/m/00000008/dl-TfliteDynamiteDynamite.integ_252130102100800.apk has no usable artifacts
+04-11 17:40:11.196  9148  9150 I artd    : GetBestInfo: /data/user_de/0/com.google.android.gms/app_chimera/m/0000000b/dl-MlkitOcrCommon.optional_261233100800.apk has no usable artifacts
+04-11 17:40:11.200  9148  9150 I artd    : GetBestInfo: /data/user_de/0/com.google.android.gms/app_chimera/m/00000007/MeasurementDynamite.apk has no usable artifacts
+04-11 17:40:11.203  9148  9150 I artd    : GetBestInfo: /data/user_de/0/com.google.android.gms/app_chimera/m/0000000a/dl-MlkitBarcodeUi.optional_261233100800.apk has no usable artifacts
+04-11 17:40:11.203  9148  9150 I artd    : GetBestInfo: /data/user_de/0/com.google.android.gms/app_chimera/m/0000000d/dl-MapsCoreDynamite.integ_260830201100800.apk has no usable artifacts
+04-11 17:40:11.245  1353 27612 D android.hardware.gnss-service.ranchu: GnssHwListener:consume:87 sz=64
+04-11 17:40:11.249  1353 27612 D android.hardware.gnss-service.ranchu: GnssHwListener:consume:87 sz=64
+04-11 17:40:11.249  1353 27612 D android.hardware.gnss-service.ranchu: Gnss:onGnssLocationCb:311
+04-11 17:40:11.249  1353 27612 D android.hardware.gnss-service.ranchu: Gnss:onGnssLocationCb:333
+04-11 17:40:11.255  6210  6342 I FusedLocation: (REDACTED) location delivery to %s blocked - too close
+04-11 17:40:11.257  6210  6342 I FusedLocation: (REDACTED) location delivery to %s blocked - too close
+04-11 17:40:11.257  6210  6342 I FusedLocation: (REDACTED) location delivery to %s blocked - too close
+04-11 17:40:11.775 24450 27760 I GmscoreIpa: Starting mediastore instant index [CONTEXT service_id=255 ]
+04-11 17:40:11.908   792  1179 I HalDevMgr: bestIfaceCreationProposal is null, requestIface=STA, existingIface=[name=wlan0 type=STA]
+04-11 17:40:12.244  1353 27612 D android.hardware.gnss-service.ranchu: GnssHwListener:consume:87 sz=64
+04-11 17:40:12.249  1353 27612 D android.hardware.gnss-service.ranchu: GnssHwListener:consume:87 sz=64
+04-11 17:40:12.249  1353 27612 D android.hardware.gnss-service.ranchu: Gnss:onGnssLocationCb:311
+04-11 17:40:12.249  1353 27612 D android.hardware.gnss-service.ranchu: Gnss:onGnssLocationCb:321
+04-11 17:40:13.244  1353 27612 D android.hardware.gnss-service.ranchu: GnssHwListener:consume:87 sz=64
+04-11 17:40:13.247  1353 27612 D android.hardware.gnss-service.ranchu: GnssHwListener:consume:87 sz=64
+04-11 17:40:13.247  1353 27612 D android.hardware.gnss-service.ranchu: Gnss:onGnssLocationCb:311
+04-11 17:40:13.247  1353 27612 D android.hardware.gnss-service.ranchu: Gnss:onGnssLocationCb:333
+04-11 17:40:13.254  6210  6342 I FusedLocation: (REDACTED) location delivery to %s blocked - too close
+04-11 17:40:13.255  6210  6342 I FusedLocation: (REDACTED) location delivery to %s blocked - too close
+04-11 17:40:13.256  6210  6342 I FusedLocation: (REDACTED) location delivery to %s blocked - too close
+04-11 17:40:14.245  1353 27612 D android.hardware.gnss-service.ranchu: GnssHwListener:consume:87 sz=64
+04-11 17:40:14.248  1353 27612 D android.hardware.gnss-service.ranchu: GnssHwListener:consume:87 sz=64
+04-11 17:40:14.248  1353 27612 D android.hardware.gnss-service.ranchu: Gnss:onGnssLocationCb:311
+04-11 17:40:14.248  1353 27612 D android.hardware.gnss-service.ranchu: Gnss:onGnssLocationCb:333
+04-11 17:40:14.257  6210  6342 I FusedLocation: (REDACTED) location delivery to %s blocked - too close
+04-11 17:40:14.259  6210  6342 I FusedLocation: (REDACTED) location delivery to %s blocked - too close
+04-11 17:40:14.259  6210  6342 I FusedLocation: (REDACTED) location delivery to %s blocked - too close
+04-11 17:40:14.450  1449  1610 D SatelliteController: iisInCarrierRoamingNbIotNtn: satellite is disabled
+04-11 17:40:14.451  1449  1610 D SatelliteController: getCarrierRoamingNtnConnectType: Falling back to global carrier config connect type: 0
+04-11 17:40:14.919   792  1179 I HalDevMgr: bestIfaceCreationProposal is null, requestIface=STA, existingIface=[name=wlan0 type=STA]
+04-11 17:40:15.245  1353 27612 D android.hardware.gnss-service.ranchu: GnssHwListener:consume:87 sz=64
+04-11 17:40:15.250  1353 27612 D android.hardware.gnss-service.ranchu: GnssHwListener:consume:87 sz=64
+04-11 17:40:15.250  1353 27612 D android.hardware.gnss-service.ranchu: Gnss:onGnssLocationCb:311
+04-11 17:40:15.250  1353 27612 D android.hardware.gnss-service.ranchu: Gnss:onGnssLocationCb:333
+04-11 17:40:15.257  6210  6342 I FusedLocation: (REDACTED) location delivery to %s blocked - too close
+04-11 17:40:15.259  6210  6342 I FusedLocation: (REDACTED) location delivery to %s blocked - too close
+04-11 17:40:15.259  6210  6342 I FusedLocation: (REDACTED) location delivery to %s blocked - too close
+04-11 17:40:15.933   792  1185 D InetDiagMessage: Destroyed 0 sockets, proto=IPPROTO_TCP, family=AF_INET, states=14
+04-11 17:40:15.933   792  1185 D InetDiagMessage: Destroyed 0 sockets, proto=IPPROTO_TCP, family=AF_INET6, states=14
+04-11 17:40:15.934   792  1185 D InetDiagMessage: Destroyed live tcp sockets for uids={10170} in 1ms
+04-11 17:40:15.936   792  1185 D InetDiagMessage: Destroyed 0 sockets, proto=IPPROTO_TCP, family=AF_INET, states=14
+04-11 17:40:15.936   792  1185 D InetDiagMessage: Destroyed 0 sockets, proto=IPPROTO_TCP, family=AF_INET6, states=14
+04-11 17:40:15.937   792  1185 D InetDiagMessage: Destroyed live tcp sockets for uids={20170} in 2ms
+04-11 17:40:16.246  1353 27612 D android.hardware.gnss-service.ranchu: GnssHwListener:consume:87 sz=64
+04-11 17:40:16.249  1353 27612 D android.hardware.gnss-service.ranchu: GnssHwListener:consume:87 sz=64
+04-11 17:40:16.249  1353 27612 D android.hardware.gnss-service.ranchu: Gnss:onGnssLocationCb:311
+04-11 17:40:16.249  1353 27612 D android.hardware.gnss-service.ranchu: Gnss:onGnssLocationCb:321
+04-11 17:40:17.246  1353 27612 D android.hardware.gnss-service.ranchu: GnssHwListener:consume:87 sz=64
+04-11 17:40:17.250  1353 27612 D android.hardware.gnss-service.ranchu: GnssHwListener:consume:87 sz=64
+04-11 17:40:17.250  1353 27612 D android.hardware.gnss-service.ranchu: Gnss:onGnssLocationCb:311
+04-11 17:40:17.250  1353 27612 D android.hardware.gnss-service.ranchu: Gnss:onGnssLocationCb:333
+04-11 17:40:17.258  6210  6342 I FusedLocation: (REDACTED) location delivery to %s blocked - too close
+04-11 17:40:17.260  6210  6342 I FusedLocation: (REDACTED) location delivery to %s blocked - too close
+04-11 17:40:17.263  6210  6342 I FusedLocation: (REDACTED) location delivery to %s blocked - too close
+04-11 17:40:17.926   792  1179 I HalDevMgr: bestIfaceCreationProposal is null, requestIface=STA, existingIface=[name=wlan0 type=STA]
+04-11 17:40:18.246  1353 27612 D android.hardware.gnss-service.ranchu: GnssHwListener:consume:87 sz=64
+04-11 17:40:18.249  1353 27612 D android.hardware.gnss-service.ranchu: GnssHwListener:consume:87 sz=64
+04-11 17:40:18.250  1353 27612 D android.hardware.gnss-service.ranchu: Gnss:onGnssLocationCb:311
+04-11 17:40:18.250  1353 27612 D android.hardware.gnss-service.ranchu: Gnss:onGnssLocationCb:321
+04-11 17:40:19.247  1353 27612 D android.hardware.gnss-service.ranchu: GnssHwListener:consume:87 sz=64
+04-11 17:40:19.250  1353 27612 D android.hardware.gnss-service.ranchu: GnssHwListener:consume:87 sz=64
+04-11 17:40:19.250  1353 27612 D android.hardware.gnss-service.ranchu: Gnss:onGnssLocationCb:311
+04-11 17:40:19.250  1353 27612 D android.hardware.gnss-service.ranchu: Gnss:onGnssLocationCb:333
+04-11 17:40:19.256  6210  6342 I FusedLocation: (REDACTED) location delivery to %s blocked - too close
+04-11 17:40:19.259  6210  6342 I FusedLocation: (REDACTED) location delivery to %s blocked - too close
+04-11 17:40:19.259  6210  6342 I FusedLocation: (REDACTED) location delivery to %s blocked - too close
+04-11 17:40:20.248  1353 27612 D android.hardware.gnss-service.ranchu: GnssHwListener:consume:87 sz=64
+04-11 17:40:20.251  1353 27612 D android.hardware.gnss-service.ranchu: GnssHwListener:consume:87 sz=64
+04-11 17:40:20.251  1353 27612 D android.hardware.gnss-service.ranchu: Gnss:onGnssLocationCb:311
+04-11 17:40:20.252  1353 27612 D android.hardware.gnss-service.ranchu: Gnss:onGnssLocationCb:333
+04-11 17:40:20.259  6210  6342 I FusedLocation: (REDACTED) location delivery to %s blocked - too close
+04-11 17:40:20.262  6210  6342 I FusedLocation: (REDACTED) location delivery to %s blocked - too close
+04-11 17:40:20.262  6210  6342 I FusedLocation: (REDACTED) location delivery to %s blocked - too close
+04-11 17:40:20.933   792  1179 I HalDevMgr: bestIfaceCreationProposal is null, requestIface=STA, existingIface=[name=wlan0 type=STA]
+04-11 17:40:20.935   792   900 D ActivityManager: freezing 18386 com.google.android.apps.photos
+04-11 17:40:20.938   792  1185 D InetDiagMessage: Destroyed 0 sockets, proto=IPPROTO_TCP, family=AF_INET, states=14
+04-11 17:40:20.938   792  1185 D InetDiagMessage: Destroyed 0 sockets, proto=IPPROTO_TCP, family=AF_INET6, states=14
+04-11 17:40:20.938   792  1185 D InetDiagMessage: Destroyed live tcp sockets for uids={10170} in 0ms
+04-11 17:40:21.000 27763 27763 W libbinder.BackendUnifiedServiceManager: Thread Pool max thread count is 0. Cannot cache binder as linkToDeath cannot be implemented. serviceName: package
+04-11 17:40:21.171  9148  9150 I artd    : GetBestInfo: odex next to the dex file (/data/app/~~BxKKM3Xf8f4nQf8MwvCHfg==/com.google.android.gms-L714tyckm78Cp3q38drFDA==/oat/x86_64/base.odex) is kOatUpToDate with filter 'speed-profile' executable 'false'
+04-11 17:40:21.175  9148  9150 I artd    : GetBestInfo: odex next to the dex file (/data/app/~~BxKKM3Xf8f4nQf8MwvCHfg==/com.google.android.gms-L714tyckm78Cp3q38drFDA==/oat/x86_64/split_AdsDynamite_installtime.odex) is kOatUpToDate with filter 'speed' executable 'false'
+04-11 17:40:21.178  9148  9150 I artd    : GetBestInfo: odex next to the dex file (/data/app/~~BxKKM3Xf8f4nQf8MwvCHfg==/com.google.android.gms-L714tyckm78Cp3q38drFDA==/oat/x86_64/split_CronetDynamite_installtime.odex) is kOatUpToDate with filter 'speed' executable 'false'
+04-11 17:40:21.180  9148  9150 I artd    : GetBestInfo: odex next to the dex file (/data/app/~~BxKKM3Xf8f4nQf8MwvCHfg==/com.google.android.gms-L714tyckm78Cp3q38drFDA==/oat/x86_64/split_DynamiteLoader_installtime.odex) is kOatUpToDate with filter 'speed' executable 'false'
+04-11 17:40:21.182  9148  9150 I artd    : GetBestInfo: odex next to the dex file (/data/app/~~BxKKM3Xf8f4nQf8MwvCHfg==/com.google.android.gms-L714tyckm78Cp3q38drFDA==/oat/x86_64/split_DynamiteModulesA_installtime.odex) is kOatUpToDate with filter 'speed' executable 'false'
+04-11 17:40:21.183  9148  9150 I artd    : GetBestInfo: odex next to the dex file (/data/app/~~BxKKM3Xf8f4nQf8MwvCHfg==/com.google.android.gms-L714tyckm78Cp3q38drFDA==/oat/x86_64/split_DynamiteModulesC_installtime.odex) is kOatUpToDate with filter 'speed' executable 'false'
+04-11 17:40:21.184  9148  9150 I artd    : GetBestInfo: odex next to the dex file (/data/app/~~BxKKM3Xf8f4nQf8MwvCHfg==/com.google.android.gms-L714tyckm78Cp3q38drFDA==/oat/x86_64/split_GoogleCertificates_installtime.odex) is kOatUpToDate with filter 'speed' executable 'false'
+04-11 17:40:21.186  9148  9150 I artd    : GetBestInfo: odex next to the dex file (/data/app/~~BxKKM3Xf8f4nQf8MwvCHfg==/com.google.android.gms-L714tyckm78Cp3q38drFDA==/oat/x86_64/split_MapsDynamite_installtime.odex) is kOatUpToDate with filter 'speed' executable 'false'
+04-11 17:40:21.187  9148  9149 I artd    : GetBestInfo: odex next to the dex file (/data/app/~~BxKKM3Xf8f4nQf8MwvCHfg==/com.google.android.gms-L714tyckm78Cp3q38drFDA==/oat/x86_64/split_MeasurementDynamite_installtime.odex) is kOatUpToDate with filter 'speed' executable 'false'
+04-11 17:40:21.188  9148  9149 I artd    : GetBestInfo: odex next to the dex file (/data/app/~~BxKKM3Xf8f4nQf8MwvCHfg==/com.google.android.gms-L714tyckm78Cp3q38drFDA==/oat/x86_64/split_all_locale_splits.odex) is kOatUpToDate with filter 'speed' executable 'false'
+04-11 17:40:21.189  9148  9149 I artd    : GetBestInfo: /data/user_de/0/com.google.android.gms/app_chimera/m/00000001/CronetDynamite.apk has no usable artifacts
+04-11 17:40:21.190  9148  9149 I artd    : GetBestInfo: vdex next to the dex file (/data/user/0/com.google.android.gms/app_dg_cache/BB2AE5A47BB198AF36C19CFD2B6407061A1BAF30/oat/x86_64/the.vdex) is kOatUpToDate with filter 'verify' executable 'false'
+04-11 17:40:21.190  9148  9149 I artd    : GetBestInfo: /data/user_de/0/com.google.android.gms/app_chimera/m/00000002/DynamiteLoader.apk has no usable artifacts
+04-11 17:40:21.191  9148  9149 I artd    : GetBestInfo: /data/user_de/0/com.google.android.gms/app_chimera/m/00000005/GoogleCertificates.apk has no usable artifacts
+04-11 17:40:21.193  9148  9149 I artd    : GetBestInfo: /data/user_de/0/com.google.android.gms/app_chimera/m/00000009/dl-VisionOcr.optional_261233100000.apk has no usable artifacts
+04-11 17:40:21.195  9148  9149 I artd    : GetBestInfo: /data/user_de/0/com.google.android.gms/app_chimera/m/0000000f/dl-Appsearch.optional_261233100800.apk has no usable artifacts
+04-11 17:40:21.197  9148  9149 I artd    : GetBestInfo: /data/user_de/0/com.google.android.gms/app_chimera/m/00000008/dl-TfliteDynamiteDynamite.integ_252130102100800.apk has no usable artifacts
+04-11 17:40:21.199  9148  9149 I artd    : GetBestInfo: /data/user_de/0/com.google.android.gms/app_chimera/m/0000000b/dl-MlkitOcrCommon.optional_261233100800.apk has no usable artifacts
+04-11 17:40:21.201  9148  9149 I artd    : GetBestInfo: /data/user_de/0/com.google.android.gms/app_chimera/m/00000007/MeasurementDynamite.apk has no usable artifacts
+04-11 17:40:21.202  9148  9149 I artd    : GetBestInfo: /data/user_de/0/com.google.android.gms/app_chimera/m/0000000a/dl-MlkitBarcodeUi.optional_261233100800.apk has no usable artifacts
+04-11 17:40:21.204  9148  9149 I artd    : GetBestInfo: /data/user_de/0/com.google.android.gms/app_chimera/m/0000000d/dl-MapsCoreDynamite.integ_260830201100800.apk has no usable artifacts
+04-11 17:40:21.248  1353 27612 D android.hardware.gnss-service.ranchu: GnssHwListener:consume:87 sz=64
+04-11 17:40:21.251  1353 27612 D android.hardware.gnss-service.ranchu: GnssHwListener:consume:87 sz=64
+04-11 17:40:21.251  1353 27612 D android.hardware.gnss-service.ranchu: Gnss:onGnssLocationCb:311
+04-11 17:40:21.251  1353 27612 D android.hardware.gnss-service.ranchu: Gnss:onGnssLocationCb:321
+04-11 17:40:22.248  1353 27612 D android.hardware.gnss-service.ranchu: GnssHwListener:consume:87 sz=64
+04-11 17:40:22.251  1353 27612 D android.hardware.gnss-service.ranchu: GnssHwListener:consume:87 sz=64
+04-11 17:40:22.251  1353 27612 D android.hardware.gnss-service.ranchu: Gnss:onGnssLocationCb:311
+04-11 17:40:22.252  1353 27612 D android.hardware.gnss-service.ranchu: Gnss:onGnssLocationCb:333
+04-11 17:40:22.261  6210  6342 I FusedLocation: (REDACTED) location delivery to %s blocked - too close
+04-11 17:40:22.261  6210  6342 I FusedLocation: (REDACTED) location delivery to %s blocked - too close
+04-11 17:40:22.261  6210  6342 I FusedLocation: (REDACTED) location delivery to %s blocked - too close
+04-11 17:40:23.249  1353 27612 D android.hardware.gnss-service.ranchu: GnssHwListener:consume:87 sz=64
+04-11 17:40:23.253  1353 27612 D android.hardware.gnss-service.ranchu: GnssHwListener:consume:87 sz=64
+04-11 17:40:23.253  1353 27612 D android.hardware.gnss-service.ranchu: Gnss:onGnssLocationCb:311
+04-11 17:40:23.253  1353 27612 D android.hardware.gnss-service.ranchu: Gnss:onGnssLocationCb:333
+04-11 17:40:23.259  6210  6342 I FusedLocation: (REDACTED) location delivery to %s blocked - too close
+04-11 17:40:23.261  6210  6342 I FusedLocation: (REDACTED) location delivery to %s blocked - too close
+04-11 17:40:23.263  6210  6342 I FusedLocation: (REDACTED) location delivery to %s blocked - too close
+04-11 17:40:23.938   792  1179 I HalDevMgr: bestIfaceCreationProposal is null, requestIface=STA, existingIface=[name=wlan0 type=STA]
+04-11 17:40:24.249  1353 27612 D android.hardware.gnss-service.ranchu: GnssHwListener:consume:87 sz=64
+04-11 17:40:24.253  1353 27612 D android.hardware.gnss-service.ranchu: GnssHwListener:consume:87 sz=64
+04-11 17:40:24.253  1353 27612 D android.hardware.gnss-service.ranchu: Gnss:onGnssLocationCb:311
+04-11 17:40:24.253  1353 27612 D android.hardware.gnss-service.ranchu: Gnss:onGnssLocationCb:321
+04-11 17:40:24.450  1449  1610 D SatelliteController: iisInCarrierRoamingNbIotNtn: satellite is disabled
+04-11 17:40:24.450  1449  1610 D SatelliteController: getCarrierRoamingNtnConnectType: Falling back to global carrier config connect type: 0
+04-11 17:40:25.249  1353 27612 D android.hardware.gnss-service.ranchu: GnssHwListener:consume:87 sz=64
+04-11 17:40:25.253  1353 27612 D android.hardware.gnss-service.ranchu: GnssHwListener:consume:87 sz=64
+04-11 17:40:25.253  1353 27612 D android.hardware.gnss-service.ranchu: Gnss:onGnssLocationCb:311
+04-11 17:40:25.253  1353 27612 D android.hardware.gnss-service.ranchu: Gnss:onGnssLocationCb:333
+04-11 17:40:25.258  6210  6342 I FusedLocation: (REDACTED) location delivery to %s blocked - too close
+04-11 17:40:25.260  6210  6342 I FusedLocation: (REDACTED) location delivery to %s blocked - too close
+04-11 17:40:25.260  6210  6342 I FusedLocation: (REDACTED) location delivery to %s blocked - too close
+04-11 17:40:26.250  1353 27612 D android.hardware.gnss-service.ranchu: GnssHwListener:consume:87 sz=64
+04-11 17:40:26.254  1353 27612 D android.hardware.gnss-service.ranchu: GnssHwListener:consume:87 sz=64
+04-11 17:40:26.254  1353 27612 D android.hardware.gnss-service.ranchu: Gnss:onGnssLocationCb:311
+04-11 17:40:26.254  1353 27612 D android.hardware.gnss-service.ranchu: Gnss:onGnssLocationCb:333
+04-11 17:40:26.260  6210  6342 I FusedLocation: (REDACTED) location delivery to %s blocked - too close
+04-11 17:40:26.263  6210  6342 I FusedLocation: (REDACTED) location delivery to %s blocked - too close
+04-11 17:40:26.264  6210  6342 I FusedLocation: (REDACTED) location delivery to %s blocked - too close
+04-11 17:40:26.944   792  1179 I HalDevMgr: bestIfaceCreationProposal is null, requestIface=STA, existingIface=[name=wlan0 type=STA]
+04-11 17:40:27.250  1353 27612 D android.hardware.gnss-service.ranchu: GnssHwListener:consume:87 sz=64
+04-11 17:40:27.253  1353 27612 D android.hardware.gnss-service.ranchu: GnssHwListener:consume:87 sz=64
+04-11 17:40:27.254  1353 27612 D android.hardware.gnss-service.ranchu: Gnss:onGnssLocationCb:311
+04-11 17:40:27.254  1353 27612 D android.hardware.gnss-service.ranchu: Gnss:onGnssLocationCb:321
+04-11 17:40:28.251  1353 27612 D android.hardware.gnss-service.ranchu: GnssHwListener:consume:87 sz=64
+04-11 17:40:28.255  1353 27612 D android.hardware.gnss-service.ranchu: GnssHwListener:consume:87 sz=64
+04-11 17:40:28.256  1353 27612 D android.hardware.gnss-service.ranchu: Gnss:onGnssLocationCb:311
+04-11 17:40:28.256  1353 27612 D android.hardware.gnss-service.ranchu: Gnss:onGnssLocationCb:333
+04-11 17:40:28.263  6210  6342 I FusedLocation: (REDACTED) location delivery to %s blocked - too close
+04-11 17:40:28.264  6210  6342 I FusedLocation: (REDACTED) location delivery to %s blocked - too close
+04-11 17:40:28.266  6210  6342 I FusedLocation: (REDACTED) location delivery to %s blocked - too close
+04-11 17:40:28.819   792   900 D ActivityManager: freezing 24450 com.google.android.gms
+04-11 17:40:29.252  1353 27612 D android.hardware.gnss-service.ranchu: GnssHwListener:consume:87 sz=64
+04-11 17:40:29.257  1353 27612 D android.hardware.gnss-service.ranchu: GnssHwListener:consume:87 sz=64
+04-11 17:40:29.257  1353 27612 D android.hardware.gnss-service.ranchu: Gnss:onGnssLocationCb:311
+04-11 17:40:29.257  1353 27612 D android.hardware.gnss-service.ranchu: Gnss:onGnssLocationCb:333
+04-11 17:40:29.263  6210  6342 I FusedLocation: (REDACTED) location delivery to %s blocked - too close
+04-11 17:40:29.265  6210  6342 I FusedLocation: (REDACTED) location delivery to %s blocked - too close
+04-11 17:40:29.265  6210  6342 I FusedLocation: (REDACTED) location delivery to %s blocked - too close
+04-11 17:40:29.952   792  1179 I HalDevMgr: bestIfaceCreationProposal is null, requestIface=STA, existingIface=[name=wlan0 type=STA]
+04-11 17:40:30.252  1353 27612 D android.hardware.gnss-service.ranchu: GnssHwListener:consume:87 sz=64
+04-11 17:40:30.256  1353 27612 D android.hardware.gnss-service.ranchu: GnssHwListener:consume:87 sz=64
+04-11 17:40:30.256  1353 27612 D android.hardware.gnss-service.ranchu: Gnss:onGnssLocationCb:311
+04-11 17:40:30.256  1353 27612 D android.hardware.gnss-service.ranchu: Gnss:onGnssLocationCb:321
+04-11 17:40:31.022 27769 27769 W libbinder.BackendUnifiedServiceManager: Thread Pool max thread count is 0. Cannot cache binder as linkToDeath cannot be implemented. serviceName: package
+04-11 17:40:31.253  1353 27612 D android.hardware.gnss-service.ranchu: GnssHwListener:consume:87 sz=64
+04-11 17:40:31.269  1353 27612 D android.hardware.gnss-service.ranchu: GnssHwListener:consume:87 sz=64
+04-11 17:40:31.269  1353 27612 D android.hardware.gnss-service.ranchu: Gnss:onGnssLocationCb:311
+04-11 17:40:31.269  1353 27612 D android.hardware.gnss-service.ranchu: Gnss:onGnssLocationCb:333
+04-11 17:40:31.304  6210  6342 I FusedLocation: (REDACTED) location delivery to %s blocked - too close
+04-11 17:40:31.309  6210  6342 I FusedLocation: (REDACTED) location delivery to %s blocked - too close
+04-11 17:40:31.310  6210  6342 I FusedLocation: (REDACTED) location delivery to %s blocked - too close
+04-11 17:40:31.355  9148  9149 I artd    : GetBestInfo: odex next to the dex file (/data/app/~~BxKKM3Xf8f4nQf8MwvCHfg==/com.google.android.gms-L714tyckm78Cp3q38drFDA==/oat/x86_64/base.odex) is kOatUpToDate with filter 'speed-profile' executable 'false'
+04-11 17:40:31.362  9148  9149 I artd    : GetBestInfo: odex next to the dex file (/data/app/~~BxKKM3Xf8f4nQf8MwvCHfg==/com.google.android.gms-L714tyckm78Cp3q38drFDA==/oat/x86_64/split_AdsDynamite_installtime.odex) is kOatUpToDate with filter 'speed' executable 'false'
+04-11 17:40:31.367  9148  9149 I artd    : GetBestInfo: odex next to the dex file (/data/app/~~BxKKM3Xf8f4nQf8MwvCHfg==/com.google.android.gms-L714tyckm78Cp3q38drFDA==/oat/x86_64/split_CronetDynamite_installtime.odex) is kOatUpToDate with filter 'speed' executable 'false'
+04-11 17:40:31.372  9148  9149 I artd    : GetBestInfo: odex next to the dex file (/data/app/~~BxKKM3Xf8f4nQf8MwvCHfg==/com.google.android.gms-L714tyckm78Cp3q38drFDA==/oat/x86_64/split_DynamiteLoader_installtime.odex) is kOatUpToDate with filter 'speed' executable 'false'
+04-11 17:40:31.375  9148  9149 I artd    : GetBestInfo: odex next to the dex file (/data/app/~~BxKKM3Xf8f4nQf8MwvCHfg==/com.google.android.gms-L714tyckm78Cp3q38drFDA==/oat/x86_64/split_DynamiteModulesA_installtime.odex) is kOatUpToDate with filter 'speed' executable 'false'
+04-11 17:40:31.381  9148  9149 I artd    : GetBestInfo: odex next to the dex file (/data/app/~~BxKKM3Xf8f4nQf8MwvCHfg==/com.google.android.gms-L714tyckm78Cp3q38drFDA==/oat/x86_64/split_DynamiteModulesC_installtime.odex) is kOatUpToDate with filter 'speed' executable 'false'
+04-11 17:40:31.387  9148  9150 I artd    : GetBestInfo: odex next to the dex file (/data/app/~~BxKKM3Xf8f4nQf8MwvCHfg==/com.google.android.gms-L714tyckm78Cp3q38drFDA==/oat/x86_64/split_GoogleCertificates_installtime.odex) is kOatUpToDate with filter 'speed' executable 'false'
+04-11 17:40:31.390  9148  9150 I artd    : GetBestInfo: odex next to the dex file (/data/app/~~BxKKM3Xf8f4nQf8MwvCHfg==/com.google.android.gms-L714tyckm78Cp3q38drFDA==/oat/x86_64/split_MapsDynamite_installtime.odex) is kOatUpToDate with filter 'speed' executable 'false'
+04-11 17:40:31.392  9148  9150 I artd    : GetBestInfo: odex next to the dex file (/data/app/~~BxKKM3Xf8f4nQf8MwvCHfg==/com.google.android.gms-L714tyckm78Cp3q38drFDA==/oat/x86_64/split_MeasurementDynamite_installtime.odex) is kOatUpToDate with filter 'speed' executable 'false'
+04-11 17:40:31.396  9148  9150 I artd    : GetBestInfo: odex next to the dex file (/data/app/~~BxKKM3Xf8f4nQf8MwvCHfg==/com.google.android.gms-L714tyckm78Cp3q38drFDA==/oat/x86_64/split_all_locale_splits.odex) is kOatUpToDate with filter 'speed' executable 'false'
+04-11 17:40:31.398  9148  9150 I artd    : GetBestInfo: /data/user_de/0/com.google.android.gms/app_chimera/m/00000001/CronetDynamite.apk has no usable artifacts
+04-11 17:40:31.400  9148  9150 I artd    : GetBestInfo: vdex next to the dex file (/data/user/0/com.google.android.gms/app_dg_cache/BB2AE5A47BB198AF36C19CFD2B6407061A1BAF30/oat/x86_64/the.vdex) is kOatUpToDate with filter 'verify' executable 'false'
+04-11 17:40:31.401  9148  9150 I artd    : GetBestInfo: /data/user_de/0/com.google.android.gms/app_chimera/m/00000002/DynamiteLoader.apk has no usable artifacts
+04-11 17:40:31.401  9148  9150 I artd    : GetBestInfo: /data/user_de/0/com.google.android.gms/app_chimera/m/00000005/GoogleCertificates.apk has no usable artifacts
+04-11 17:40:31.403  9148  9150 I artd    : GetBestInfo: /data/user_de/0/com.google.android.gms/app_chimera/m/00000009/dl-VisionOcr.optional_261233100000.apk has no usable artifacts
+04-11 17:40:31.404  9148  9150 I artd    : GetBestInfo: /data/user_de/0/com.google.android.gms/app_chimera/m/0000000f/dl-Appsearch.optional_261233100800.apk has no usable artifacts
+04-11 17:40:31.407  9148  9149 I artd    : GetBestInfo: /data/user_de/0/com.google.android.gms/app_chimera/m/00000008/dl-TfliteDynamiteDynamite.integ_252130102100800.apk has no usable artifacts

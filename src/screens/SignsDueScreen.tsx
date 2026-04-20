@@ -1,3 +1,16 @@
+/**
+ * SignsDueScreen — Shows signs overdue for inspection.
+ *
+ * ORG SCOPING:
+ * Uses useOrg() to get the current orgId and passes it to useSignsDue().
+ * This ensures only signs belonging to the active organization are shown.
+ * Without orgId, switching orgs would show all orgs' signs mixed together.
+ * See workOrdersRepo.ts header "ORG ISOLATION" section for details.
+ *
+ * DUE MODES:
+ * Chip toggles let the user filter by inspection window (30d, 1y, 2y, 5y).
+ * Each mode maps to a different SQL query in listSignsDueByMode().
+ */
 import React from "react";
 import { View, Text, FlatList, TouchableOpacity, StyleSheet } from "react-native";
 import { useNavigation } from "@react-navigation/native";
@@ -5,6 +18,7 @@ import { useSignsDue } from "../hooks/useSignsDue";
 import { getSignLabelById, getSignCategoryById } from "../utils/signTypeLookup";
 import type { DueMode } from "../db/workOrdersRepo";
 import { debugSignOverdueSnapshot } from "../db/workOrdersRepo";
+import { useOrg } from "../state/OrgContext";
 
 function Chip({ label, active, onPress }: { label: string; active: boolean; onPress: () => void }) {
   return (
@@ -21,15 +35,16 @@ function Chip({ label, active, onPress }: { label: string; active: boolean; onPr
 
 export default function SignsDueScreen() {
   const navigation = useNavigation<any>();
+  const { orgId } = useOrg();
   const [mode, setMode] = React.useState<DueMode>("overdue_default");
-  const items = useSignsDue(mode);
+  const items = useSignsDue(mode, orgId);
 
   // Debug: log SQLite state when switching to overdue_1y
   React.useEffect(() => {
-    if (mode === "overdue_1y") {
-      debugSignOverdueSnapshot();
+    if (__DEV__ && mode === "overdue_1y") {
+      debugSignOverdueSnapshot(orgId);
     }
-  }, [mode]);
+  }, [mode, orgId]);
 
   return (
     <View style={styles.container}>

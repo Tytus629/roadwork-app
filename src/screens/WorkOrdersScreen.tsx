@@ -4,8 +4,8 @@
  * ========================================
  * 
  * PURPOSE:
- * - Provides a filterable, sortable list view of all work orders
- * - Allows users to browse work orders by type, priority, status, and age
+ * - Provides a filterable, sortable list view of active work orders
+ * - Allows users to browse active work orders by type, priority, status, and age
  * - Alternative view to the map screen for users who prefer list-based navigation
  * 
  * KEY FEATURES:
@@ -44,29 +44,37 @@
  * - DB queries use indices for fast filtering
  */
 
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { View, Text, TouchableOpacity, FlatList, StyleSheet } from "react-native";
 import { useNavigation } from "@react-navigation/native";
 import type { WorkOrderFilter, WorkStatus, Priority } from "../db/types";
 import { AgeSort } from "../db/workOrdersRepo";
 import { useWorkOrdersFiltered } from "../hooks/useWorkOrdersFiltered";
-import { formatWorkType } from "../constants/workOrderTypes";
+import { formatWorkType, WORK_ORDER_TYPE_OPTIONS } from "../constants/workOrderTypes";
+import { useOrg } from "../state/OrgContext";
+import { formatWorkOrderCreator } from "../utils/workOrderCreator";
 
 // Predefined work order types (matches DB schema and creation options)
-const TYPES = [
-  "Pothole",
-  "Sign",
-  "Spraying",
-  "Brushing",
-  "Culvert",
-  "Guardrail",
-  "Danger Tree",
-  "Ditching",
-  "Asphalt",
+const TYPES = WORK_ORDER_TYPE_OPTIONS
+  .filter((x) => x.key !== "asphalt")
+  .map((x) => x.label);
+
+const PRIORITY: Priority[] = ["None", "Low", "Medium", "High", "Urgent"];
+const ACTIVE_STATUS_FILTER: WorkStatus[] = ["Needs", "In Progress", "Deferred"];
+const STATUS_OPTIONS: Array<{ value: WorkStatus; label: string }> = [
+  { value: "Needs", label: "Needs Work" },
+  { value: "In Progress", label: "In Progress" },
+  { value: "Deferred", label: "Deferred" },
 ];
 
-const PRIORITY: Priority[] = ["Low", "Medium", "High", "Urgent"];
-const STATUS: WorkStatus[] = ["Needs", "In Progress", "Done", "Deferred"];
+type AssetLinkMode = "all" | "linked" | "unlinked";
+
+function formatStatusLabel(status: WorkStatus): string {
+  if (status === "Needs") return "Needs Work";
+  if (status === "Done") return "Completed";
+  if (status === "Deferred") return "Deferred";
+  return status;
+}
 
 function normKey(v: any): string {
   return String(v ?? "")
@@ -90,7 +98,7 @@ function Chip({
       style={styles.chip}
     >
       <Text style={[styles.chipText, active && styles.chipTextActive]}>
-        {active ? `✅ ${label}` : label}
+        {active ? `OK ${label}` : label}
       </Text>
     </TouchableOpacity>
   );
@@ -106,105 +114,181 @@ function toggleOneOrAll(cur: string[] | undefined, value: string) {
 
 export function WorkOrdersScreen() {
   const navigation = useNavigation<any>();
+  const { orgId } = useOrg();
 
-  const [filter, setFilter] = useState<WorkOrderFilter>({
-    status: ["Needs", "In Progress", "Deferred"],
-  });
+  const [filter, setFilter] = useState<WorkOrderFilter>({ status: [...ACTIVE_STATUS_FILTER] });
   const [ageSort, setAgeSort] = useState<AgeSort>("newest");
+  const [assetLinkMode, setAssetLinkMode] = useState<AssetLinkMode>("all");
 
-  const items = useWorkOrdersFiltered(filter, ageSort);
+  const activeOnlyFilter = useMemo<WorkOrderFilter>(() => ({ status: [...ACTIVE_STATUS_FILTER] }), []);
+  const activeItems = useWorkOrdersFiltered(activeOnlyFilter, ageSort, orgId);
+  const dbFilteredItems = useWorkOrdersFiltered(filter, ageSort, orgId);
+
+  const items = useMemo(() => {
+    if (assetLinkMode === "all") return dbFilteredItems;
+    return dbFilteredItems.filter((wo) => {
+      const isLinked = Boolean(String(wo.assetId ?? "").trim());
+      return assetLinkMode === "linked" ? isLinked : !isLinked;
+    });
+  }, [dbFilteredItems, assetLinkMode]);
+
+  useEffect(() => {
+    if (!__DEV__) return;
+    console.log("[ActiveWorkOrders][filters]", {
+      fullActiveCount: activeItems.length,
+      filters: {
+        status: filter.status ?? ACTIVE_STATUS_FILTER,
+        types: filter.types ?? [],
+        priority: filter.priority ?? [],
+        assetLinkMode,
+        ageSort,
+        orgId: orgId ?? null,
+      },
+      dbFilteredCount: dbFilteredItems.length,
+      visibleCount: items.length,
+    });
+  }, [
+    activeItems.length,
+    filter.status,
+    filter.types,
+    filter.priority,
+    assetLinkMode,
+    ageSort,
+    orgId,
+    dbFilteredItems.length,
+    items.length,
+  ]);
 
   const typeSelected = useMemo(() => (filter.types ?? []).map(normKey), [filter.types]);
   const priSelected = useMemo(() => (filter.priority ?? []).map(normKey), [filter.priority]);
   const statusSelected = useMemo(() => (filter.status ?? []).map(normKey), [filter.status]);
+  const allActiveStatusesSelected =
+    ACTIVE_STATUS_FILTER.every((s) => statusSelected.includes(normKey(s))) &&
+    (filter.status ?? []).length === ACTIVE_STATUS_FILTER.length;
+
+  function clearAllFilters() {
+    setFilter({ status: [...ACTIVE_STATUS_FILTER] });
+    setAssetLinkMode("all");
+  }
+
+  const hasNonDefaultFilters =
+    (filter.types?.length ?? 0) > 0 ||
+    (filter.priority?.length ?? 0) > 0 ||
+    assetLinkMode !== "all" ||
+    !ACTIVE_STATUS_FILTER.every((s) => (filter.status ?? []).includes(s));
+
+  const filterHeader = (
+    <View style={styles.filters}>
+      {/* TYPE */}
+      <Text style={styles.sectionTitle}>Type</Text>
+      <View style={styles.chipRow}>
+        <Chip
+          label="All"
+          active={!filter.types || filter.types.length === 0}
+          onPress={() => setFilter((f) => ({ ...f, types: undefined }))}
+        />
+        {TYPES.map((t) => (
+          <Chip
+            key={t}
+            label={t}
+            active={typeSelected.includes(normKey(t))}
+            onPress={() => setFilter((f) => ({ ...f, types: toggleOneOrAll(f.types, t) }))}
+          />
+        ))}
+      </View>
+
+      {/* PRIORITY */}
+      <Text style={styles.sectionTitle}>Urgency</Text>
+      <View style={styles.chipRow}>
+        <Chip
+          label="All"
+          active={!filter.priority || filter.priority.length === 0}
+          onPress={() => setFilter((f) => ({ ...f, priority: undefined }))}
+        />
+        {PRIORITY.map((p) => (
+          <Chip
+            key={p}
+            label={p}
+            active={priSelected.includes(normKey(p))}
+            onPress={() =>
+              setFilter((f) => ({
+                ...f,
+                priority: toggleOneOrAll(f.priority as any, p) as any,
+              }))
+            }
+          />
+        ))}
+      </View>
+
+      {/* STATUS */}
+      <Text style={styles.sectionTitle}>Status</Text>
+      <View style={styles.chipRow}>
+        <Chip
+          label="All"
+          active={allActiveStatusesSelected}
+          onPress={() => setFilter((f) => ({ ...f, status: [...ACTIVE_STATUS_FILTER] }))}
+        />
+        {STATUS_OPTIONS.map((s) => (
+          <Chip
+            key={s.value}
+            label={s.label}
+            active={statusSelected.includes(normKey(s.value))}
+            onPress={() =>
+              setFilter((f) => ({
+                ...f,
+                status:
+                  (toggleOneOrAll(f.status as any, s.value) as any) ??
+                  ([...ACTIVE_STATUS_FILTER] as any),
+              }))
+            }
+          />
+        ))}
+      </View>
+
+      {/* ASSET LINK */}
+      <Text style={styles.sectionTitle}>Asset Link</Text>
+      <View style={styles.chipRow}>
+        <Chip label="All" active={assetLinkMode === "all"} onPress={() => setAssetLinkMode("all")} />
+        <Chip label="Linked" active={assetLinkMode === "linked"} onPress={() => setAssetLinkMode("linked")} />
+        <Chip label="Unlinked" active={assetLinkMode === "unlinked"} onPress={() => setAssetLinkMode("unlinked")} />
+      </View>
+
+      {/* AGE SORT */}
+      <Text style={styles.sectionTitle}>Age</Text>
+      <View style={styles.chipRow}>
+        <Chip label="newest" active={ageSort === "newest"} onPress={() => setAgeSort("newest")} />
+        <Chip label="oldest" active={ageSort === "oldest"} onPress={() => setAgeSort("oldest")} />
+      </View>
+
+      {hasNonDefaultFilters ? (
+        <TouchableOpacity onPress={clearAllFilters} style={styles.clearFiltersButton}>
+          <Text style={styles.clearFiltersText}>Clear Filters</Text>
+        </TouchableOpacity>
+      ) : null}
+    </View>
+  );
 
   return (
     <View style={styles.container}>
       <View style={styles.header}>
         <Text style={styles.count}>
-          Showing {items.length} work order{items.length === 1 ? "" : "s"}
+          Showing {items.length} of {activeItems.length} active work order{activeItems.length === 1 ? "" : "s"}
         </Text>
-      </View>
-
-      <View style={styles.filters}>
-        {/* TYPE */}
-        <Text style={styles.sectionTitle}>🏷️ Type</Text>
-        <View style={styles.chipRow}>
-          <Chip
-            label="All"
-            active={!filter.types || filter.types.length === 0}
-            onPress={() => setFilter((f) => ({ ...f, types: undefined }))}
-          />
-          {TYPES.map((t) => (
-            <Chip
-              key={t}
-              label={t}
-              active={typeSelected.includes(normKey(t))}
-              onPress={() => setFilter((f) => ({ ...f, types: toggleOneOrAll(f.types, t) }))}
-            />
-          ))}
-        </View>
-
-        {/* PRIORITY */}
-        <Text style={styles.sectionTitle}>⚡ Urgency</Text>
-        <View style={styles.chipRow}>
-          <Chip
-            label="All"
-            active={!filter.priority || filter.priority.length === 0}
-            onPress={() => setFilter((f) => ({ ...f, priority: undefined }))}
-          />
-          {PRIORITY.map((p) => (
-            <Chip
-              key={p}
-              label={p}
-              active={priSelected.includes(normKey(p))}
-              onPress={() =>
-                setFilter((f) => ({
-                  ...f,
-                  priority: toggleOneOrAll(f.priority as any, p) as any,
-                }))
-              }
-            />
-          ))}
-        </View>
-
-        {/* STATUS */}
-        <Text style={styles.sectionTitle}>🔖 Status</Text>
-        <View style={styles.chipRow}>
-          <Chip
-            label="All"
-            active={!filter.status || filter.status.length === 0}
-            onPress={() => setFilter((f) => ({ ...f, status: undefined }))}
-          />
-          {STATUS.map((s) => (
-            <Chip
-              key={s}
-              label={s}
-              active={statusSelected.includes(normKey(s))}
-              onPress={() =>
-                setFilter((f) => ({
-                  ...f,
-                  status: toggleOneOrAll(f.status as any, s) as any,
-                }))
-              }
-            />
-          ))}
-        </View>
-
-        {/* AGE SORT */}
-        <Text style={styles.sectionTitle}>🕒 Age</Text>
-        <View style={styles.chipRow}>
-          <Chip label="newest" active={ageSort === "newest"} onPress={() => setAgeSort("newest")} />
-          <Chip label="oldest" active={ageSort === "oldest"} onPress={() => setAgeSort("oldest")} />
-        </View>
+        {__DEV__ ? (
+          <Text style={styles.devSummary}>
+            DEV active={activeItems.length} db={dbFilteredItems.length} visible={items.length}
+          </Text>
+        ) : null}
       </View>
 
       <FlatList
         data={items}
         keyExtractor={(x) => x.id}
+        ListHeaderComponent={filterHeader}
         contentContainerStyle={styles.listContent}
         renderItem={({ item }) => {
-          const subtitle = `${item.status} • ${item.priority} • ${new Date(item.createdAt).toLocaleDateString()}`;
+          const creatorLabel = formatWorkOrderCreator(item);
+          const subtitle = `${formatStatusLabel(item.status)} • ${item.priority} • ${new Date(item.createdAt).toLocaleDateString()} • By ${creatorLabel}`;
           return (
             <TouchableOpacity
               onPress={() => navigation.navigate("WorkItemSheet", { id: item.id })}
@@ -217,7 +301,9 @@ export function WorkOrdersScreen() {
         }}
         ListEmptyComponent={
           <View style={styles.emptyState}>
-            <Text style={styles.emptyText}>No work orders match those filters.</Text>
+            <Text style={styles.emptyText}>
+              {activeItems.length === 0 ? "No active work orders." : "No work orders match current filters."}
+            </Text>
           </View>
         }
       />
@@ -229,6 +315,7 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: "white" },
   header: { paddingHorizontal: 14, paddingTop: 10, paddingBottom: 6 },
   count: { color: "#6b7280", fontSize: 12 },
+  devSummary: { marginTop: 4, color: "#6b7280", fontSize: 11 },
   filters: { paddingHorizontal: 14, paddingTop: 4 },
   sectionTitle: { fontWeight: "800", fontSize: 13, marginTop: 6 },
   chipRow: { flexDirection: "row", flexWrap: "wrap", marginTop: 6 },
@@ -242,7 +329,16 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   chipText: { fontWeight: "700", fontSize: 12, color: "#111827" },
-  chipTextActive: { color: "#111827" },
+  chipTextActive: { color: "#111827", textDecorationLine: "underline" },
+  clearFiltersButton: {
+    marginTop: 2,
+    alignSelf: "flex-start",
+    paddingVertical: 6,
+    paddingHorizontal: 10,
+    borderRadius: 8,
+    backgroundColor: "#f3f4f6",
+  },
+  clearFiltersText: { color: "#111827", fontWeight: "800", fontSize: 12 },
   listContent: { paddingHorizontal: 14, paddingTop: 6, paddingBottom: 20 },
   listItem: { paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: "#eee" },
   listTitle: { fontWeight: "800", fontSize: 14 },

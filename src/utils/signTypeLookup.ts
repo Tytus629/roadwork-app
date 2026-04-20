@@ -34,6 +34,7 @@ type SignType = {
   id: string;
   label: string;
   category: string;
+  mutcdCode?: string;
 };
 
 /**
@@ -47,6 +48,7 @@ const byId: Record<string, SignType> = (SIGN_TYPES as any[]).reduce((acc, s) => 
     id,
     label: String(s.label ?? id),
     category: String(s.category ?? "Unknown"),
+    mutcdCode: s.mutcdCode ? String(s.mutcdCode) : undefined,
   };
   return acc;
 }, {} as Record<string, SignType>);

@@ -68,6 +68,9 @@ export const SIGN_CATALOG: SignCatalogItem[] = [
   { category: "Warning", code: "W1-8", name: "CHEVRON ALIGNMENT" },
   { category: "Warning", code: "W1-10", name: "TURN/ADVISORY SPEED (Plaque use)" },
   { category: "Warning", code: "W1-11", name: "HAIRPIN CURVE" },
+  { category: "Warning", code: "W1-1R", name: "RIGHT TURN", keywords: ["right turn", "turn right"] },
+  { category: "Warning", code: "W1-11L", name: "HAIRPIN CURVE LEFT", keywords: ["hairpin left", "sharp left", "hairpin curve left"] },
+  { category: "Warning", code: "W1-11R", name: "HAIRPIN CURVE RIGHT", keywords: ["hairpin right", "sharp right", "hairpin curve right"] },
 
   { category: "Warning", code: "W2-1", name: "CROSSROAD" },
   { category: "Warning", code: "W2-2", name: "SIDE ROAD" },
@@ -103,7 +106,9 @@ export const SIGN_CATALOG: SignCatalogItem[] = [
   { category: "Warning", code: "W11-2", name: "PEDESTRIAN CROSSING" },
   { category: "Warning", code: "W11-15", name: "TRAIL CROSSING" },
   { category: "Warning", code: "W11-1", name: "BICYCLE CROSSING" },
-  { category: "Warning", code: "W11-3", name: "DEER CROSSING" },
+  { category: "Warning", code: "W11-3", name: "DEER CROSSING", keywords: ["deer crossing", "crossing deer", "deer"] },
+  { category: "Warning", code: "W11-3-ELK", name: "ELK CROSSING", keywords: ["elk crossing", "crossing elk", "elk"] },
+  { category: "Warning", code: "W11-FIRE", name: "FIRE STATION CROSSING", keywords: ["fire station", "fire station crossing", "station crossing"] },
 
   // -------------------------
   // SCHOOL (S-series / school warning signs)

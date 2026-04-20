@@ -1,13 +1,13 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from "react";
 import type { SignAsset, SignInspection } from "../types/Sign";
-import { upsertSign, getAllSigns, addInspection as addInspectionToDb, getInspectionsForSign } from "../storage/signRepo";
 import { uid } from "../utils/uid";
 
 /**
  * Signs State Management Context
  * 
- * Manages sign assets and their inspections with offline-first approach.
- * Always works without DB (catch + warn).
+ * Manages sign assets and their inspections in-memory.
+ * Persistence will be re-connected when the sign-asset feature
+ * migrates from the legacy storage layer to the new db/ layer.
  */
 
 type SignsState = {
@@ -46,22 +46,8 @@ export function SignsProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const loadAllSigns = async () => {
-    try {
-      const signs = await getAllSigns();
-      const signsById: Record<string, SignAsset> = {};
-      const inspectionsBySign: Record<string, SignInspection[]> = {};
-
-      for (const sign of signs) {
-        signsById[sign.id] = sign;
-        const inspections = await getInspectionsForSign(sign.id);
-        inspectionsBySign[sign.id] = inspections;
-      }
-
-      setState({ signs: signsById, inspectionsBySign });
-      console.log(`[SignsContext] Loaded ${signs.length} signs`);
-    } catch (error) {
-      console.warn("[SignsContext] Failed to load signs (running without persistence):", error);
-    }
+    // TODO: Re-connect to new db/ layer when sign-asset tables are migrated
+    console.log("[SignsContext] loadAllSigns (in-memory only)");
   };
 
   const createSign = (signData: Omit<SignAsset, "id" | "createdAt" | "updatedAt" | "needsSync">): SignAsset => {
@@ -80,9 +66,6 @@ export function SignsProvider({ children }: { children: ReactNode }) {
       inspectionsBySign: { ...prev.inspectionsBySign, [sign.id]: [] },
     }));
 
-    // Persist to DB
-    upsertSign(sign).catch((e) => console.warn("[createSign] Failed to persist:", e));
-
     return sign;
   };
 
@@ -98,9 +81,6 @@ export function SignsProvider({ children }: { children: ReactNode }) {
         needsSync: true,
       };
 
-      // Persist to DB
-      upsertSign(updated).catch((e) => console.warn("[updateSign] Failed to persist:", e));
-
       return {
         ...prev,
         signs: { ...prev.signs, [id]: updated },
@@ -110,18 +90,15 @@ export function SignsProvider({ children }: { children: ReactNode }) {
 
   const deleteSign = (id: string) => {
     setState((prev) => {
-      const { [id]: _removed, ...remainingSigns } = prev.signs;
-      const { [id]: _removedInspections, ...remainingInspections } = prev.inspectionsBySign;
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      const { [id]: _rmSign, ...remainingSigns } = prev.signs;
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      const { [id]: _rmInsp, ...remainingInspections } = prev.inspectionsBySign;
 
       return {
         signs: remainingSigns,
         inspectionsBySign: remainingInspections,
       };
-    });
-
-    // Delete from DB
-    import("../storage/signRepo").then(({ deleteSign: deleteSignFromDb }) => {
-      deleteSignFromDb(id).catch((e) => console.warn("[deleteSign] Failed to delete from DB:", e));
     });
   };
 
@@ -156,10 +133,6 @@ export function SignsProvider({ children }: { children: ReactNode }) {
       // Add inspection to history
       const inspections = prev.inspectionsBySign[signId] || [];
       const updatedInspections = [inspection, ...inspections];
-
-      // Persist both sign and inspection to DB
-      upsertSign(updatedSign).catch((e) => console.warn("[addInspection] Failed to update sign:", e));
-      addInspectionToDb(inspection).catch((e) => console.warn("[addInspection] Failed to persist inspection:", e));
 
       return {
         signs: { ...prev.signs, [signId]: updatedSign },

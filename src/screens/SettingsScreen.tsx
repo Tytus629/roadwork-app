@@ -1,12 +1,40 @@
 import React, { useEffect, useState } from "react";
-import { View, Text, Switch, StyleSheet, ScrollView, Pressable, Alert } from "react-native";
+import { View, Text, Switch, StyleSheet, ScrollView, Pressable, Alert, Button, TouchableOpacity, TextInput, Platform } from "react-native";
+import { toastSuccess, toastError } from "../ui/toast";
+import { manualSyncNow } from "../sync/syncScheduler";
+import { debugLocalCounts } from "../debug/localDbDebug";
+import { printTableSchema } from "../debug/printSchema";
+import { getOutboxStatus, getOutboxErrors } from "../sync/outboxSync";
+import { getDevNetState, setForceOffline, subscribeDevNet, isForceOffline } from "../dev/devNetwork";
+import { DevFlagStore } from "../dev/devFlagStore";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { getApp } from "@react-native-firebase/app";
 import { getAuth } from "@react-native-firebase/auth";
 import { getFunctions, httpsCallable } from "@react-native-firebase/functions";
 import { useOrg } from "../state/OrgContext";
-import { WORK_ORDER_TYPE_OPTIONS } from "../constants/workOrderTypes";
+import { useNavigation } from "@react-navigation/native";
+import { WORK_ORDER_TYPE_OPTIONS, formatWorkType, getWorkOrderTypeColor } from "../constants/workOrderTypes";
 import type { WorkType } from "../types/workItem";
+import { forceCrash, sendCrashlyticsTestEvent } from "../telemetry/crashlytics";
+import { exportTailgateCsv } from "../export/exportTailgate";
+import { exportDmiCsv } from "../export/exportDmi";
+import { exportCounterCsv } from "../export/exportCounter";
+import {
+  getCurrentUserIdentitySnapshot,
+  updateCurrentUserName,
+} from "../services/userProfileService";
+import { hasRolePermission } from "../permissions/rolePermissions";
+import {
+  getColorblindModePreference,
+  setColorblindModePreference,
+  useColorblindModePreference,
+} from "../settings/colorblindMode";
+import {
+  setWorkOrderTypeVisibilityPreference,
+  useWorkOrderTypeVisibilityPreference,
+} from "../settings/workOrderTypeVisibility";
+import DeviceInfo from "react-native-device-info";
+import { getEmulatorConnectionInfo, getRecommendedMetroHost } from "../firebase/emulators";
 
 const KEY = "settings.notifications.v1";
 
@@ -24,6 +52,8 @@ const DEFAULTS: NotificationSettings = {
   notifyHighUrgentOnCreate: true,
   notifyTypes: DEFAULT_TYPES,
 };
+
+const COLOR_PREVIEW_TYPES: string[] = ["pothole", "brushing", "culvert", "sign"];
 
 export async function getNotificationSettings(): Promise<NotificationSettings> {
   try {
@@ -74,14 +104,71 @@ function SettingsRow({
 
 export default function SettingsScreen() {
   const [settings, setSettings] = useState<NotificationSettings>(DEFAULTS);
-  const { orgId, clearOrgId } = useOrg();
+  const colorblindMode = useColorblindModePreference();
+  const workOrderTypeVisibility = useWorkOrderTypeVisibilityPreference();
+  const [firstName, setFirstName] = useState("");
+  const [lastName, setLastName] = useState("");
+  const [profileSaving, setProfileSaving] = useState(false);
+  const [profileEmail, setProfileEmail] = useState<string | null>(null);
+  const { orgId, role, clearOrgId } = useOrg();
+  const navigation = useNavigation<any>();
+  const isViewer = role === "viewer";
+  const canCreateWorkOrders = hasRolePermission("createWorkOrder", role);
+  const canUseExports =
+    hasRolePermission("createTailgate", role) ||
+    hasRolePermission("createDmi", role) ||
+    hasRolePermission("createCounter", role);
+  const authUid = getAuth(getApp()).currentUser?.uid ?? null;
+  const isSimulatorOrEmulator = DeviceInfo.isEmulatorSync();
+  const devConn = getEmulatorConnectionInfo();
 
   useEffect(() => {
     (async () => {
       const loaded = await getNotificationSettings();
       setSettings(loaded);
+      await getColorblindModePreference();
+
+      try {
+        const identity = await getCurrentUserIdentitySnapshot();
+        setFirstName(identity.firstName ?? "");
+        setLastName(identity.lastName ?? "");
+        setProfileEmail(identity.email ?? null);
+      } catch (e) {
+        console.warn("[Settings] Failed to load profile", e);
+      }
     })();
   }, []);
+
+  const saveProfileName = async () => {
+    if (profileSaving) return;
+
+    const safeFirst = firstName.trim();
+    const safeLast = lastName.trim();
+    if (!safeFirst) {
+      Alert.alert("First name required", "Please enter your first name.");
+      return;
+    }
+    if (!safeLast) {
+      Alert.alert("Last name required", "Please enter your last name.");
+      return;
+    }
+
+    setProfileSaving(true);
+    try {
+      const profile = await updateCurrentUserName({
+        firstName: safeFirst,
+        lastName: safeLast,
+      });
+      setFirstName(profile.firstName ?? "");
+      setLastName(profile.lastName ?? "");
+      setProfileEmail(profile.email ?? null);
+      Alert.alert("Saved", "Your profile name has been updated.");
+    } catch (e: any) {
+      Alert.alert("Save failed", e?.message ?? "Could not update profile.");
+    } finally {
+      setProfileSaving(false);
+    }
+  };
 
   const updateSetting = async (patch: Partial<NotificationSettings>) => {
     const updated = { ...settings, ...patch };
@@ -89,8 +176,26 @@ export default function SettingsScreen() {
     await AsyncStorage.setItem(KEY, JSON.stringify(updated));
   };
 
+  const setWorkOrderTypeVisible = async (workType: WorkType, nextVisible: boolean) => {
+    const currentlyVisible = WORK_ORDER_TYPE_OPTIONS.filter((option) => !!workOrderTypeVisibility[option.key]);
+    if (!nextVisible && currentlyVisible.length <= 1 && workOrderTypeVisibility[workType]) {
+      Alert.alert("At least one type required", "Keep at least one work-order type visible in Create.");
+      return;
+    }
+
+    try {
+      await setWorkOrderTypeVisibilityPreference({
+        ...workOrderTypeVisibility,
+        [workType]: nextVisible,
+      });
+    } catch (e) {
+      console.warn("[Settings] Failed to save work-order type visibility", e);
+    }
+  };
+
   // DEV: Test Functions emulator connection
   const devPingFunctions = async () => {
+    if (!__DEV__) return;
     try {
       console.log("[DEV] Testing Functions emulator...");
       const functions = getFunctions(getApp());
@@ -122,6 +227,12 @@ export default function SettingsScreen() {
           text: "Switch",
           style: "default",
           onPress: async () => {
+            if (__DEV__) {
+              const uid = getAuth(getApp()).currentUser?.uid ?? null;
+              console.log(
+                `[Settings] switch org requested uid=${uid ?? "none"} currentOrg=${orgId ?? "none"}`
+              );
+            }
             await clearOrgId();
             // RootGate will automatically show OrgPicker when orgId is cleared
           },
@@ -141,12 +252,11 @@ export default function SettingsScreen() {
           style: "destructive",
           onPress: async () => {
             try {
-              // Clear org selection FIRST (so RootGate can route cleanly)
               await clearOrgId();
               const auth = getAuth(getApp());
               await auth.signOut();
-              console.log("[Settings] Signed out successfully");
-              // RootGate will automatically show Auth screen when user is null
+              console.log("[Settings] Signed out successfully (org session cleared)");
+              // RootGate + OrgContext will clear in-memory org context and route to Auth.
             } catch (e: any) {
               console.error("[Settings] Logout error:", e);
               Alert.alert("Error", "Failed to sign out. Please try again.");
@@ -164,6 +274,40 @@ export default function SettingsScreen() {
       {/* ACCOUNT SECTION */}
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Account</Text>
+
+        <View style={styles.profileCard}>
+          <Text style={styles.profileLabel}>First Name</Text>
+          <TextInput
+            value={firstName}
+            onChangeText={setFirstName}
+            placeholder="First name"
+            autoCapitalize="words"
+            style={styles.profileInput}
+          />
+
+          <Text style={[styles.profileLabel, { marginTop: 10 }]}>Last Name</Text>
+          <TextInput
+            value={lastName}
+            onChangeText={setLastName}
+            placeholder="Last name"
+            autoCapitalize="words"
+            style={styles.profileInput}
+          />
+
+          {!!profileEmail && (
+            <Text style={styles.profileMeta}>Email: {profileEmail}</Text>
+          )}
+
+          <TouchableOpacity
+            onPress={saveProfileName}
+            disabled={profileSaving}
+            style={[styles.profileSaveBtn, profileSaving && styles.profileSaveBtnDisabled]}
+          >
+            <Text style={styles.profileSaveBtnText}>
+              {profileSaving ? "Saving..." : "Save Name"}
+            </Text>
+          </TouchableOpacity>
+        </View>
         
         <SettingsRow
           title="Switch Organization"
@@ -179,6 +323,53 @@ export default function SettingsScreen() {
         />
       </View>
 
+      {!isViewer && (
+      <View style={styles.section}>
+        <Text style={styles.sectionTitle}>Display</Text>
+
+        <View style={styles.settingRow}>
+          <View style={styles.settingText}>
+            <Text style={styles.settingLabel}>Colorblind-friendly colors</Text>
+            <Text style={styles.settingDescription}>
+              Uses a higher-contrast work-order color palette.
+            </Text>
+          </View>
+          <Switch
+            value={colorblindMode}
+            onValueChange={(v) => {
+              setColorblindModePreference(v).catch((e) => {
+                console.warn("[Settings] Failed to save colorblind mode", e);
+              });
+            }}
+            trackColor={{ false: "#fca5a5", true: "#86efac" }}
+            thumbColor="white"
+          />
+        </View>
+
+        <Text style={styles.previewTitle}>Sample work-order colors</Text>
+        <View style={styles.previewWrap}>
+          {COLOR_PREVIEW_TYPES.map((sampleType) => {
+            const chipColor = getWorkOrderTypeColor(sampleType, { colorblindMode });
+            return (
+              <View
+                key={sampleType}
+                style={[
+                  styles.previewChip,
+                  {
+                    borderColor: chipColor,
+                    backgroundColor: chipColor,
+                  },
+                ]}
+              >
+                <Text style={styles.previewChipText}>{formatWorkType(sampleType)}</Text>
+              </View>
+            );
+          })}
+        </View>
+      </View>
+      )}
+
+      {!isViewer && (
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Notifications</Text>
 
@@ -244,12 +435,184 @@ export default function SettingsScreen() {
           ))}
         </View>
       </View>
+      )}
+
+      {canCreateWorkOrders && (
+      <View style={styles.section}>
+        <Text style={styles.sectionTitle}>Create</Text>
+        <Text style={styles.settingDescription}>
+          Choose which work-order types appear in the Create picker.
+        </Text>
+
+        <View style={{ flexDirection: "row", gap: 10, marginTop: 12 }}>
+          <Pressable
+            onPress={() => {
+              setWorkOrderTypeVisibilityPreference(
+                WORK_ORDER_TYPE_OPTIONS.reduce((acc, option) => {
+                  acc[option.key] = true;
+                  return acc;
+                }, {} as Record<WorkType, boolean>),
+              ).catch((e) => {
+                console.warn("[Settings] Failed to enable all work-order types", e);
+              });
+            }}
+            style={styles.selectButton}
+          >
+            <Text style={styles.selectButtonText}>Show All</Text>
+          </Pressable>
+        </View>
+
+        {WORK_ORDER_TYPE_OPTIONS.map((option) => (
+          <View key={option.key} style={styles.typeRow}>
+            <Text style={styles.typeLabel}>{option.label}</Text>
+            <Switch
+              value={!!workOrderTypeVisibility[option.key]}
+              onValueChange={(next) => {
+                setWorkOrderTypeVisible(option.key, next);
+              }}
+              trackColor={{ false: "#d1d5db", true: "#22c55e" }}
+              thumbColor="white"
+            />
+          </View>
+        ))}
+      </View>
+      )}
+
+      {/* ── Exports ── */}
+      {canUseExports && (
+      <View style={styles.section}>
+        <Text style={styles.sectionTitle}>📤 Exports</Text>
+        <View style={{ gap: 10 }}>
+          <TouchableOpacity
+            onPress={async () => {
+              if (!orgId) return Alert.alert("No org selected");
+              try {
+                await exportTailgateCsv({ orgId });
+              } catch (e: any) {
+                if (e?.message !== "User did not share") {
+                  Alert.alert("Export failed", e?.message ?? String(e));
+                }
+              }
+            }}
+            style={styles.exportBtn}
+          >
+            <Text style={styles.exportBtnText}>Export Tailgate CSV</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            onPress={async () => {
+              if (!orgId) return Alert.alert("No org selected");
+              try {
+                await exportDmiCsv({ orgId });
+              } catch (e: any) {
+                if (e?.message !== "User did not share") {
+                  Alert.alert("Export failed", e?.message ?? String(e));
+                }
+              }
+            }}
+            style={styles.exportBtn}
+          >
+            <Text style={styles.exportBtnText}>Export DMI CSV</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            onPress={async () => {
+              if (!orgId) return Alert.alert("No org selected");
+              try {
+                await exportCounterCsv({ orgId });
+              } catch (e: any) {
+                if (e?.message !== "User did not share") {
+                  Alert.alert("Export failed", e?.message ?? String(e));
+                }
+              }
+            }}
+            style={styles.exportBtn}
+          >
+            <Text style={styles.exportBtnText}>Export Counters CSV</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+      )}
+
+      <View style={styles.section}>
+        <Text style={styles.sectionTitle}>Legal</Text>
+        <SettingsRow
+          title="Privacy Policy"
+          subtitle="How WayCrew collects, uses, and protects data."
+          onPress={() => navigation.navigate("PrivacyPolicy")}
+        />
+      </View>
 
       {/* DEV SECTION: Test Functions Emulator */}
       {__DEV__ && (
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>🔧 Developer Tools</Text>
+
+          <View style={styles.devInfoCard}>
+            <Text style={styles.devInfoTitle}>Runtime Diagnostics</Text>
+            <Text style={styles.devInfoLine}>Platform: {Platform.OS}</Text>
+            <Text style={styles.devInfoLine}>Simulator/Emulator: {isSimulatorOrEmulator ? "yes" : "no"}</Text>
+            <Text style={styles.devInfoLine}>Org ID: {orgId ?? "none"}</Text>
+            <Text style={styles.devInfoLine}>User ID: {authUid ?? "none"}</Text>
+            <Text style={styles.devInfoLine}>DEV Host: {devConn.selectedHost}</Text>
+            <Text style={styles.devInfoLine}>Functions Target: {devConn.functionsTarget}</Text>
+            <Text style={styles.devInfoLine}>Metro Host Hint: {getRecommendedMetroHost()}:2468</Text>
+          </View>
           
+          <Button
+            title="Toast Test"
+            onPress={() => {
+              toastSuccess("Toast Test", "Toast is working ✅");
+            }}
+          />
+          <View style={{ height: 12 }} />
+
+          <Button
+            title="Sync Now"
+            onPress={async () => {
+              try {
+                if (!orgId) return toastError("No org selected");
+                const before = getOutboxStatus(orgId);
+                console.log("[SyncNow] orgId:", orgId);
+                console.log("[SyncNow] outbox pending:", before.pending);
+                if (isForceOffline()) {
+                  console.log("[SyncNow] blocked by DEV Force Offline");
+                  toastError("Blocked", "DEV Force Offline is on");
+                  return;
+                }
+                await manualSyncNow();
+                debugLocalCounts(orgId);
+                printTableSchema("work_orders");
+                printTableSchema("outbox");
+                const after = getOutboxStatus(orgId);
+                toastSuccess(
+                  "Sync complete",
+                  `Pending: ${after.pending} (was ${before.pending})`
+                );
+              } catch (e: any) {
+                toastError("Sync failed", e?.message ?? String(e));
+              }
+            }}
+          />
+          <View style={{ height: 12 }} />
+
+          {/* ── Outbox Errors ── */}
+          <OutboxErrorsPanel orgId={orgId} />
+
+          <TouchableOpacity
+            onPress={() => navigation.navigate("OutboxFailed")}
+            style={{
+              marginTop: 8,
+              padding: 12,
+              borderWidth: 1,
+              borderColor: "#6b7280",
+              borderRadius: 10,
+              alignItems: "center",
+            }}
+          >
+            <Text style={{ fontWeight: "700" }}>View Failed Jobs</Text>
+          </TouchableOpacity>
+
           <Pressable
             onPress={devPingFunctions}
             style={styles.devTestButton}
@@ -263,13 +626,263 @@ export default function SettingsScreen() {
               {"\n"}• Firestore emulator write ✅
             </Text>
           </Pressable>
+
+          {/* ── DEV: Force Offline Toggle ──
+              When enabled, the sync scheduler (syncScheduler.ts) skips all remote
+              Cloud Function calls. However:
+              - Local SQLite reads/writes still work normally
+              - Outbox items still get enqueued (they just don't sync)
+              - When disabled again, sync resumes and drains the outbox
+
+              This lets you test the full offline-first flow without airplane mode:
+              create work orders → see them locally → disable toggle → watch sync  */}
+          <View style={{ marginTop: 16, padding: 12, borderRadius: 12, backgroundColor: "rgba(0,0,0,0.06)" }}>
+            <Text style={{ fontWeight: "700", marginBottom: 8 }}>DEV Network</Text>
+            <DevForceOfflineToggle />
+            <Text style={{ marginTop: 6, opacity: 0.7, fontSize: 12 }}>
+              When enabled, the app saves locally + enqueues outbox, but will not call Cloud Functions.
+            </Text>
+          </View>
+
+          {/* ── DEV: Wipe Gate Flags ──
+              These toggles control whether the startup wipe / outbox clear logic
+              in App.tsx actually fires. Both are OFF by default for safety.
+              Flipping them here only affects the current session (reset on fresh start). */}
+          <View style={{ marginTop: 16, padding: 12, borderRadius: 12, backgroundColor: "rgba(0,0,0,0.06)" }}>
+            <Text style={{ fontWeight: "700", marginBottom: 8 }}>DEV: Wipe Gate Flags</Text>
+            <DevWipeGateToggles />
+            <Text style={{ marginTop: 6, opacity: 0.7, fontSize: 12 }}>
+              Both flags default to OFF. The one-shot DB clear below will not fire unless "Enable Startup Wipe" is ON.
+            </Text>
+          </View>
+
+          {/* ── DEV: One-Shot DB Clear ──
+              Arms a globalThis flag that App.tsx checks on startup. When armed:
+              1. Next app restart (or hot-reload) triggers the clear
+              2. Wipes outbox + offline_work_orders + work_orders tables
+              3. Resets AsyncStorage org.current.id → shows OrgPicker
+              4. Auto-disarms immediately so it never fires twice
+
+              REQUIRES devFlags.enableStartupWipe to be ON (see toggles above).
+
+              WHY NOT A DIRECT WIPE HERE:
+              Wiping the DB mid-session while hooks are subscribed could cause
+              crashes. The one-shot pattern ensures the wipe happens at startup
+              before any screens mount. See App.tsx header docs for full explanation. */}
+          <View style={{ marginTop: 16, padding: 12, borderRadius: 12, backgroundColor: "rgba(0,0,0,0.06)" }}>
+            <Text style={{ fontWeight: "700", marginBottom: 8 }}>DEV: Clear Local DB</Text>
+            <Pressable
+              onPress={() => {
+                (globalThis as any).__ROADWORK_CLEAR_LOCAL_DB_ON_START__ = true;
+                Alert.alert(
+                  "Armed ⚠️",
+                  "Local DB will be wiped on next app restart.\n\nHot-reload will trigger it.",
+                );
+                console.log("[DEV] Will clear local DB on next restart");
+              }}
+              style={{
+                paddingVertical: 10,
+                paddingHorizontal: 12,
+                borderRadius: 10,
+                backgroundColor: "rgba(239,68,68,0.15)",
+              }}
+            >
+              <Text style={{ fontWeight: "700", color: "#dc2626" }}>
+                Enable one-time clear on restart
+              </Text>
+            </Pressable>
+            <Pressable
+              onPress={() => {
+                (globalThis as any).__ROADWORK_CLEAR_LOCAL_DB_ON_START__ = false;
+                Alert.alert("Disarmed", "Clear on restart disabled.");
+                console.log("[DEV] Clear local DB on start disabled");
+              }}
+              style={{
+                marginTop: 8,
+                paddingVertical: 10,
+                paddingHorizontal: 12,
+                borderRadius: 10,
+                backgroundColor: "rgba(0,0,0,0.05)",
+              }}
+            >
+              <Text style={{ fontWeight: "700" }}>Disable clear on restart</Text>
+            </Pressable>
+            <Text style={{ marginTop: 6, opacity: 0.7, fontSize: 12 }}>
+              Wipes work_orders, offline_work_orders, outbox, and resets org selection.
+            </Text>
+          </View>
+
+          {/* Force Crash — Crashlytics smoke test */}
+          <View style={{ marginTop: 16 }}>
+            <Text style={{ fontWeight: "800", fontSize: 15, marginBottom: 6 }}>
+              Crashlytics
+            </Text>
+            <TouchableOpacity
+              onPress={async () => {
+                try {
+                  const now = await sendCrashlyticsTestEvent({
+                    uid: getAuth(getApp()).currentUser?.uid ?? null,
+                    orgId: orgId ?? null,
+                  });
+                  Alert.alert(
+                    "Crashlytics Test Sent ✅",
+                    `Non-fatal test event recorded at ${now}.\n\nCheck Firebase Console → Crashlytics (it may take a minute to appear).`,
+                  );
+                } catch (e: any) {
+                  Alert.alert(
+                    "Crashlytics Test Failed ❌",
+                    e?.message ?? String(e),
+                  );
+                }
+              }}
+              style={{
+                padding: 12,
+                borderWidth: 1,
+                borderColor: "#2563eb",
+                borderRadius: 10,
+                backgroundColor: "rgba(37,99,235,0.12)",
+                marginBottom: 8,
+              }}
+            >
+              <Text style={{ fontWeight: "700", color: "#1d4ed8" }}>
+                DEV: Send Crashlytics Test Event
+              </Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              onPress={() => forceCrash()}
+              style={{
+                padding: 12,
+                borderWidth: 1,
+                borderColor: "#dc2626",
+                borderRadius: 10,
+                backgroundColor: "rgba(239,68,68,0.15)",
+              }}
+            >
+              <Text style={{ fontWeight: "700", color: "#dc2626" }}>
+                DEV: Force Crash (Crashlytics)
+              </Text>
+            </TouchableOpacity>
+            <Text style={{ marginTop: 4, opacity: 0.7, fontSize: 12 }}>
+              Triggers a native crash. Verify it appears in Firebase Console → Crashlytics.
+            </Text>
+          </View>
         </View>
       )}
 
       <View style={styles.footer}>
-        <Text style={styles.footerText}>RoadWorkTracker v1.0</Text>
+        <Text style={styles.footerText}>WayCrew v1.0</Text>
       </View>
     </ScrollView>
+  );
+}
+
+// DEV-only toggle: wipe gate flags (persisted via DevFlagStore)
+function DevWipeGateToggles() {
+  const [devFlags, setDevFlags] = useState(DevFlagStore.defaults());
+
+  useEffect(() => {
+    let mounted = true;
+    if (__DEV__) {
+      DevFlagStore.load().then((f) => {
+        if (mounted) setDevFlags(f);
+      });
+    }
+    return () => { mounted = false; };
+  }, []);
+
+  return (
+    <View>
+      <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>
+        <Text>Enable Startup Wipe</Text>
+        <Switch
+          value={devFlags.enableStartupWipe}
+          onValueChange={async (v) => {
+            const next = await DevFlagStore.set({ enableStartupWipe: v });
+            setDevFlags(next);
+            console.log(`[DEV] enableStartupWipe → ${v}`);
+          }}
+        />
+      </View>
+      {devFlags.enableStartupWipe ? (
+        <Text style={{ marginBottom: 8, color: "#b45309", fontSize: 12, fontWeight: "600" }}>
+          ⚠️ Startup wipe enabled. Wipe still requires ARMED flag.
+        </Text>
+      ) : null}
+      <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
+        <Text>Enable Outbox Clear on Start</Text>
+        <Switch
+          value={devFlags.enableOutboxClearOnStart}
+          onValueChange={async (v) => {
+            const next = await DevFlagStore.set({ enableOutboxClearOnStart: v });
+            setDevFlags(next);
+            console.log(`[DEV] enableOutboxClearOnStart → ${v}`);
+          }}
+        />
+      </View>
+    </View>
+  );
+}
+
+// DEV-only toggle component
+function DevForceOfflineToggle() {
+  const [devNet, setDevNet] = useState(getDevNetState());
+  useEffect(() => {
+    const unsub = subscribeDevNet(setDevNet);
+    return () => { unsub(); };
+  }, []);
+
+  return (
+    <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
+      <Text>Force Offline (block sync)</Text>
+      <Switch value={devNet.forceOffline} onValueChange={(v) => setForceOffline(v)} />
+    </View>
+  );
+}
+
+// DEV-only: show recent outbox sync errors
+function OutboxErrorsPanel({ orgId }: { orgId: string | null }) {
+  const [errors, setErrors] = useState<ReturnType<typeof getOutboxErrors>>([]);
+
+  useEffect(() => {
+    if (!orgId) return;
+    setErrors(getOutboxErrors(orgId, 5));
+  }, [orgId]);
+
+  function refresh() {
+    if (orgId) setErrors(getOutboxErrors(orgId, 5));
+  }
+
+  if (!errors.length) {
+    return (
+      <View style={{ padding: 12, borderRadius: 12, backgroundColor: "rgba(0,0,0,0.04)" }}>
+        <Text style={{ fontWeight: "700", marginBottom: 4 }}>Outbox Errors</Text>
+        <Text style={{ opacity: 0.6, fontSize: 12 }}>No failed items</Text>
+      </View>
+    );
+  }
+
+  return (
+    <View style={{ padding: 12, borderRadius: 12, backgroundColor: "rgba(239,68,68,0.08)" }}>
+      <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
+        <Text style={{ fontWeight: "700" }}>Outbox Errors ({errors.length})</Text>
+        <Pressable onPress={refresh}>
+          <Text style={{ fontSize: 12, fontWeight: "700", color: "#2563eb" }}>Refresh</Text>
+        </Pressable>
+      </View>
+      {errors.map((e) => (
+        <View key={e.id} style={{ marginBottom: 8, paddingBottom: 6, borderBottomWidth: 1, borderBottomColor: "rgba(0,0,0,0.08)" }}>
+          <Text style={{ fontSize: 11, fontWeight: "800" }}>{e.kind} ({e.attempts}x)</Text>
+          <Text style={{ fontSize: 11, opacity: 0.7 }} numberOfLines={2}>
+            {e.lastError ?? "unknown error"}
+          </Text>
+          {e.lastAttemptAt ? (
+            <Text style={{ fontSize: 10, opacity: 0.5 }}>
+              Last attempt: {new Date(e.lastAttemptAt).toLocaleTimeString()}
+            </Text>
+          ) : null}
+        </View>
+      ))}
+    </View>
   );
 }
 
@@ -317,6 +930,73 @@ const styles = StyleSheet.create({
     color: "#667085",
     lineHeight: 20,
   },
+  previewTitle: {
+    marginTop: 10,
+    marginBottom: 8,
+    fontSize: 12,
+    fontWeight: "700",
+    color: "#475467",
+  },
+  previewWrap: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 8,
+  },
+  previewChip: {
+    paddingVertical: 6,
+    paddingHorizontal: 10,
+    borderRadius: 999,
+    borderWidth: 1,
+  },
+  previewChipText: {
+    color: "#ffffff",
+    fontSize: 12,
+    fontWeight: "800",
+  },
+  profileCard: {
+    borderWidth: 1,
+    borderColor: "#e5e7eb",
+    borderRadius: 12,
+    padding: 12,
+    backgroundColor: "#fafafa",
+    marginBottom: 8,
+  },
+  profileLabel: {
+    fontSize: 13,
+    fontWeight: "700",
+    color: "#374151",
+    marginBottom: 6,
+  },
+  profileInput: {
+    borderWidth: 1,
+    borderColor: "#d1d5db",
+    borderRadius: 10,
+    backgroundColor: "white",
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+  },
+  profileMeta: {
+    marginTop: 10,
+    fontSize: 12,
+    color: "#6b7280",
+  },
+  profileSaveBtn: {
+    marginTop: 12,
+    borderWidth: 1,
+    borderColor: "#111827",
+    borderRadius: 10,
+    paddingVertical: 10,
+    alignItems: "center",
+    backgroundColor: "#111827",
+  },
+  profileSaveBtnDisabled: {
+    opacity: 0.6,
+  },
+  profileSaveBtnText: {
+    color: "white",
+    fontWeight: "800",
+    fontSize: 14,
+  },
   footer: {
     marginTop: 32,
     alignItems: "center",
@@ -353,6 +1033,24 @@ const styles = StyleSheet.create({
     fontWeight: "700",
     fontSize: 15,
   },
+  devInfoCard: {
+    marginBottom: 12,
+    padding: 12,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: "#d1d5db",
+    backgroundColor: "#f8fafc",
+  },
+  devInfoTitle: {
+    fontWeight: "700",
+    marginBottom: 6,
+    color: "#111827",
+  },
+  devInfoLine: {
+    fontSize: 12,
+    color: "#374151",
+    marginBottom: 2,
+  },
   devTestButton: {
     paddingVertical: 14,
     paddingHorizontal: 16,
@@ -385,5 +1083,18 @@ const styles = StyleSheet.create({
     fontWeight: "800",
     fontSize: 16,
     color: "#dc2626",
+  },
+  exportBtn: {
+    padding: 14,
+    borderWidth: 1,
+    borderColor: "#2563eb",
+    borderRadius: 10,
+    backgroundColor: "#eff6ff",
+    alignItems: "center" as const,
+  },
+  exportBtnText: {
+    fontWeight: "700" as const,
+    color: "#1d4ed8",
+    fontSize: 15,
   },
 });

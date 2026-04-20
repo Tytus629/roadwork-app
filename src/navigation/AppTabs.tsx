@@ -16,10 +16,28 @@
  * GRACEFUL FAILURE:
  * - If DB unavailable, hooks return empty arrays
  * - App continues to work (create operations will fail gracefully)
+ * 
+ * ─── IMPORTANT: detachInactiveScreens={false} ───
+ * This is set on Tab.Navigator to prevent React Navigation from unmounting
+ * screens when the user switches tabs. Without this, the MapScreen's native
+ * GoogleMap view is destroyed and recreated every time the user leaves and
+ * returns to the Map tab. The consequences of the default (true) are:
+ *
+ *   1. Android Google Maps native bitmap cache is lost — markers added during
+ *      view creation silently vanish (they render but never paint on screen).
+ *   2. onMapReady fires on every tab return, resetting viewport and state.
+ *   3. User loses their map position and zoom level.
+ *
+ * Setting detachInactiveScreens={false} keeps all tab screens mounted in the
+ * background. The tradeoff is slightly higher memory usage, but it's essential
+ * for a stable map experience. MapScreen also has a marker suppression pattern
+ * as a safety net (see MapScreen.tsx header docs) in case onMapReady fires
+ * for other reasons (e.g., low-memory reclaim on Android).
  */
 import React from "react";
+import { Platform, Text } from "react-native";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
-import Icon from "react-native-vector-icons/MaterialCommunityIcons";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import MapScreen from "../screens/MapScreen";
 import { WorkOrdersScreen } from "../screens/WorkOrdersScreen";
@@ -36,13 +54,51 @@ export type RootTabParamList = {
 const Tab = createBottomTabNavigator<RootTabParamList>();
 
 export default function AppTabs() {
+  const insets = useSafeAreaInsets();
+  const tabBarBottomOffset = Platform.OS === "android"
+    ? Math.max(insets.bottom + 16, 28)
+    : Math.max(insets.bottom, 8);
+  const tabBarHeight = 40;
+
   return (
-    <Tab.Navigator screenOptions={{ headerShown: true }}>
+    <Tab.Navigator
+      detachInactiveScreens={false}
+      screenOptions={{
+        headerShown: true,
+        tabBarIcon: () => null,
+        tabBarIconStyle: { height: 0, width: 0 },
+        tabBarActiveTintColor: "#ffb020",
+        tabBarInactiveTintColor: "#ffb020",
+        // Keep labels above Android nav controls with guaranteed bottom padding.
+        tabBarStyle: {
+          position: "absolute",
+          left: 8,
+          right: 8,
+          bottom: tabBarBottomOffset - 5,
+          height: tabBarHeight,
+          paddingTop: 1,
+          paddingBottom: 1,
+          backgroundColor: "#11181f",
+          borderRadius: 12,
+          borderTopWidth: 1,
+          borderTopColor: "#2b3742",
+        },
+        tabBarItemStyle: { paddingTop: 0, paddingBottom: 0, justifyContent: "center", alignItems: "center" },
+        tabBarLabelStyle: {
+          fontSize: 14,
+          fontWeight: "800",
+          letterSpacing: 0.3,
+          lineHeight: 16,
+          marginTop: 0,
+          transform: [{ translateY: 5 }],
+        },
+      }}
+    >
       <Tab.Screen 
         name="Map" 
         component={MapScreen}
         options={{
-          tabBarIcon: ({ color, size }) => <Icon name="map" size={size} color={color} />
+          headerShown: false,
         }}
       />
       <Tab.Screen 
@@ -50,7 +106,22 @@ export default function AppTabs() {
         component={WorkOrdersScreen} 
         options={{ 
           title: "Active Work Orders",
-          tabBarIcon: ({ color, size }) => <Icon name="format-list-bulleted" size={size} color={color} />
+          tabBarLabel: ({ color }) => (
+            <Text
+              numberOfLines={2}
+              style={{
+                color,
+                fontSize: 11,
+                fontWeight: "800",
+                lineHeight: 12,
+                textAlign: "center",
+                includeFontPadding: false,
+                transform: [{ translateY: 1 }],
+              }}
+            >
+              {"Active\nWork Order"}
+            </Text>
+          ),
         }} 
       />
       <Tab.Screen 
@@ -58,7 +129,6 @@ export default function AppTabs() {
         component={SignsHomeScreen} 
         options={{ 
           title: "Signs",
-          tabBarIcon: ({ color, size }) => <Icon name="sign-direction" size={size} color={color} />
         }} 
       />
       <Tab.Screen 
@@ -66,7 +136,6 @@ export default function AppTabs() {
         component={MoreStack}
         options={{
           headerShown: false,
-          tabBarIcon: ({ color, size }) => <Icon name="dots-horizontal" size={size} color={color} />
         }}
       />
     </Tab.Navigator>

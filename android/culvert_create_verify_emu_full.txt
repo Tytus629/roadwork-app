@@ -1,0 +1,80 @@
+--------- beginning of main
+04-05 10:58:05.475 E/unknown:ReactNative( 9350): Got DOWN touch before receiving UP or CANCEL from last gesture
+04-05 10:58:06.219 D/android.hardware.gnss-service.ranchu( 1108): GnssHwListener:consume:87 sz=64
+04-05 10:58:06.221 D/android.hardware.gnss-service.ranchu( 1108): GnssHwListener:consume:87 sz=64
+04-05 10:58:06.221 D/android.hardware.gnss-service.ranchu( 1108): Gnss:onGnssLocationCb:311
+04-05 10:58:06.221 D/android.hardware.gnss-service.ranchu( 1108): Gnss:onGnssLocationCb:321
+04-05 10:58:06.952 I/HalDevMgr(  810): bestIfaceCreationProposal is null, requestIface=STA, existingIface=[name=wlan0 type=STA]
+04-05 10:58:07.123 W/libbinder.BackendUnifiedServiceManager(10743): Thread Pool max thread count is 0. Cannot cache binder as linkToDeath cannot be implemented. serviceName: package
+04-05 10:58:07.199 I/artd    ( 3398): GetBestInfo: odex next to the dex file (/data/app/~~LLbqJAiHSC11ggrHFBaGXw==/com.google.android.gms-NuZZxUu-hNKE_PVbnPucaA==/oat/x86_64/base.odex) is kOatUpToDate with filter 'speed-profile' executable 'false'
+04-05 10:58:07.201 I/artd    ( 3398): GetBestInfo: odex next to the dex file (/data/app/~~LLbqJAiHSC11ggrHFBaGXw==/com.google.android.gms-NuZZxUu-hNKE_PVbnPucaA==/oat/x86_64/split_AdsDynamite_installtime.odex) is kOatUpToDate with filter 'speed' executable 'false'
+04-05 10:58:07.202 I/artd    ( 3398): GetBestInfo: odex next to the dex file (/data/app/~~LLbqJAiHSC11ggrHFBaGXw==/com.google.android.gms-NuZZxUu-hNKE_PVbnPucaA==/oat/x86_64/split_CronetDynamite_installtime.odex) is kOatUpToDate with filter 'speed' executable 'false'
+04-05 10:58:07.202 I/artd    ( 3398): GetBestInfo: odex next to the dex file (/data/app/~~LLbqJAiHSC11ggrHFBaGXw==/com.google.android.gms-NuZZxUu-hNKE_PVbnPucaA==/oat/x86_64/split_DynamiteLoader_installtime.odex) is kOatUpToDate with filter 'speed' executable 'false'
+04-05 10:58:07.203 I/artd    ( 3398): GetBestInfo: odex next to the dex file (/data/app/~~LLbqJAiHSC11ggrHFBaGXw==/com.google.android.gms-NuZZxUu-hNKE_PVbnPucaA==/oat/x86_64/split_DynamiteModulesA_installtime.odex) is kOatUpToDate with filter 'speed' executable 'false'
+04-05 10:58:07.204 I/artd    ( 3398): GetBestInfo: odex next to the dex file (/data/app/~~LLbqJAiHSC11ggrHFBaGXw==/com.google.android.gms-NuZZxUu-hNKE_PVbnPucaA==/oat/x86_64/split_DynamiteModulesC_installtime.odex) is kOatUpToDate with filter 'speed' executable 'false'
+04-05 10:58:07.205 I/artd    ( 3398): GetBestInfo: odex next to the dex file (/data/app/~~LLbqJAiHSC11ggrHFBaGXw==/com.google.android.gms-NuZZxUu-hNKE_PVbnPucaA==/oat/x86_64/split_GoogleCertificates_installtime.odex) is kOatUpToDate with filter 'speed' executable 'false'
+04-05 10:58:07.206 I/artd    ( 3398): GetBestInfo: odex next to the dex file (/data/app/~~LLbqJAiHSC11ggrHFBaGXw==/com.google.android.gms-NuZZxUu-hNKE_PVbnPucaA==/oat/x86_64/split_MapsDynamite_installtime.odex) is kOatUpToDate with filter 'speed' executable 'false'
+04-05 10:58:07.207 I/artd    ( 3398): GetBestInfo: odex next to the dex file (/data/app/~~LLbqJAiHSC11ggrHFBaGXw==/com.google.android.gms-NuZZxUu-hNKE_PVbnPucaA==/oat/x86_64/split_MeasurementDynamite_installtime.odex) is kOatUpToDate with filter 'speed' executable 'false'
+04-05 10:58:07.208 I/artd    ( 3398): GetBestInfo: odex next to the dex file (/data/app/~~LLbqJAiHSC11ggrHFBaGXw==/com.google.android.gms-NuZZxUu-hNKE_PVbnPucaA==/oat/x86_64/split_all_locale_splits.odex) is kOatUpToDate with filter 'speed' executable 'false'
+04-05 10:58:07.209 I/artd    ( 3398): GetBestInfo: /data/user_de/0/com.google.android.gms/app_chimera/m/00000008/dl-TfliteDynamiteDynamite.integ_243930802100800.apk has no usable artifacts
+04-05 10:58:07.209 I/artd    ( 3398): GetBestInfo: /data/user_de/0/com.google.android.gms/app_chimera/m/00000011/dl-MlkitOcrCommon.optional_254730100800.apk has no usable artifacts
+04-05 10:58:07.210 I/artd    ( 3398): GetBestInfo: /data/user_de/0/com.google.android.gms/app_chimera/m/0000000e/dl-MlkitBarcodeUi.optional_253434100800.apk has no usable artifacts
+04-05 10:58:07.211 I/artd    ( 3398): GetBestInfo: /data/user_de/0/com.google.android.gms/app_chimera/m/00000001/CronetDynamite.apk has no usable artifacts
+04-05 10:58:07.211 I/artd    ( 3398): GetBestInfo: /data/user_de/0/com.google.android.gms/app_chimera/m/00000002/DynamiteLoader.apk has no usable artifacts
+04-05 10:58:07.212 I/artd    ( 3398): GetBestInfo: /data/user_de/0/com.google.android.gms/app_chimera/m/00000012/dl-Appsearch.optional_254730100800.apk has no usable artifacts
+04-05 10:58:07.212 I/artd    ( 3398): GetBestInfo: /data/user_de/0/com.google.android.gms/app_chimera/m/00000005/GoogleCertificates.apk has no usable artifacts
+04-05 10:58:07.213 I/artd    ( 3398): GetBestInfo: /data/user/0/com.google.android.gms/app_dg_cache/3E7B8642D2C3A70E57BF17BBA509AC6EF658CD43/the.apk has no usable artifacts
+04-05 10:58:07.214 I/artd    ( 3398): GetBestInfo: /data/user_de/0/com.google.android.gms/app_chimera/m/0000000a/dl-VisionOcr.optional_253434100000.apk has no usable artifacts
+04-05 10:58:07.215 I/artd    ( 3398): GetBestInfo: /data/user/0/com.google.android.gms/app_dg_cache/E893C01D331CD1FBE6F076D28A1BA871F16A1DEC/the.apk has no usable artifacts
+04-05 10:58:07.215 I/artd    ( 3398): GetBestInfo: /data/user/0/com.google.android.gms/app_dg_cache/3E73B89A0E8F8D5E047D9204352987BD0EB5D68B/the.apk has no usable artifacts
+04-05 10:58:07.216 I/artd    ( 3398): GetBestInfo: /data/user_de/0/com.google.android.gms/app_chimera/m/00000013/dl-MlkitBarcodeUi.optional_254730100800.apk has no usable artifacts
+04-05 10:58:07.217 I/artd    ( 3398): GetBestInfo: /data/user_de/0/com.google.android.gms/app_chimera/m/0000000f/dl-VisionOcr.optional_254730100000.apk has no usable artifacts
+04-05 10:58:07.217 I/artd    ( 3398): GetBestInfo: /data/user_de/0/com.google.android.gms/app_chimera/m/00000015/dl-MapsCoreDynamite.integ_254125200100800.apk has no usable artifacts
+04-05 10:58:07.218 I/artd    ( 3398): GetBestInfo: /data/user_de/0/com.google.android.gms/app_chimera/m/00000009/dl-MlkitOcrCommon.optional_253434100800.apk has no usable artifacts
+04-05 10:58:07.219 I/artd    ( 3398): GetBestInfo: /data/user/0/com.google.android.gms/app_dg_cache/9F0553103A93E6B9A9293C06FF57F54D16588402/the.apk has no usable artifacts
+04-05 10:58:07.220 I/artd    ( 3398): GetBestInfo: vdex next to the dex file (/data/user/0/com.google.android.gms/app_dg_cache/BB2AE5A47BB198AF36C19CFD2B6407061A1BAF30/oat/x86_64/the.vdex) is kOatUpToDate with filter 'verify' executable 'false'
+04-05 10:58:07.220 I/artd    ( 3398): GetBestInfo: /data/user_de/0/com.google.android.gms/app_chimera/m/0000000d/dl-Appsearch.optional_253434100800.apk has no usable artifacts
+04-05 10:58:07.220 D/android.hardware.gnss-service.ranchu( 1108): GnssHwListener:consume:87 sz=64
+04-05 10:58:07.221 I/artd    ( 3398): GetBestInfo: /data/user_de/0/com.google.android.gms/app_chimera/m/0000000b/dl-PlayCloudSearch.optional_253434100000.apk has no usable artifacts
+04-05 10:58:07.222 I/artd    ( 3398): GetBestInfo: /data/user/0/com.google.android.gms/app_dg_cache/D7ECB6ECAAAB0DCD8DECD74AE43F16D2EC2B3A20/the.apk has no usable artifacts
+04-05 10:58:07.222 D/android.hardware.gnss-service.ranchu( 1108): GnssHwListener:consume:87 sz=64
+04-05 10:58:07.222 D/android.hardware.gnss-service.ranchu( 1108): Gnss:onGnssLocationCb:311
+04-05 10:58:07.222 D/android.hardware.gnss-service.ranchu( 1108): Gnss:onGnssLocationCb:333
+04-05 10:58:07.223 I/artd    ( 3398): GetBestInfo: /data/user/0/com.google.android.gms/app_dg_cache/A3CA675C42809307C9989FB51FF5403F49F05332/the.apk has no usable artifacts
+04-05 10:58:07.224 I/artd    ( 3398): GetBestInfo: /data/user_de/0/com.google.android.gms/app_chimera/m/00000010/dl-PlayCloudSearch.optional_254730100000.apk has no usable artifacts
+04-05 10:58:07.224 I/artd    ( 3398): GetBestInfo: /data/user_de/0/com.google.android.gms/app_chimera/m/00000007/MeasurementDynamite.apk has no usable artifacts
+04-05 10:58:07.225 I/artd    ( 3398): GetBestInfo: /data/user/0/com.google.android.gms/app_dg_cache/4C804C498047991068B7703A3662CB65242D8D66/the.apk has no usable artifacts
+04-05 10:58:07.227 I/FusedLocation( 4376): (REDACTED) location delivery to %s blocked - too close
+04-05 10:58:07.228 I/FusedLocation( 4376): (REDACTED) location delivery to %s blocked - too close
+04-05 10:58:07.229 I/FusedLocation( 4376): (REDACTED) location delivery to %s blocked - too close
+04-05 10:58:08.221 D/android.hardware.gnss-service.ranchu( 1108): GnssHwListener:consume:87 sz=64
+04-05 10:58:08.223 D/android.hardware.gnss-service.ranchu( 1108): GnssHwListener:consume:87 sz=64
+04-05 10:58:08.223 D/android.hardware.gnss-service.ranchu( 1108): Gnss:onGnssLocationCb:311
+04-05 10:58:08.223 D/android.hardware.gnss-service.ranchu( 1108): Gnss:onGnssLocationCb:333
+04-05 10:58:08.227 I/FusedLocation( 4376): (REDACTED) location delivery to %s blocked - too close
+04-05 10:58:08.228 I/FusedLocation( 4376): (REDACTED) location delivery to %s blocked - too close
+04-05 10:58:08.229 I/FusedLocation( 4376): (REDACTED) location delivery to %s blocked - too close
+04-05 10:58:09.222 D/android.hardware.gnss-service.ranchu( 1108): GnssHwListener:consume:87 sz=64
+04-05 10:58:09.223 D/android.hardware.gnss-service.ranchu( 1108): GnssHwListener:consume:87 sz=64
+04-05 10:58:09.223 D/android.hardware.gnss-service.ranchu( 1108): Gnss:onGnssLocationCb:311
+04-05 10:58:09.223 D/android.hardware.gnss-service.ranchu( 1108): Gnss:onGnssLocationCb:333
+04-05 10:58:09.229 I/FusedLocation( 4376): (REDACTED) location delivery to %s blocked - too close
+04-05 10:58:09.230 I/FusedLocation( 4376): (REDACTED) location delivery to %s blocked - too close
+04-05 10:58:09.231 I/FusedLocation( 4376): (REDACTED) location delivery to %s blocked - too close
+04-05 10:58:09.444 D/SatelliteController( 1207): iisInCarrierRoamingNbIotNtn: satellite is disabled
+04-05 10:58:09.444 D/SatelliteController( 1207): getCarrierRoamingNtnConnectType: Falling back to global carrier config connect type: 0
+04-05 10:58:09.958 I/HalDevMgr(  810): bestIfaceCreationProposal is null, requestIface=STA, existingIface=[name=wlan0 type=STA]
+04-05 10:58:10.222 D/android.hardware.gnss-service.ranchu( 1108): GnssHwListener:consume:87 sz=64
+04-05 10:58:10.224 D/android.hardware.gnss-service.ranchu( 1108): GnssHwListener:consume:87 sz=64
+04-05 10:58:10.224 D/android.hardware.gnss-service.ranchu( 1108): Gnss:onGnssLocationCb:311
+04-05 10:58:10.224 D/android.hardware.gnss-service.ranchu( 1108): Gnss:onGnssLocationCb:333
+04-05 10:58:10.228 I/FusedLocation( 4376): (REDACTED) location delivery to %s blocked - too close
+04-05 10:58:10.229 I/FusedLocation( 4376): (REDACTED) location delivery to %s blocked - too close
+04-05 10:58:10.229 I/FusedLocation( 4376): (REDACTED) location delivery to %s blocked - too close
+04-05 10:58:11.223 D/android.hardware.gnss-service.ranchu( 1108): GnssHwListener:consume:87 sz=64
+04-05 10:58:11.225 D/android.hardware.gnss-service.ranchu( 1108): GnssHwListener:consume:87 sz=64
+04-05 10:58:11.225 D/android.hardware.gnss-service.ranchu( 1108): Gnss:onGnssLocationCb:311
+04-05 10:58:11.225 D/android.hardware.gnss-service.ranchu( 1108): Gnss:onGnssLocationCb:333
+04-05 10:58:11.230 I/FusedLocation( 4376): (REDACTED) location delivery to %s blocked - too close
+04-05 10:58:11.230 I/FusedLocation( 4376): (REDACTED) location delivery to %s blocked - too close
+04-05 10:58:11.231 I/FusedLocation( 4376): (REDACTED) location delivery to %s blocked - too close

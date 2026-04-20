@@ -1,9 +1,10 @@
-# Offline Persistence & Resilience Summary  
-**Roadwork Tracking App**
+# Offline Persistence & Resilience Summary
+
+## WayCrew
 
 ## Overview
 
-This document summarizes the work completed to add **offline persistence** to the Roadwork Tracking App while ensuring the app remains **fully functional and stable** even if the local database is unavailable.
+This document summarizes the work completed to add **offline persistence** to WayCrew while ensuring the app remains **fully functional and stable** even if the local database is unavailable.
 
 The core principle of this implementation is **resilience**:
 
@@ -26,6 +27,7 @@ The core principle of this implementation is **resilience**:
 ### Created TODOs
 
 Targeted TODOs were added to track:
+
 - SQLite native configuration follow-ups
 - Android rebuild and autolinking verification
 - Future sync and "dirty state" enhancements
@@ -39,6 +41,7 @@ These TODOs are intentionally **non-blocking** and do not prevent continued deve
 ### 1. `src/storage/db.ts` — Robust Database Connection
 
 Improvements made:
+
 - Initialization promise caching to prevent concurrent database initialization attempts
 - Improved error logging with detailed warning messages
 - Added `isDbAvailable()` helper to check database availability
@@ -46,6 +49,7 @@ Improvements made:
 - Automatic fallback to in-memory state if database initialization fails
 
 Result:
+
 - SQLite is treated as an optional capability rather than a hard dependency
 
 ---
@@ -53,12 +57,14 @@ Result:
 ### 2. `src/storage/workRepo.ts` — Resilient Data Operations
 
 All persistence functions now:
+
 - Use try/catch blocks
 - Log warnings instead of throwing fatal errors
 - Return safe defaults (empty arrays or null values)
 - Gracefully degrade when the database is unavailable
 
 Result:
+
 - The rest of the application remains unaware of persistence failures and continues to operate normally
 
 ---
@@ -66,11 +72,13 @@ Result:
 ### 3. `App.tsx` — Graceful Initialization
 
 Changes:
+
 - Database initialization errors are logged as warnings instead of causing startup failure
 - App startup is never blocked by database issues
 - UI and state initialize normally regardless of persistence state
 
 Result:
+
 - No startup crashes, even on misconfigured or fresh Android installs
 
 ---
@@ -78,10 +86,12 @@ Result:
 ### 4. `src/navigation/AppTabs.tsx` — Safe Data Loading
 
 Changes:
+
 - Errors during initial data loading are downgraded to warnings
 - Navigation and screens load successfully even if persisted data cannot be read
 
 Result:
+
 - App UI remains stable in all runtime scenarios
 
 ---
@@ -95,6 +105,7 @@ The error:
 Indicates that `SQLite.openDatabase()` returned null, which typically means the native SQLite module was not available at runtime.
 
 Common causes include:
+
 - Native modules not yet autolinked
 - First Android build after adding a native dependency
 - SQLite library not included in the APK
@@ -102,6 +113,7 @@ Common causes include:
 - Platform-specific database location or permission issues
 
 Important:
+
 - This is a native configuration issue, not a JavaScript logic bug
 
 ---
@@ -131,11 +143,13 @@ Persistence can be enabled without any JavaScript code changes by fixing the nat
 Options include:
 
 1. Manual linking (if required):
+
    ```bash
    npx react-native link react-native-sqlite-storage
    ```
 
 2. Clean rebuild:
+
    ```bash
    cd android
    ./gradlew clean

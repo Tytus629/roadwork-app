@@ -32,6 +32,28 @@ export default function ToolsScreen() {
             Measure distance between two GPS points
           </Text>
         </Pressable>
+
+        <Pressable
+          onPress={() => navigation.navigate("Dmi")}
+          style={styles.toolCard}
+        >
+          <Text style={styles.toolIcon}>🚗</Text>
+          <Text style={styles.toolTitle}>DMI</Text>
+          <Text style={styles.toolDescription}>
+            Record odometer start/end to log distance driven
+          </Text>
+        </Pressable>
+
+        <Pressable
+          onPress={() => navigation.navigate("Counter")}
+          style={styles.toolCard}
+        >
+          <Text style={styles.toolIcon}>🔢</Text>
+          <Text style={styles.toolTitle}>Counter</Text>
+          <Text style={styles.toolDescription}>
+            Tally counter with label — count signs, culverts, etc.
+          </Text>
+        </Pressable>
       </View>
 
       <View style={styles.infoBox}>

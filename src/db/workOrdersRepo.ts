@@ -24,6 +24,7 @@
  *   - lat, lng (REAL nullable, for point geometry)
  *   - lineJson (TEXT nullable, JSON array of {lat, lng} for line geometry)
  *   - minLat, minLng, maxLat, maxLng (REAL, bounding box for spatial queries)
+ *   - orgId (TEXT nullable, organization scoping — see ORG ISOLATION below)
  * 
  * sign_details:
  *   - workOrderId (TEXT FK → work_orders.id)
@@ -44,17 +45,74 @@
  * - Map queries: WHERE minLat <= ? AND maxLat >= ? AND minLng <= ? AND maxLng >= ?
  * - Only fetches work orders in visible map region (performance optimization)
  * - See geom.ts for bbox calculation utilities
+ * 
+ * ─── ORG ISOLATION (orgId FILTERING) ─────────────────────────────────
+ * 
+ * WHY EVERY QUERY MUST FILTER BY orgId:
+ * Users can belong to multiple organizations. When they switch orgs in the
+ * app, the SQLite cache may contain work orders from ALL orgs they've synced
+ * with. Without orgId filtering, a user in "City of Springfield" would see
+ * work orders from "County Road Dept" mixed in.
+ * 
+ * PATTERN USED:
+ * Every list function accepts an optional `orgId?: string | null` parameter.
+ * When provided (non-null), it adds `AND wo.orgId = ?` to the WHERE clause.
+ * When null/undefined, the orgId filter is skipped (returns all orgs — used
+ * in dev/debug contexts only).
+ * 
+ * INDEXES:
+ * Two composite indexes support orgId-scoped queries efficiently:
+ *   - idx_work_orders_orgId_createdAt: For listing by org + time
+ *   - idx_work_orders_orgId_bbox: For spatial queries within an org
+ * See migrations.ts for index creation.
+ * 
+ * FUNCTIONS WITH orgId SUPPORT (all of them):
+ *   listWorkOrdersInBBox, listWorkOrdersFiltered, listActiveWorkOrders,
+ *   listSignsNear, listSignsDue, listSignsDueByMode,
+ *   listSignsNotInspectedSince, listWorkOrders
  */
 
-import { db } from "./db";
+import { db, ensureWorkOrdersOrgIdColumn } from "./db";
 import { bboxForLine, bboxForPoint } from "./geom";
-import { BBox, LatLng, WorkOrderFilter, WorkOrderRow, SignDetailsRow } from "./types";
+import {
+  BBox,
+  LatLng,
+  Priority,
+  WorkOrderFilter,
+  WorkOrderRow,
+  SignDetailsRow,
+  WorkStatus,
+} from "./types";
+import { requireOrgId } from "../org/requireOrg";
+import { assertNoDirectWorkOrdersWrite } from "./writeGuards";
+import {
+  isPavementRepairType,
+  normalizePavementRepairDetails,
+} from "../workOrders/pavementDetails";
+import { formatWorkType, normalizeWorkTypeKey } from "../constants/workOrderTypes";
 
 /** Sign inspection validity period in days. Change this to adjust overdue_default threshold. */
 export const SIGN_INSPECTION_VALID_DAYS = 365 * 2; // 2 years
 
 function nowMs() {
   return Date.now();
+}
+
+let orgIdColumnCheckDone = false;
+
+function ensureOrgIdColumnReady(context: string) {
+  if (orgIdColumnCheckDone) return;
+  try {
+    const result = ensureWorkOrdersOrgIdColumn();
+    if (result === "added") {
+      console.log(`[DB][runtime] Added missing work_orders.orgId in ${context}`);
+    }
+    if (result !== "table-missing") {
+      orgIdColumnCheckDone = true;
+    }
+  } catch (e) {
+    console.warn(`[DB][runtime] Failed ensuring work_orders.orgId in ${context}`, e);
+  }
 }
 
 /**
@@ -75,6 +133,27 @@ function readRows(r: any): any[] {
   return rows ? Array.from(rows) : [];
 }
 
+function encodeDetails(details: any | undefined): string | null {
+  if (!details) return null;
+  try { return JSON.stringify(details); } catch { return null; }
+}
+
+function decodeDetails(detailsJson: string | null | undefined): any | undefined {
+  if (!detailsJson) return undefined;
+  try { return JSON.parse(detailsJson); } catch { return undefined; }
+}
+
+function decodeAssetMatch(assetMatchJson: string | null | undefined): WorkOrderRow["assetMatch"] {
+  if (!assetMatchJson) return null;
+  try {
+    const parsed = JSON.parse(assetMatchJson);
+    if (!parsed || typeof parsed !== "object") return null;
+    return parsed as WorkOrderRow["assetMatch"];
+  } catch {
+    return null;
+  }
+}
+
 function normKey(v: any): string {
   return String(v ?? "")
     .trim()
@@ -86,12 +165,58 @@ function normLabel(v: any): string {
   return String(v ?? "").trim().replace(/\s+/g, " ");
 }
 
+function canonicalTypeLabel(v: any): string {
+  return formatWorkType(normLabel(v));
+}
+
+function expandTypeFilterKeys(types: string[], mode: "raw" | "spaced"): string[] {
+  const out = new Set<string>();
+
+  for (const rawType of types) {
+    const normalized = normalizeWorkTypeKey(rawType);
+    const normalizedKey = String(normalized || rawType || "")
+      .trim()
+      .toLowerCase()
+      .replace(/\s+/g, "_");
+
+    if (!normalizedKey) continue;
+
+    if (normalizedKey === "brushing" || normalizedKey === "danger_tree") {
+      if (mode === "raw") {
+        out.add("brushing");
+        out.add("danger_tree");
+      } else {
+        out.add("brushing");
+        out.add("danger tree");
+      }
+      continue;
+    }
+
+    if (normalizedKey === "pavement_repair" || normalizedKey === "pavement_repairs") {
+      if (mode === "raw") {
+        out.add("pavement_repair");
+        out.add("pavement_repairs");
+      } else {
+        out.add("pavement repair");
+        out.add("pavement repairs");
+      }
+      continue;
+    }
+
+    out.add(mode === "raw" ? normalizedKey : normalizedKey.replace(/_/g, " "));
+  }
+
+  return Array.from(out);
+}
+
 function rowToWorkOrder(r: any): WorkOrderRow {
   const rawType = String(r?.type ?? "").trim();
   const safeType = rawType.length ? rawType : "unknown";
+  const assetMatch = decodeAssetMatch(r.assetMatchJson);
 
   return {
     id: String(r.id),
+    orgId: r.orgId ?? null,
     type: safeType,
     createdAt: Number(r.createdAt),
     updatedAt: Number(r.updatedAt),
@@ -108,30 +233,65 @@ function rowToWorkOrder(r: any): WorkOrderRow {
     minLng: Number(r.minLng),
     maxLat: Number(r.maxLat),
     maxLng: Number(r.maxLng),
+
+    createdByUid: r.createdByUid ?? null,
+    createdByEmail: r.createdByEmail ?? null,
+    createdByFirstName: r.createdByFirstName ?? null,
+    createdByLastName: r.createdByLastName ?? null,
+    createdByDisplayName: r.createdByDisplayName ?? null,
+    assignedToUid: r.assignedToUid ?? null,
+    assignedToName: r.assignedToName ?? null,
+    assignedToEmail: r.assignedToEmail ?? null,
+
+    assetId: r.assetId ?? null,
+    assetMatch,
+
+    details: decodeDetails(r.detailsJson) ?? null,
   };
+}
+
+/**
+ * Backfill orgId for work_orders rows that don't have one yet.
+ * Called when org is selected so existing rows get scoped.
+ */
+export function backfillWorkOrdersOrgId(orgIdRaw: string) {
+  ensureOrgIdColumnReady("backfillWorkOrdersOrgId");
+  const orgId = requireOrgId(orgIdRaw);
+  db.executeSync(
+    `UPDATE work_orders SET orgId = ? WHERE orgId IS NULL OR orgId = ''`,
+    [orgId]
+  );
 }
 
 export function upsertWorkOrderPoint(args: {
   id: string;
+  orgId: string;
   type: string;
   status: string;
   priority: string;
   note?: string | null;
   point: LatLng;
   createdAt?: number;
+  details?: Record<string, any> | null;
 }) {
+  assertNoDirectWorkOrdersWrite("db/workOrdersRepo.upsertWorkOrderPoint");
+  ensureOrgIdColumnReady("upsertWorkOrderPoint");
+  const orgId = requireOrgId(args.orgId);
   const t = nowMs();
   const createdAt = args.createdAt ?? t;
   const b = bboxForPoint(args.point);
+  const detailsJson = encodeDetails(args.details);
 
   db.executeSync(
     `
     INSERT INTO work_orders(
-      id, type, createdAt, updatedAt, status, priority, note,
+      id, orgId, type, createdAt, updatedAt, status, priority, note,
       geomType, lat, lng, lineJson,
-      minLat, minLng, maxLat, maxLng
-    ) VALUES (?,?,?,?,?,?,?,?,?,?,NULL,?,?,?,?)
+      minLat, minLng, maxLat, maxLng,
+      detailsJson
+    ) VALUES (?,?,?,?,?,?,?,?,?,?,?,NULL,?,?,?,?,?)
     ON CONFLICT(id) DO UPDATE SET
+      orgId=excluded.orgId,
       type=excluded.type,
       updatedAt=excluded.updatedAt,
       status=excluded.status,
@@ -144,10 +304,12 @@ export function upsertWorkOrderPoint(args: {
       minLat=excluded.minLat,
       minLng=excluded.minLng,
       maxLat=excluded.maxLat,
-      maxLng=excluded.maxLng;
+      maxLng=excluded.maxLng,
+      detailsJson=excluded.detailsJson;
     `,
     [
       args.id,
+      orgId,
       args.type,
       createdAt,
       t,
@@ -161,32 +323,41 @@ export function upsertWorkOrderPoint(args: {
       b.minLng,
       b.maxLat,
       b.maxLng,
+      detailsJson,
     ]
   );
 }
 
 export function upsertWorkOrderLine(args: {
   id: string;
+  orgId: string;
   type: string;
   status: string;
   priority: string;
   note?: string | null;
   points: LatLng[];
   createdAt?: number;
+  details?: Record<string, any> | null;
 }) {
+  assertNoDirectWorkOrdersWrite("db/workOrdersRepo.upsertWorkOrderLine");
+  ensureOrgIdColumnReady("upsertWorkOrderLine");
+  const orgId = requireOrgId(args.orgId);
   const t = nowMs();
   const createdAt = args.createdAt ?? t;
   const b = bboxForLine(args.points);
   const lineJson = JSON.stringify(args.points);
+  const detailsJson = encodeDetails(args.details);
 
   db.executeSync(
     `
     INSERT INTO work_orders(
-      id, type, createdAt, updatedAt, status, priority, note,
+      id, orgId, type, createdAt, updatedAt, status, priority, note,
       geomType, lat, lng, lineJson,
-      minLat, minLng, maxLat, maxLng
-    ) VALUES (?,?,?,?,?,?,?, 'line', NULL, NULL, ?, ?,?,?,?)
+      minLat, minLng, maxLat, maxLng,
+      detailsJson
+    ) VALUES (?,?,?,?,?,?,?,?, 'line', NULL, NULL, ?, ?,?,?,?,?)
     ON CONFLICT(id) DO UPDATE SET
+      orgId=excluded.orgId,
       type=excluded.type,
       updatedAt=excluded.updatedAt,
       status=excluded.status,
@@ -199,10 +370,12 @@ export function upsertWorkOrderLine(args: {
       minLat=excluded.minLat,
       minLng=excluded.minLng,
       maxLat=excluded.maxLat,
-      maxLng=excluded.maxLng;
+      maxLng=excluded.maxLng,
+      detailsJson=excluded.detailsJson;
     `,
     [
       args.id,
+      orgId,
       args.type,
       createdAt,
       t,
@@ -214,6 +387,7 @@ export function upsertWorkOrderLine(args: {
       b.minLng,
       b.maxLat,
       b.maxLng,
+      detailsJson,
     ]
   );
 }
@@ -246,6 +420,26 @@ export function upsertSignDetails(d: SignDetailsRow) {
  * Partial update for sign_details - only updates fields that are provided.
  * Used for inspection sheet fields and individual field updates.
  */
+
+/** Columns allowed in dynamic sign_details updates. Prevents SQL injection via object keys. */
+const SIGN_DETAILS_COLUMNS = new Set([
+  "signTypeId",
+  "category",
+  "condition",
+  "action",
+  "reflectivityIssue",
+  "inspectionVisible",
+  "reflectivityScore",
+  "delaminationScore",
+  "appearanceScore",
+  "postMaterial",
+  "postConditionScore",
+  "inspectionLastSavedAt",
+  "signCategory",
+  "signCode",
+  "signName",
+]);
+
 export function upsertSignDetailsPatch(
   workOrderId: string,
   patch: Partial<{
@@ -260,6 +454,9 @@ export function upsertSignDetailsPatch(
     appearanceScore: number | null;
     postMaterial: "Wood" | "Steel" | null;
     postConditionScore: number | null;
+    signCategory: string | null;
+    signCode: string | null;
+    signName: string | null;
   }>
 ) {
   // Ensure row exists first
@@ -272,6 +469,10 @@ export function upsertSignDetailsPatch(
   const params: any[] = [];
 
   for (const [k, v] of Object.entries(patch)) {
+    if (!SIGN_DETAILS_COLUMNS.has(k)) {
+      console.warn(`[upsertSignDetailsPatch] Ignoring unknown column: ${k}`);
+      continue;
+    }
     sets.push(`${k} = ?`);
     params.push(v);
   }
@@ -284,12 +485,20 @@ export function upsertSignDetailsPatch(
   );
 }
 
-export function deleteWorkOrder(id: string) {
-  db.executeSync(`DELETE FROM work_orders WHERE id = ?;`, [id]);
+export function deleteWorkOrder(id: string, orgIdRaw: string) {
+  ensureOrgIdColumnReady("deleteWorkOrder");
+  // NOTE: deleteWorkOrder is still called by workOrdersService.removeWorkOrder().
+  // Once we have a delete path in workOrdersRepo, add the guard here too.
+  const orgId = requireOrgId(orgIdRaw);
+  db.executeSync(`DELETE FROM work_orders WHERE id = ? AND orgId = ?;`, [id, orgId]);
 }
 
-export function getWorkOrderById(id: string): WorkOrderRow | null {
-  const r = db.executeSync(`SELECT * FROM work_orders WHERE id = ? LIMIT 1;`, [id]);
+export function getWorkOrderById(id: string, orgId?: string | null): WorkOrderRow | null {
+  ensureOrgIdColumnReady("getWorkOrderById");
+  const safeOrg = orgId ? requireOrgId(orgId) : null;
+  const orgClause = safeOrg ? ` AND orgId = ?` : ``;
+  const orgParams = safeOrg ? [safeOrg] : [];
+  const r = db.executeSync(`SELECT * FROM work_orders WHERE id = ?${orgClause} LIMIT 1;`, [id, ...orgParams]);
   const rows: any = r?.rows;
   const arr = Array.isArray(rows) ? rows : [];
   if (arr.length === 0) return null;
@@ -298,8 +507,7 @@ export function getWorkOrderById(id: string): WorkOrderRow | null {
 
 export function getSignDetailsByWorkOrderId(workOrderId: string): SignDetailsRow | null {
   const r = db.executeSync(`SELECT * FROM sign_details WHERE workOrderId = ? LIMIT 1;`, [workOrderId]);
-  const rows: any = r?.rows;
-  const arr = Array.isArray(rows) ? rows : [];
+  const arr = readRows(r);
   if (arr.length === 0) return null;
   const row = arr[0];
   return {
@@ -309,6 +517,11 @@ export function getSignDetailsByWorkOrderId(workOrderId: string): SignDetailsRow
     condition: row.condition ?? null,
     action: row.action ?? null,
     reflectivityIssue: row.reflectivityIssue ?? null,
+
+    // MUTCD Sign Catalog fields
+    signCategory: row.signCategory ?? null,
+    signCode: row.signCode ?? null,
+    signName: row.signName ?? null,
     
     // Inspection sheet fields
     inspectionVisible: row.inspectionVisible ?? 0,
@@ -327,7 +540,11 @@ export function getSignDetailsByWorkOrderId(workOrderId: string): SignDetailsRow
  * @param cutoffMs - epoch ms timestamp. Signs inspected before this are returned.
  * @param limit - max results (default 2000)
  */
-export function listSignsNotInspectedSince(cutoffMs: number, limit = 2000): WorkOrderRow[] {
+export function listSignsNotInspectedSince(cutoffMs: number, limit = 2000, orgId?: string | null): WorkOrderRow[] {
+  ensureOrgIdColumnReady("listSignsNotInspectedSince");
+  const safeOrg = orgId ? requireOrgId(orgId) : null;
+  const orgClause = safeOrg ? `AND wo.orgId = ?` : ``;
+  const orgParams = safeOrg ? [safeOrg] : [];
   const r = db.executeSync(
     `
     SELECT
@@ -337,6 +554,7 @@ export function listSignsNotInspectedSince(cutoffMs: number, limit = 2000): Work
     LEFT JOIN sign_details sd ON sd.workOrderId = wo.id
     WHERE
       wo.type = 'Sign'
+      ${orgClause}
       AND (
         sd.inspectionLastSavedAt IS NULL
         OR sd.inspectionLastSavedAt < ?
@@ -345,21 +563,26 @@ export function listSignsNotInspectedSince(cutoffMs: number, limit = 2000): Work
       COALESCE(sd.inspectionLastSavedAt, 0) ASC
     LIMIT ?;
     `,
-    [cutoffMs, limit]
+    [...orgParams, cutoffMs, limit]
   );
 
   const rows = readRows(r);
   return rows.map(rowToWorkOrder);
 }
 
-export function getDistinctWorkOrderTypes(): string[] {
+export function getDistinctWorkOrderTypes(orgId?: string | null): string[] {
+  ensureOrgIdColumnReady("getDistinctWorkOrderTypes");
+  const safeOrg = orgId ? requireOrgId(orgId) : null;
+  const orgClause = safeOrg ? ` AND orgId = ?` : ``;
+  const orgParams = safeOrg ? [safeOrg] : [];
   const r = db.executeSync(
     `
     SELECT DISTINCT type
     FROM work_orders
-    WHERE type IS NOT NULL AND TRIM(type) <> ''
+    WHERE type IS NOT NULL AND TRIM(type) <> ''${orgClause}
     ORDER BY type ASC;
-    `
+    `,
+    orgParams
   );
 
   const rows = readRows(r);
@@ -368,20 +591,28 @@ export function getDistinctWorkOrderTypes(): string[] {
   const out: string[] = [];
 
   for (const row of rows) {
-    const label = normLabel((row as any)?.type);
+    const label = canonicalTypeLabel((row as any)?.type);
     const key = normKey((row as any)?.type);
     if (!key) continue;
-    if (seen.has(key)) continue;
-    seen.add(key);
+    const bucketKey = normKey(label);
+    if (seen.has(bucketKey)) continue;
+    seen.add(bucketKey);
     out.push(label);
   }
   return out;
 }
 
-export function debugDumpTypes(): string[] {
-  const types = getDistinctWorkOrderTypes();
+export function debugDumpTypes(orgId?: string | null): string[] {
+  ensureOrgIdColumnReady("debugDumpTypes");
+  const safeOrg = orgId ? requireOrgId(orgId) : null;
+  const orgClause = safeOrg ? ` WHERE orgId = ?` : ``;
+  const orgParams = safeOrg ? [safeOrg] : [];
+  const types = getDistinctWorkOrderTypes(safeOrg);
   console.log("[workOrdersRepo] DISTINCT types:", types);
-  const sample = db.executeSync(`SELECT id, type, status, priority FROM work_orders LIMIT 10;`);
+  const sample = db.executeSync(
+    `SELECT id, type, status, priority FROM work_orders${orgClause} LIMIT 10;`,
+    orgParams
+  );
   console.log("[workOrdersRepo] SAMPLE work_orders:", readRows(sample));
   return types;
 }
@@ -398,7 +629,7 @@ function sortSql(sort: SortMode) {
   if (sort === "newest") return "ORDER BY wo.createdAt DESC";
   if (sort === "oldest") return "ORDER BY wo.createdAt ASC";
 
-  // "priority" sort: Urgent > High > Medium > Low then newest within priority
+  // "priority" sort: Urgent > High > Medium > Low > None then newest within priority
   return `
     ORDER BY
       CASE wo.priority
@@ -406,6 +637,7 @@ function sortSql(sort: SortMode) {
         WHEN 'High' THEN 3
         WHEN 'Medium' THEN 2
         WHEN 'Low' THEN 1
+        WHEN 'None' THEN 0
         ELSE 0
       END DESC,
       wo.createdAt DESC
@@ -417,16 +649,17 @@ function buildWhereSimple(filter: WorkOrderFilter) {
   const params: any[] = [];
 
   if (filter.types?.length) {
-    where.push(`LOWER(TRIM(wo.type)) IN (${filter.types.map(() => "?").join(",")})`);
-    params.push(...filter.types.map((t) => normKey(t)));
+      const expanded = expandTypeFilterKeys(filter.types, "spaced");
+      where.push(`LOWER(TRIM(REPLACE(wo.type, '_', ' '))) IN (${expanded.map(() => "?").join(",")})`);
+      params.push(...expanded);
   }
   if (filter.status?.length) {
-    where.push(`wo.status IN (${filter.status.map(() => "?").join(",")})`);
-    params.push(...filter.status);
+    where.push(`LOWER(TRIM(wo.status)) IN (${filter.status.map(() => "?").join(",")})`);
+    params.push(...filter.status.map((s) => normKey(s)));
   }
   if (filter.priority?.length) {
-    where.push(`wo.priority IN (${filter.priority.map(() => "?").join(",")})`);
-    params.push(...filter.priority);
+    where.push(`LOWER(TRIM(wo.priority)) IN (${filter.priority.map(() => "?").join(",")})`);
+    params.push(...filter.priority.map((p) => normKey(p)));
   }
 
   const sql = where.length ? `WHERE ${where.join(" AND ")}` : "";
@@ -436,9 +669,21 @@ function buildWhereSimple(filter: WorkOrderFilter) {
 export function listWorkOrdersFiltered(
   filter: WorkOrderFilter,
   ageSort: AgeSort,
-  limit = 2000
+  limit = 2000,
+  orgId?: string | null
 ): WorkOrderRow[] {
+  ensureOrgIdColumnReady("listWorkOrdersFiltered");
   const { sql, params } = buildWhereSimple(filter);
+
+  // Add org scoping
+  const safeOrg = orgId ? requireOrgId(orgId) : null;
+  const orgClause = safeOrg ? `wo.orgId = ?` : null;
+  const orgParams = safeOrg ? [safeOrg] : [];
+
+  let where = sql;
+  if (orgClause) {
+    where = where ? `${where} AND ${orgClause}` : `WHERE ${orgClause}`;
+  }
 
   const orderBy = ageSort === "oldest" ? "ORDER BY wo.createdAt ASC" : "ORDER BY wo.createdAt DESC";
 
@@ -446,11 +691,11 @@ export function listWorkOrdersFiltered(
     `
     SELECT wo.*
     FROM work_orders wo
-    ${sql}
+    ${where}
     ${orderBy}
     LIMIT ?;
     `,
-    [...params, limit]
+    [...params, ...orgParams, limit]
   );
 
   return readRows(r).map(rowToWorkOrder);
@@ -458,8 +703,10 @@ export function listWorkOrdersFiltered(
 
 export function listSignsNear(
   args: { lat: number; lng: number; miles: number },
-  limit = 2000
+  limit = 2000,
+  orgId?: string | null
 ): SignWorkOrder[] {
+  ensureOrgIdColumnReady("listSignsNear");
   const dLat = args.miles / 69;
   const dLng = args.miles / (69 * Math.cos((args.lat * Math.PI) / 180));
 
@@ -467,6 +714,10 @@ export function listSignsNear(
   const maxLat = args.lat + dLat;
   const minLng = args.lng - dLng;
   const maxLng = args.lng + dLng;
+
+  const safeOrg = orgId ? requireOrgId(orgId) : null;
+  const orgClause = safeOrg ? `AND wo.orgId = ?` : ``;
+  const orgParams = safeOrg ? [safeOrg] : [];
 
   const r = db.executeSync(
     `
@@ -482,13 +733,14 @@ export function listSignsNear(
     LEFT JOIN sign_details sd ON sd.workOrderId = wo.id
     WHERE
       LOWER(wo.type) = 'sign'
+      ${orgClause}
       AND wo.maxLat >= ? AND wo.minLat <= ?
       AND wo.maxLng >= ? AND wo.minLng <= ?
       AND wo.status IN ('Needs','In Progress','Deferred')
     ORDER BY wo.updatedAt DESC
     LIMIT ?;
     `,
-    [minLat, maxLat, minLng, maxLng, limit]
+    [...orgParams, minLat, maxLat, minLng, maxLng, limit]
   );
 
   const rows = readRows(r);
@@ -509,7 +761,11 @@ export function listSignsNear(
   });
 }
 
-export function listSignsDue(limit = 2000): SignWorkOrder[] {
+export function listSignsDue(limit = 2000, orgId?: string | null): SignWorkOrder[] {
+  ensureOrgIdColumnReady("listSignsDue");
+  const safeOrg = orgId ? requireOrgId(orgId) : null;
+  const orgClause = safeOrg ? `AND wo.orgId = ?` : ``;
+  const orgParams = safeOrg ? [safeOrg] : [];
   const r = db.executeSync(
     `
     SELECT
@@ -524,6 +780,7 @@ export function listSignsDue(limit = 2000): SignWorkOrder[] {
     LEFT JOIN sign_details sd ON sd.workOrderId = wo.id
     WHERE
       LOWER(wo.type) = 'sign'
+      ${orgClause}
       AND wo.status IN ('Needs','In Progress','Deferred')
       AND (
         LOWER(sd.condition) IN ('damaged','missing')
@@ -536,12 +793,13 @@ export function listSignsDue(limit = 2000): SignWorkOrder[] {
         WHEN 'High' THEN 3
         WHEN 'Medium' THEN 2
         WHEN 'Low' THEN 1
+        WHEN 'None' THEN 0
         ELSE 0
       END DESC,
       wo.updatedAt DESC
     LIMIT ?;
     `,
-    [limit]
+    [...orgParams, limit]
   );
 
   const rows = readRows(r);
@@ -597,9 +855,15 @@ function cutoffFor(mode: DueMode): number | null {
  * - due_only: Signs with condition/action issues or poor inspection scores
  * - overdue_*: Signs not inspected within the time period
  */
-export function listSignsDueByMode(mode: DueMode, limit = 2000): SignWorkOrder[] {
+export function listSignsDueByMode(mode: DueMode, limit = 2000, orgId?: string | null): SignWorkOrder[] {
+  ensureOrgIdColumnReady("listSignsDueByMode");
   const cutoff = cutoffFor(mode);
   const params: any[] = [];
+
+  // Org scoping
+  const safeOrg = orgId ? requireOrgId(orgId) : null;
+  const orgClause = safeOrg ? `AND wo.orgId = ?` : ``;
+  if (safeOrg) params.push(safeOrg);
 
   // Due reasons clause
   const dueClause = `
@@ -654,6 +918,7 @@ export function listSignsDueByMode(mode: DueMode, limit = 2000): SignWorkOrder[]
     LEFT JOIN sign_details sd ON sd.workOrderId = wo.id
     WHERE
       LOWER(TRIM(wo.type)) = 'sign'
+      ${orgClause}
       AND ${statusClause}
       AND ${whereMode}
     ORDER BY
@@ -662,6 +927,7 @@ export function listSignsDueByMode(mode: DueMode, limit = 2000): SignWorkOrder[]
         WHEN 'High' THEN 3
         WHEN 'Medium' THEN 2
         WHEN 'Low' THEN 1
+        WHEN 'None' THEN 0
         ELSE 0
       END DESC,
       wo.updatedAt DESC
@@ -697,20 +963,31 @@ export function listSignsDueByMode(mode: DueMode, limit = 2000): SignWorkOrder[]
 export function listActiveWorkOrders(
   filter?: WorkOrderFilter,
   sort: SortMode = "priority",
-  limit = 500
+  limit = 500,
+  orgId?: string | null
 ): WorkOrderRow[] {
+  ensureOrgIdColumnReady("listActiveWorkOrders");
   const { sql, params } = buildWhere(filter);
+
+  // Add org scoping
+  const safeOrg = orgId ? requireOrgId(orgId) : null;
+  const orgClause = safeOrg ? `wo.orgId = ?` : null;
+  const orgParams = safeOrg ? [safeOrg] : [];
+  let where = sql;
+  if (orgClause) {
+    where = where ? `${where} AND ${orgClause}` : `WHERE ${orgClause}`;
+  }
 
   const r = db.executeSync(
     `
     SELECT wo.*
     FROM work_orders wo
     LEFT JOIN sign_details sd ON sd.workOrderId = wo.id
-    ${sql}
+    ${where}
     ${sortSql(sort)}
     LIMIT ?;
     `,
-    [...params, limit]
+    [...params, ...orgParams, limit]
   );
 
   const rows: any = r?.rows;
@@ -719,10 +996,15 @@ export function listActiveWorkOrders(
 }
 export function updateWorkOrderFields(args: {
   id: string;
+  orgId: string;
   status?: string;
   priority?: string;
   note?: string | null;
+  details?: Record<string, any> | null;
 }) {
+  assertNoDirectWorkOrdersWrite("db/workOrdersRepo.updateWorkOrderFields");
+  ensureOrgIdColumnReady("updateWorkOrderFields");
+  const orgId = requireOrgId(args.orgId);
   const sets: string[] = [];
   const params: any[] = [];
 
@@ -738,6 +1020,10 @@ export function updateWorkOrderFields(args: {
     sets.push("note = ?");
     params.push(args.note);
   }
+  if (args.details !== undefined) {
+    sets.push("detailsJson = ?");
+    params.push(encodeDetails(args.details));
+  }
 
   // always update updatedAt
   sets.push("updatedAt = ?");
@@ -749,9 +1035,9 @@ export function updateWorkOrderFields(args: {
     `
     UPDATE work_orders
     SET ${sets.join(", ")}
-    WHERE id = ?;
+    WHERE id = ? AND orgId = ?;
     `,
-    [...params, args.id]
+    [...params, args.id, orgId]
   );
 }
 function buildWhere(filter?: WorkOrderFilter) {
@@ -759,8 +1045,9 @@ function buildWhere(filter?: WorkOrderFilter) {
   const params: any[] = [];
 
   if (filter?.types?.length) {
-    where.push(`LOWER(TRIM(wo.type)) IN (${filter.types.map(() => "?").join(",")})`);
-    params.push(...filter.types.map((t) => normKey(t)));
+    const expanded = expandTypeFilterKeys(filter.types, "raw");
+    where.push(`LOWER(TRIM(wo.type)) IN (${expanded.map(() => "?").join(",")})`);
+    params.push(...expanded);
   }
   if (filter?.status?.length) {
     const normalized = filter.status.map(s => (s ?? "").toLowerCase());
@@ -790,19 +1077,29 @@ function buildWhere(filter?: WorkOrderFilter) {
 }
 
 // List query (for list screen / general)
-export function listWorkOrders(filter?: WorkOrderFilter, limit = 500): WorkOrderRow[] {
+export function listWorkOrders(filter?: WorkOrderFilter, limit = 500, orgId?: string | null): WorkOrderRow[] {
+  ensureOrgIdColumnReady("listWorkOrders");
   const { sql, params } = buildWhere(filter);
+
+  // Add org scoping
+  const safeOrg = orgId ? requireOrgId(orgId) : null;
+  const orgClause = safeOrg ? `wo.orgId = ?` : null;
+  const orgParams = safeOrg ? [safeOrg] : [];
+  let where = sql;
+  if (orgClause) {
+    where = where ? `${where} AND ${orgClause}` : `WHERE ${orgClause}`;
+  }
 
   const r = db.executeSync(
     `
     SELECT wo.*
     FROM work_orders wo
     LEFT JOIN sign_details sd ON sd.workOrderId = wo.id
-    ${sql}
+    ${where}
     ORDER BY wo.updatedAt DESC
     LIMIT ?;
     `,
-    [...params, limit]
+    [...params, ...orgParams, limit]
   );
 
   const rows: any = r?.rows;
@@ -814,36 +1111,57 @@ export function listWorkOrders(filter?: WorkOrderFilter, limit = 500): WorkOrder
  * Debug function to inspect sign overdue data in SQLite.
  * Call this to verify what's actually in the database.
  */
-export function debugSignOverdueSnapshot() {
-  const a = db.executeSync(`
+export function debugSignOverdueSnapshot(orgId?: string | null) {
+  ensureOrgIdColumnReady("debugSignOverdueSnapshot");
+  const safeOrg = orgId ? requireOrgId(orgId) : null;
+
+  const simpleOrgClause = safeOrg ? ` AND orgId = ?` : ``;
+  const simpleOrgParams = safeOrg ? [safeOrg] : [];
+
+  const joinedOrgClause = safeOrg ? ` AND wo.orgId = ?` : ``;
+  const joinedOrgParams = safeOrg ? [safeOrg] : [];
+
+  const a = db.executeSync(
+    `
     SELECT COUNT(*) as n
     FROM work_orders
-    WHERE LOWER(TRIM(type))='sign';
-  `);
+    WHERE LOWER(TRIM(type))='sign'${simpleOrgClause};
+  `,
+    simpleOrgParams
+  );
 
-  const b = db.executeSync(`
+  const b = db.executeSync(
+    `
     SELECT COUNT(*) as n
     FROM work_orders
     WHERE LOWER(TRIM(type))='sign'
-      AND status IN ('Needs','In Progress','Deferred','Done');
-  `);
+      AND status IN ('Needs','In Progress','Deferred','Done')${simpleOrgClause};
+  `,
+    simpleOrgParams
+  );
 
-  const c = db.executeSync(`
+  const c = db.executeSync(
+    `
     SELECT COUNT(*) as n
     FROM work_orders wo
     LEFT JOIN sign_details sd ON sd.workOrderId = wo.id
     WHERE LOWER(TRIM(wo.type))='sign'
-      AND (sd.inspectionLastSavedAt IS NULL);
-  `);
+      AND (sd.inspectionLastSavedAt IS NULL)${joinedOrgClause};
+  `,
+    joinedOrgParams
+  );
 
-  const sample = db.executeSync(`
+  const sample = db.executeSync(
+    `
     SELECT wo.id, wo.type, wo.status, sd.inspectionLastSavedAt
     FROM work_orders wo
     LEFT JOIN sign_details sd ON sd.workOrderId = wo.id
-    WHERE LOWER(TRIM(wo.type))='sign'
+    WHERE LOWER(TRIM(wo.type))='sign'${joinedOrgClause}
     ORDER BY COALESCE(sd.inspectionLastSavedAt, 0) ASC
     LIMIT 10;
-  `);
+  `,
+    joinedOrgParams
+  );
 
   console.log("[debugSignOverdue] sign count:", a?.rows ?? a);
   console.log("[debugSignOverdue] sign+status count:", b?.rows ?? b);
@@ -851,8 +1169,9 @@ export function debugSignOverdueSnapshot() {
   console.log("[debugSignOverdue] sample:", sample?.rows ?? sample);
 }
 
-// Map query (bbox overlap + filters)
-export function listWorkOrdersInBBox(b: BBox, filter?: WorkOrderFilter, limit = 2000): WorkOrderRow[] {
+// Map query (bbox overlap + filters, scoped to org)
+export function listWorkOrdersInBBox(b: BBox, filter?: WorkOrderFilter, limit = 2000, orgId?: string | null): WorkOrderRow[] {
+  ensureOrgIdColumnReady("listWorkOrdersInBBox");
   const { sql, params } = buildWhere(filter);
 
   // bbox overlap condition:
@@ -862,10 +1181,19 @@ export function listWorkOrdersInBBox(b: BBox, filter?: WorkOrderFilter, limit = 
   `;
   const bboxParams = [b.minLat, b.maxLat, b.minLng, b.maxLng];
 
-  const wherePrefix = sql ? sql.replace(/^WHERE\s+/i, "WHERE ") : "WHERE ";
-  const combinedWhere = sql
-    ? `${wherePrefix} AND ${bboxClause}`
-    : `WHERE ${bboxClause}`;
+  // Org scoping: if orgId provided, only show that org's work orders
+  const safeOrg = orgId ? requireOrgId(orgId) : null;
+  const orgClause = safeOrg ? `wo.orgId = ?` : null;
+  const orgParams = safeOrg ? [safeOrg] : [];
+
+  const conditions = [bboxClause];
+  if (orgClause) conditions.push(orgClause);
+
+  // Merge buildWhere conditions
+  const filterConditions = sql ? sql.replace(/^WHERE\s+/i, "").trim() : "";
+  if (filterConditions) conditions.push(filterConditions);
+
+  const combinedWhere = `WHERE ${conditions.join(" AND ")}`;
 
   const r = db.executeSync(
     `
@@ -876,10 +1204,74 @@ export function listWorkOrdersInBBox(b: BBox, filter?: WorkOrderFilter, limit = 
     ORDER BY wo.updatedAt DESC
     LIMIT ?;
     `,
-    [...params, ...bboxParams, limit]
+    [...bboxParams, ...orgParams, ...params, limit]
   );
 
   const rows: any = r?.rows;
   const arr = Array.isArray(rows) ? rows : [];
   return arr.map(rowToWorkOrder);
+}
+
+export type PavementRepairReportRow = {
+  id: string;
+  orgId: string | null;
+  type: string;
+  status: WorkStatus;
+  priority: Priority;
+  createdAt: number;
+  updatedAt: number;
+  issueCategory: string | null;
+  repairMethod: string | null;
+  temporaryRepair: boolean | null;
+  followUpNeeded: boolean | null;
+  drainageIssuePresent: boolean | null;
+  estimatedTons: number | null;
+};
+
+/**
+ * Report-focused query for pavement repair work orders.
+ * Returns a flat shape so callers can export/filter without parsing details repeatedly.
+ */
+export function listPavementRepairReportRows(
+  limit = 5000,
+  orgId?: string | null,
+): PavementRepairReportRow[] {
+  ensureOrgIdColumnReady("listPavementRepairReportRows");
+  const safeOrg = orgId ? requireOrgId(orgId) : null;
+  const orgClause = safeOrg ? `WHERE orgId = ?` : ``;
+  const orgParams = safeOrg ? [safeOrg] : [];
+
+  const r = db.executeSync(
+    `
+    SELECT *
+    FROM work_orders
+    ${orgClause}
+    ORDER BY updatedAt DESC
+    LIMIT ?;
+    `,
+    [...orgParams, limit],
+  );
+
+  const rows = readRows(r).map(rowToWorkOrder);
+
+  return rows
+    .filter((wo) => isPavementRepairType(wo.type))
+    .map((wo) => {
+      const details = normalizePavementRepairDetails(wo.details);
+      return {
+        id: wo.id,
+        orgId: wo.orgId ?? null,
+        type: wo.type,
+        status: wo.status,
+        priority: wo.priority,
+        createdAt: wo.createdAt,
+        updatedAt: wo.updatedAt,
+        issueCategory: details?.issueCategory ?? null,
+        repairMethod: details?.repairMethod ?? null,
+        temporaryRepair: details?.temporaryRepair ?? null,
+        followUpNeeded: details?.followUpNeeded ?? null,
+        drainageIssuePresent: details?.drainageIssuePresent ?? null,
+        estimatedTons: details?.estimatedTons ?? null,
+      };
+    });
 }

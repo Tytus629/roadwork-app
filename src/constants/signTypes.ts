@@ -36,11 +36,16 @@ export const SIGN_TYPES: SignType[] = [
 
   // ---------------- Warning ----------------
   { id: "curve_ahead", label: "Curve Ahead", category: "Warning", mutcdCode: "W1-2" },
+  { id: "right_turn", label: "Right Turn", category: "Warning", mutcdCode: "W1-1" },
   { id: "sharp_turn", label: "Sharp Turn", category: "Warning", mutcdCode: "W1-1" },
+  { id: "hairpin_curve_left", label: "Hairpin Curve Left", category: "Warning", mutcdCode: "W1-11L" },
+  { id: "hairpin_curve_right", label: "Hairpin Curve Right", category: "Warning", mutcdCode: "W1-11R" },
   { id: "winding_road", label: "Winding Road", category: "Warning", mutcdCode: "W1-3" },
   { id: "intersection_ahead", label: "Intersection Ahead", category: "Warning", mutcdCode: "W2-1" },
   { id: "cross_traffic", label: "Cross Traffic", category: "Warning", mutcdCode: "W2-5" },
   { id: "deer_crossing", label: "Deer Crossing", category: "Warning", mutcdCode: "W11-3" },
+  { id: "elk_crossing", label: "Elk Crossing", category: "Warning", mutcdCode: "W11-3-ELK" },
+  { id: "fire_station_crossing", label: "Fire Station Crossing", category: "Warning", mutcdCode: "W11-FIRE" },
   { id: "slippery_when_wet", label: "Slippery When Wet", category: "Warning", mutcdCode: "W8-5" },
   { id: "steep_hill", label: "Steep Hill", category: "Warning", mutcdCode: "W7-1" },
   { id: "pedestrian_crossing", label: "Pedestrian Crossing", category: "Warning", mutcdCode: "W11-2" },

@@ -58,16 +58,16 @@ import { AgeSort, listWorkOrdersFiltered } from "../db/workOrdersRepo";
  * @param ageSort - Sort order: "newest" or "oldest"
  * @returns Array of work orders matching filter, max 2000
  */
-export function useWorkOrdersFiltered(filter: WorkOrderFilter, ageSort: AgeSort) {
+export function useWorkOrdersFiltered(filter: WorkOrderFilter, ageSort: AgeSort, orgId?: string | null) {
   const [items, setItems] = useState<WorkOrderRow[]>([]);
   const [tick, setTick] = useState(0);
 
   useEffect(() => subscribeDbChanged(() => setTick(getDbTick())), []);
 
-  const key = useMemo(() => JSON.stringify({ filter, ageSort, tick }), [filter, ageSort, tick]);
+  const key = useMemo(() => JSON.stringify({ filter, ageSort, tick, orgId }), [filter, ageSort, tick, orgId]);
 
   useEffect(() => {
-    setItems(listWorkOrdersFiltered(filter, ageSort, 2000));
+    setItems(listWorkOrdersFiltered(filter, ageSort, 2000, orgId));
   }, [key]);
 
   return items;

@@ -1,0 +1,84 @@
+--------- beginning of main
+04-05 10:35:43.377 I/ReactNativeJS(27786): '[App][Emulators] Startup config', { enabled: true,
+04-05 10:35:43.377 I/ReactNativeJS(27786):   platform: 'android',
+04-05 10:35:43.377 I/ReactNativeJS(27786):   mode: 'android_device_usb_or_lan',
+04-05 10:35:43.377 I/ReactNativeJS(27786):   selectedHost: '192.168.1.37',
+04-05 10:35:43.377 I/ReactNativeJS(27786):   adbReverseAssumed: false,
+04-05 10:35:43.377 I/ReactNativeJS(27786):   authUrl: 'http://192.168.1.37:9099',
+04-05 10:35:43.377 I/ReactNativeJS(27786):   firestoreTarget: '192.168.1.37:8080',
+04-05 10:35:43.377 I/ReactNativeJS(27786):   functionsTarget: '192.168.1.37:5001',
+04-05 10:35:43.377 I/ReactNativeJS(27786):   storageTarget: '192.168.1.37:9199' }
+04-05 10:35:43.521 I/ReactNativeJS(27786): '[Emulators] Connected', { enabled: true,
+04-05 10:35:43.521 I/ReactNativeJS(27786):   platform: 'android',
+04-05 10:35:43.521 I/ReactNativeJS(27786):   mode: 'android_device_usb_or_lan',
+04-05 10:35:43.521 I/ReactNativeJS(27786):   host: '192.168.1.37',
+04-05 10:35:43.521 I/ReactNativeJS(27786):   adbReverseAssumed: false,
+04-05 10:35:43.521 I/ReactNativeJS(27786):   authUrl: 'http://192.168.1.37:9099',
+04-05 10:35:43.521 I/ReactNativeJS(27786):   firestoreTarget: '192.168.1.37:8080',
+04-05 10:35:43.521 I/ReactNativeJS(27786):   functionsTarget: '192.168.1.37:5001',
+04-05 10:35:43.521 I/ReactNativeJS(27786):   storageTarget: '192.168.1.37:9199' }
+04-05 10:35:43.522 I/ReactNativeJS(27786): [Firebase] Native auto-init via google-services.json
+04-05 10:35:43.531 I/ReactNativeJS(27786): [DB][migrate] work_orders.orgId existing
+04-05 10:35:43.536 I/ReactNativeJS(27786): [DB][migrate] assets table already exists
+04-05 10:35:43.536 I/ReactNativeJS(27786): [DB][migrate] asset_events table already exists
+04-05 10:35:43.540 I/ReactNativeJS(27786): [DB][migrate] assets schema ensure success
+04-05 10:35:43.540 I/ReactNativeJS(27786): [DB][init] schema ready (App.preflight)
+04-05 10:35:43.540 I/ReactNativeJS(27786): [DB] Preflight migrations complete
+04-05 10:35:43.542 I/ReactNativeJS(27786): Running "RoadWorkTracker" with {"rootTag":1,"initialProps":{},"fabric":true}
+04-05 10:35:43.765 I/ReactNativeJS(27786): '[DB] SQLite initialized, ping:', 1
+04-05 10:35:43.813 I/ReactNativeJS(27786): [DEV] Startup wipe disabled (safe default)
+04-05 10:35:43.826 I/ReactNativeJS(27786): '[Emulators] Functions ping OK', 200, { orgId: 'ZKzedc9znJlSJXPy7Ycf', code: '2468' }
+04-05 10:35:43.922 I/ReactNativeJS(27786): '[App] Notification permission:', 'GRANTED'
+04-05 10:35:43.956 I/ReactNativeJS(27786): [OrgSession] auth uid=iTzyyLupjpMKz5QJyWmOxYkpN6gT lastSignedInUid=iTzyyLupjpMKz5QJyWmOxYkpN6gT
+04-05 10:35:43.961 I/ReactNativeJS(27786): [OrgSession] selectedOrgId before restore=ZKzedc9znJlSJXPy7Ycf uid=iTzyyLupjpMKz5QJyWmOxYkpN6gT
+04-05 10:35:44.135 I/ReactNativeJS(27786): [OrgSession] restored selectedOrgId=ZKzedc9znJlSJXPy7Ycf role=org_owner
+04-05 10:35:44.139 I/ReactNativeJS(27786): [OrgSession] startup settled uid=iTzyyLupjpMKz5QJyWmOxYkpN6gT activeOrgId=ZKzedc9znJlSJXPy7Ycf role=org_owner
+04-05 10:35:44.145 I/ReactNativeJS(27786): '[Sync] startSyncScheduler for org', 'ZKzedc9znJlSJXPy7Ycf'
+04-05 10:35:44.156 I/ReactNativeJS(27786): '[RemoteSync] start', { orgId: 'ZKzedc9znJlSJXPy7Ycf' }
+04-05 10:35:44.158 I/ReactNativeJS(27786): [RemoteSync][WO] listener start org=ZKzedc9znJlSJXPy7Ycf path=orgs/ZKzedc9znJlSJXPy7Ycf/workOrders
+04-05 10:35:44.163 I/ReactNativeJS(27786): [RootGate] org restore validated org=ZKzedc9znJlSJXPy7Ycf role=org_owner
+04-05 10:35:44.436 I/ReactNativeJS(27786): '[RemoteSync][assets] snapshot', { orgId: 'ZKzedc9znJlSJXPy7Ycf',
+04-05 10:35:44.436 I/ReactNativeJS(27786):   totalDocs: 2,
+04-05 10:35:44.436 I/ReactNativeJS(27786):   changes: 2,
+04-05 10:35:44.436 I/ReactNativeJS(27786):   fromCache: true,
+04-05 10:35:44.436 I/ReactNativeJS(27786):   applied: 2,
+04-05 10:35:44.436 I/ReactNativeJS(27786):   removed: 0,
+04-05 10:35:44.436 I/ReactNativeJS(27786):   skipped: 0 }
+04-05 10:35:44.438 I/ReactNative(27786): [GESTURE HANDLER] Initialize gesture handler for root view com.facebook.react.runtime.ReactSurfaceView{eac5a87 V.E...... .......D 0,0-1080,2400 #1}
+04-05 10:35:44.445 I/ReactNativeJS(27786): [RemoteSync][WO] snapshot size=5 changes=5
+04-05 10:35:44.448 I/ReactNativeJS(27786): [RemoteSync][WO] applying doc id=3g2k29j4h2pmnly1ald event=added
+04-05 10:35:44.454 I/ReactNativeJS(27786): [RemoteSync][WO] local upsert success id=3g2k29j4h2pmnly1ald geom=point
+04-05 10:35:44.464 I/ReactNativeJS(27786): [RemoteSync][WO] applying doc id=4tbsajr6czemnlxcly9 event=added
+04-05 10:35:44.464 I/ReactNativeJS(27786): [RemoteSync][WO] local upsert success id=4tbsajr6czemnlxcly9 geom=point
+04-05 10:35:44.472 I/ReactNativeJS(27786): [RemoteSync][WO] applying doc id=59raf7htmtcmnly2rcm event=added
+04-05 10:35:44.472 I/ReactNativeJS(27786): [RemoteSync][WO] local upsert success id=59raf7htmtcmnly2rcm geom=point
+04-05 10:35:44.478 I/ReactNativeJS(27786): [RemoteSync][WO] applying doc id=fo6tkc1o0zmnlx5ijl event=added
+04-05 10:35:44.479 I/ReactNativeJS(27786): [RemoteSync][WO] local upsert success id=fo6tkc1o0zmnlx5ijl geom=point
+04-05 10:35:44.484 I/ReactNativeJS(27786): [RemoteSync][WO] applying doc id=my3qhcz74gmnlxbe6e event=added
+04-05 10:35:44.484 I/ReactNativeJS(27786): [RemoteSync][WO] local upsert success id=my3qhcz74gmnlxbe6e geom=line
+04-05 10:35:44.488 I/ReactNativeJS(27786): [RemoteSync][WO] emit refresh
+04-05 10:35:44.488 I/ReactNativeJS(27786): '[RemoteSync][WO] snapshot summary', { orgId: 'ZKzedc9znJlSJXPy7Ycf',
+04-05 10:35:44.488 I/ReactNativeJS(27786):   totalDocs: 5,
+04-05 10:35:44.488 I/ReactNativeJS(27786):   changes: 5,
+04-05 10:35:44.488 I/ReactNativeJS(27786):   fromCache: true,
+04-05 10:35:44.488 I/ReactNativeJS(27786):   applied: 5,
+04-05 10:35:44.488 I/ReactNativeJS(27786):   removed: 0,
+04-05 10:35:44.488 I/ReactNativeJS(27786):   skipped: 0,
+04-05 10:35:44.488 I/ReactNativeJS(27786):   failed: 0 }
+04-05 10:35:44.501 I/ReactNativeJS(27786): [MapScreen][SignVisual] total=0 fallback=0 styles=none normalized=none
+04-05 10:35:44.508 I/ReactNativeJS(27786): [MapScreen] DB loaded 0 items in viewport
+04-05 10:35:44.509 I/ReactNativeJS(27786): [CULVERT][MAP] viewportRows=0 totalRows=0
+04-05 10:35:44.511 I/ReactNativeJS(27786):   [MapScreen] bbox minLat=46.9565 maxLat=47.0365 minLng=-120.5878 maxLng=-120.5078
+04-05 10:35:44.532 I/ReactNativeJS(27786): [SignsContext] loadAllSigns (in-memory only)
+04-05 10:35:44.532 I/ReactNativeJS(27786): [RootGate] settled authUid=iTzyyLupjpMKz5QJyWmOxYkpN6gT activeOrgId=ZKzedc9znJlSJXPy7Ycf
+04-05 10:35:44.799 W/ReactNativeJS(27786): InteractionManager has been deprecated and will be removed in a future release. Please refactor long tasks into smaller ones, and  use 'requestIdleCallback' instead.
+04-05 10:35:44.878 I/ReactNativeJS(27786): [MapScreen] onMapReady
+04-05 10:35:45.036 I/ReactNativeJS(27786): [MapScreen] markers unsuppressed
+04-05 10:35:45.693 I/ReactNativeJS(27786): [Map][SignRender] asset id=asset_1775403078267_0f760479a9a61d type=SIGN kind=UNKNOWN shape=unknown
+04-05 10:35:45.693 I/ReactNativeJS(27786): [Map][SignRender] final marker component=generic asset id=asset_1775403078267_0f760479a9a61d
+04-05 10:35:45.717 I/ReactNativeJS(27786): [MapScreen][SignVisual] total=1 fallback=1 styles=UNKNOWN:1 normalized=UNKNOWN:1
+04-05 10:35:45.719 I/ReactNativeJS(27786): [MapScreen] DB loaded 2 items in viewport
+04-05 10:35:45.720 I/ReactNativeJS(27786): [CULVERT][MAP] viewportRows=1 totalRows=2
+04-05 10:35:45.722 I/ReactNativeJS(27786):   [MapScreen] sample[0] id=my3qhcz7 geom=line lat=null lng=null orgId=ZKzedc9z
+04-05 10:35:45.724 I/ReactNativeJS(27786):   [MapScreen] sample[1] id=fo6tkc1o geom=point lat=46.94598744 lng=-120.49984851 orgId=ZKzedc9z
+04-05 10:35:45.725 I/ReactNativeJS(27786):   [MapScreen] bbox minLat=46.9360 maxLat=46.9560 minLng=-120.5098 maxLng=-120.4898

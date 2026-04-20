@@ -39,7 +39,7 @@ import { subscribeDbChanged, getDbTick } from "../state/DbEvents";
  * Returns null if id is null or work order not found.
  * Automatically refetches when the database changes.
  */
-export function useWorkOrder(id: string | null): WorkOrderRow | null {
+export function useWorkOrder(id: string | null, orgId?: string | null): WorkOrderRow | null {
   const [item, setItem] = useState<WorkOrderRow | null>(null);
   const [dbTick, setDbTick] = useState(0);
 
@@ -47,14 +47,14 @@ export function useWorkOrder(id: string | null): WorkOrderRow | null {
     return subscribeDbChanged(() => setDbTick(getDbTick()));
   }, []);
 
-  const key = useMemo(() => JSON.stringify({ id, dbTick }), [id, dbTick]);
+  const key = useMemo(() => JSON.stringify({ id, orgId, dbTick }), [id, orgId, dbTick]);
 
   useEffect(() => {
     if (!id) {
       setItem(null);
       return;
     }
-    const row = getWorkOrderById(id);
+    const row = getWorkOrderById(id, orgId);
     setItem(row);
   }, [key]);
 

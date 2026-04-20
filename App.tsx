@@ -24,121 +24,142 @@
  * - Light blue background (#f0f9ff)
  * - Bold title, small error text
  * - Truncates long errors to 2 lines
+ * 
+ * ─── DEV: ONE-SHOT DB CLEAR PATTERN ───────────────────────────────────
+ * 
+ * WHY globalThis INSTEAD OF A CONSTANT:
+ * Previously we had `const CLEAR_ON_LAUNCH = false;` that you'd flip to
+ * `true` to wipe the DB. This was dangerous because:
+ *   1. Accidental commit of `= true` would silently wipe production data.
+ *   2. No UI feedback — you'd only see the effect in logs.
+ *   3. Hot-reload would re-trigger the wipe repeatedly.
+ * 
+ * The globalThis pattern works like this:
+ *   1. SettingsScreen DEV section has "Enable one-time clear" button that
+ *      sets globalThis.__ROADWORK_CLEAR_LOCAL_DB_ON_START__ = true
+ *   2. On next app restart (or hot-reload), the App() useEffect checks it
+ *   3. If true: immediately disarms (sets back to false), then wipes all
+ *      tables (outbox, offline_work_orders, work_orders) + resets org
+ *   4. Single-shot — can never fire twice without explicit re-arming
+ *   5. Only runs in __DEV__ mode — production builds always skip
+ * 
+ * WHAT GETS CLEARED:
+ * - outbox (pending sync queue)
+ * - offline_work_orders (local-first writes waiting for sync)
+ * - work_orders (all cached work orders from Firestore)
+ * - user-scoped selected/pending org keys (forces org re-selection for active user context)
  */
 import "react-native-gesture-handler";
 import React, { useEffect, useState } from "react";
-import { Provider } from "react-redux";
 import { NavigationContainer } from "@react-navigation/native";
-import { View, Text, StyleSheet } from "react-native";
+import { View, Text, StyleSheet, StatusBar } from "react-native";
 import { FirebaseAuthTypes } from "@react-native-firebase/auth";
-import AsyncStorage from "@react-native-async-storage/async-storage";
 import { getAuth, onAuthStateChanged } from "@react-native-firebase/auth";
 
-import { store } from "./src/store";
 import RootNavigator from "./src/navigation/RootNavigator";
-import { initDb, isDbReady, getDbInitError } from "./src/storage/db";
 import { SignsProvider } from "./src/state/SignsContext";
+import { SyncStatusBanner } from "./src/components/SyncStatusBanner";
 import { requestNotificationPermission } from "./src/services/notify";
-import { runMigrations } from "./src/db/migrations";
+import { ensureDbSchemaReady } from "./src/db/migrations";
 import { dbPing } from "./src/db/db";
 import { FilterProvider } from "./src/state/FilterContext";
-import { connectToEmulatorsIfDev } from "./src/firebase/emulators";
+import { AssetsProvider } from "./src/context/AssetsContext";
+import {
+  connectToEmulatorsIfDev,
+  getEmulatorConnectionInfo,
+  getRecommendedMetroHost,
+} from "./src/firebase/emulators";
+import DeviceInfo from "react-native-device-info";
 import { AuthScreen } from "./src/screens/AuthScreen";
 import { OrgPickerScreen } from "./src/screens/OrgPickerScreen";
-import { setOrgId as setServiceOrgId } from "./src/services/orgSettings";
-import { initializeApp, getApps, getApp } from "@react-native-firebase/app";
+import {
+  clearOrgSettings,
+  setOrgId as setServiceOrgId,
+} from "./src/services/orgSettings";
+import { getApp } from "@react-native-firebase/app";
 import { OrgProvider, useOrg } from "./src/state/OrgContext";
+import { validateMyMembership } from "./src/services/orgJoin";
+import Toast, { BaseToast, ErrorToast } from "react-native-toast-message";
+import { SafeAreaProvider } from "react-native-safe-area-context";
+import { DevFlagStore } from "./src/dev/devFlagStore";
+import { initDeviceMeta } from "./src/utils/deviceMeta";
+import { initCrashlytics } from "./src/telemetry/crashlytics";
+import {
+  clearLegacySelectedOrgId,
+  clearSelectedOrgId,
+  getLastAuthUid,
+} from "./src/state/selectedOrg";
+import {
+  clearLegacyPendingOrgId,
+  clearPendingOrgId,
+} from "./src/state/pendingOrg";
 
-// Initialize Firebase if not already initialized
-// This code handles hot reloads gracefully
-try {
-  if (getApps().length === 0) {
-    // Firebase config - UPDATE WITH REAL VALUES FROM FIREBASE CONSOLE
-    // Project: skyhours-781d1
-    const firebaseConfig = {
-      apiKey: "AIzaSyDummyKeyForEmulatorDev123456789", // TODO: Replace with real API key from Firebase Console
-      authDomain: "skyhours-781d1.firebaseapp.com",
-      databaseURL: "https://skyhours-781d1.firebaseio.com",
-      projectId: "skyhours-781d1",
-      storageBucket: "skyhours-781d1.appspot.com",
-      messagingSenderId: "1234567890", // TODO: Replace with real value from Firebase Console
-      appId: "1:1234567890:android:dummyappidforemulator", // TODO: Replace with real value from Firebase Console
-    };
-    
-    // DEBUG: Verify API key is set correctly
-    console.log("[FirebaseConfig] apiKey:", firebaseConfig.apiKey);
-    console.log("[FirebaseConfig] projectId:", firebaseConfig.projectId);
-    
-    initializeApp(firebaseConfig);
-    console.log("[Firebase] Initialized with config for project:", firebaseConfig.projectId);
-  } else {
-    console.log("[Firebase] Already initialized (hot reload)");
-  }
-  
-  // Connect to emulators AFTER initialization (safe to call multiple times)
-  connectToEmulatorsIfDev();
-} catch (e: any) {
-  // Ignore "already exists" errors from hot reload
-  if (e?.message?.includes("already exists")) {
-    console.log("[Firebase] App already exists (hot reload), continuing...");
-    connectToEmulatorsIfDev();
-  } else {
-    console.warn("[Firebase] Init failed:", e);
+let dbPreflightDone = false;
+
+function ensureDbPreflightMigrations() {
+  if (dbPreflightDone) return;
+  try {
+    ensureDbSchemaReady("App.preflight");
+    dbPreflightDone = true;
+    console.log("[DB] Preflight migrations complete");
+  } catch (e) {
+    console.warn("[DB] Preflight migrations failed", e);
   }
 }
 
-/**
- * DbBanner component: Shows persistence status
- * Polls DB state every 1s for real-time updates
- */
-function DbBanner() {
-  const [ready, setReady] = useState(isDbReady());
-  const [error, setError] = useState(getDbInitError());
+// ─── Toast config ────────────────────────────────────────────────────────
+const toastConfig = {
+  success: (props: any) => (
+    <BaseToast
+      {...props}
+      style={{ borderLeftWidth: 10, elevation: 9999, zIndex: 9999 }}
+      contentContainerStyle={{ paddingHorizontal: 16 }}
+      text1Style={{ fontSize: 16, fontWeight: "800" }}
+      text2Style={{ fontSize: 14 }}
+    />
+  ),
+  error: (props: any) => (
+    <ErrorToast
+      {...props}
+      style={{ borderLeftWidth: 10, elevation: 9999, zIndex: 9999 }}
+      text1Style={{ fontSize: 16, fontWeight: "800" }}
+      text2Style={{ fontSize: 14 }}
+    />
+  ),
+};
 
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setReady(isDbReady());
-      setError(getDbInitError());
-    }, 1000);
-    return () => clearInterval(interval);
-  }, []);
-
-  return (
-    <View style={styles.banner}>
-      <Text style={styles.bannerTitle}>
-        Persistence: {ready ? "ON (SQLite)" : "OFF (In-memory)"}
-      </Text>
-      {!ready && error && (
-        <Text style={styles.bannerError} numberOfLines={2}>
-          {String(error?.message ?? error ?? "DB not initialized")}
-        </Text>
-      )}
-    </View>
-  );
+// ─── Firebase init ───────────────────────────────────────────────────────
+// @react-native-firebase reads google-services.json (Android) / GoogleService-Info.plist (iOS)
+// automatically — no manual initializeApp() needed.
+// Connect emulators at module scope, BEFORE any auth calls.
+const emulatorInfo = getEmulatorConnectionInfo();
+if (__DEV__) {
+  console.log("[App][Emulators] Startup config", emulatorInfo);
 }
+connectToEmulatorsIfDev();
+console.log("[Firebase] Native auto-init via google-services.json");
+ensureDbPreflightMigrations();
 
 /**
  * RootGate: Determines which screen to show based on auth + org state
  */
 function RootGate() {
-  const { orgId, ready: orgReady, setOrgId } = useOrg();
+  const { orgId, ready: orgReady, setOrgId, clearOrgId } = useOrg();
   const [authReady, setAuthReady] = useState(false);
   const [user, setUser] = useState<FirebaseAuthTypes.User | null>(null);
+  const [orgCheckReady, setOrgCheckReady] = useState(false);
 
   // Auth state listener
   useEffect(() => {
-    // Check if Firebase is initialized before accessing auth
-    if (getApps().length === 0) {
-      console.warn("[App] Firebase not initialized, skipping auth setup");
-      setAuthReady(true);
-      return;
-    }
-
     try {
       const auth = getAuth(getApp());
       const unsubscribe = onAuthStateChanged(auth, (user) => {
         setUser(user);
         setAuthReady(true);
+        // Tag Crashlytics with user ID for crash context
+        if (user?.uid) {
+          initCrashlytics({ uid: user.uid });
+        }
       });
       return unsubscribe;
     } catch (e) {
@@ -147,7 +168,57 @@ function RootGate() {
     }
   }, []);
 
+  // Never enter main app with a cached org unless this uid is actually a member.
+  useEffect(() => {
+    let cancelled = false;
+
+    (async () => {
+      if (!authReady || !orgReady) {
+        if (!cancelled) setOrgCheckReady(false);
+        return;
+      }
+
+      if (!user || !orgId) {
+        if (!cancelled) setOrgCheckReady(true);
+        return;
+      }
+
+      if (!cancelled) setOrgCheckReady(false);
+
+      try {
+        const membership = await validateMyMembership(orgId, user.uid);
+        if (!membership.isActive) {
+          if (__DEV__) {
+            console.log(
+              `[RootGate] clearing stale org=${orgId} (membership ${membership.reason})`
+            );
+          }
+          await clearOrgId();
+        } else if (__DEV__) {
+          console.log(`[RootGate] org restore validated org=${orgId} role=${membership.role ?? "member"}`);
+        }
+      } catch (e) {
+        console.warn("[RootGate] Membership validation failed, clearing cached org", e);
+        await clearOrgId();
+      } finally {
+        if (!cancelled) setOrgCheckReady(true);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [authReady, orgReady, user?.uid, orgId]);
+
   // Sync orgId to service settings whenever it changes
+  useEffect(() => {
+    if (!__DEV__) return;
+    if (!authReady || !orgReady || !orgCheckReady) return;
+    console.log(
+      `[RootGate] settled authUid=${user?.uid ?? "none"} activeOrgId=${orgId ?? "none"} devMode=${emulatorInfo.mode} devHost=${emulatorInfo.selectedHost}`
+    );
+  }, [authReady, orgReady, orgCheckReady, user?.uid, orgId]);
+
   useEffect(() => {
     if (orgId) {
       setServiceOrgId(orgId);
@@ -155,7 +226,7 @@ function RootGate() {
   }, [orgId]);
 
   // Show loading while checking auth and org state
-  if (!authReady || !orgReady) {
+  if (!authReady || !orgReady || !orgCheckReady) {
     return (
       <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
         <Text>Loading...</Text>
@@ -184,69 +255,132 @@ function RootGate() {
 
   // Main app - user is authenticated and org is selected
   return (
-    <Provider store={store}>
-      <FilterProvider>
-        <SignsProvider>
+    <FilterProvider>
+      <SignsProvider>
+        <AssetsProvider>
           <View style={{ flex: 1 }}>
-            <DbBanner />
             <NavigationContainer>
               <RootNavigator />
             </NavigationContainer>
+            <SyncStatusBanner />
           </View>
-        </SignsProvider>
-      </FilterProvider>
-    </Provider>
+        </AssetsProvider>
+      </SignsProvider>
+    </FilterProvider>
   );
 }
 
 export default function App() {
   useEffect(() => {
-    // Initialize new SQLite database (op-sqlite)
-    try {
-      runMigrations();
-      console.log("[DB] New SQLite initialized, ping:", dbPing());
-    } catch (e) {
-      console.warn("[DB] New SQLite init failed:", e);
+    if (!__DEV__) return;
+    const isEmulator = DeviceInfo.isEmulatorSync();
+    console.log("[App][DEV][runtime]", {
+      platform: emulatorInfo.platform,
+      mode: emulatorInfo.mode,
+      isSimulatorOrEmulator: isEmulator,
+      devHost: emulatorInfo.selectedHost,
+      functionsTarget: emulatorInfo.functionsTarget,
+      firestoreTarget: emulatorInfo.firestoreTarget,
+      storageTarget: emulatorInfo.storageTarget,
+      metroHostHint: getRecommendedMetroHost(),
+      metroPortHint: 2468,
+    });
+  }, []);
+
+  useEffect(() => {
+    async function init() {
+      // Initialize SQLite database (op-sqlite)
+      try {
+        ensureDbPreflightMigrations();
+        console.log("[DB] SQLite initialized, ping:", dbPing());
+
+        // Cache device metadata (deviceId + appVersion) for all record creation
+        await initDeviceMeta();
+
+        // ── Load persisted DEV flags ──
+        if (__DEV__) {
+          await DevFlagStore.load();
+        }
+        const devFlags = DevFlagStore.get();
+
+        // ── DEV ONE-SHOT DB CLEAR ──
+        // Armed via: Settings → DEV → "Enable one-time clear on restart"
+        // Fires once, then immediately disarms. See header docs for full explanation.
+        // Only active in __DEV__ mode AND when devFlags.enableStartupWipe is true.
+        // Production builds always skip this block.
+        const SHOULD_CLEAR_ON_START =
+          __DEV__ &&
+          devFlags.enableStartupWipe &&
+          (globalThis as any).__ROADWORK_CLEAR_LOCAL_DB_ON_START__ === true;
+        if (SHOULD_CLEAR_ON_START) {
+          console.log("[DEV] Startup wipe ENABLED — running wipe/reset logic");
+          // Disarm immediately — prevents re-firing on subsequent hot-reloads
+          (globalThis as any).__ROADWORK_CLEAR_LOCAL_DB_ON_START__ = false;
+          try {
+            const { db: _db } = require("./src/db/db");
+            _db.executeSync("DELETE FROM outbox");
+            _db.executeSync("DELETE FROM offline_work_orders");
+            _db.executeSync("DELETE FROM work_orders");
+            console.log("[CLEAR] Stale outbox + work orders cleared");
+          } catch (_e: any) { console.warn("[CLEAR]", _e?.message); }
+          try {
+            const lastUid = await getLastAuthUid();
+            await clearLegacySelectedOrgId();
+            await clearLegacyPendingOrgId();
+            if (lastUid) {
+              await clearSelectedOrgId(lastUid);
+              await clearPendingOrgId(lastUid);
+              await clearOrgSettings(lastUid);
+            }
+            console.log("[CLEAR] Org selection reset for active user context");
+          } catch (_e2: any) { console.warn("[CLEAR] org reset", _e2?.message); }
+        } else if (__DEV__) {
+          console.log("[DEV] Startup wipe disabled (safe default)");
+        }
+
+        // ── DEV OUTBOX-ONLY CLEAR ──
+        if (__DEV__ && devFlags.enableOutboxClearOnStart) {
+          console.log("[DEV] Outbox clear ENABLED — clearing outbox only");
+          try {
+            const { db: _db } = require("./src/db/db");
+            _db.executeSync("DELETE FROM outbox");
+            console.log("[CLEAR] Outbox cleared (outbox-only mode)");
+          } catch (_e: any) { console.warn("[CLEAR] outbox-only", _e?.message); }
+        }
+        // ── END DEV ONE-SHOT ──
+
+      } catch (e) {
+        console.warn("[DB] SQLite init failed:", e);
+      }
+
+      // Request notification permissions (Android 13+ requires this)
+      try {
+        const granted = await requestNotificationPermission();
+        console.log("[App] Notification permission:", granted ? "GRANTED" : "DENIED");
+      } catch (e) {
+        console.warn("[App] Failed to request notification permission:", e);
+      }
     }
 
-    // Initialize legacy database (react-native-sqlite-storage)
-    initDb().catch((e) => {
-      // Gracefully handle DB init failure - app will run without persistence
-      console.warn("[App] Database init failed, continuing without persistence:", e);
-    });
-
-    // Request notification permissions (Android 13+ requires this)
-    requestNotificationPermission()
-      .then((granted) => {
-        console.log("[App] Notification permission:", granted ? "GRANTED" : "DENIED");
-      })
-      .catch((e) => {
-        console.warn("[App] Failed to request notification permission:", e);
-      });
+    init();
   }, []);
 
   return (
-    <OrgProvider>
-      <RootGate />
-    </OrgProvider>
+    <SafeAreaProvider>
+      <StatusBar barStyle="dark-content" />
+      <OrgProvider>
+        <RootGate />
+      </OrgProvider>
+
+      {/* Toast host: inside SafeAreaProvider, outside OrgProvider/navigation */}
+      <Toast
+        config={toastConfig}
+        position="bottom"
+        bottomOffset={110}
+        visibilityTime={4000}
+      />
+    </SafeAreaProvider>
   );
 }
 
-const styles = StyleSheet.create({
-  banner: {
-    padding: 8,
-    backgroundColor: "#f0f9ff",
-    borderBottomWidth: 1,
-    borderBottomColor: "#bae6fd",
-  },
-  bannerTitle: {
-    fontWeight: "800",
-    fontSize: 12,
-    color: "#0c4a6e",
-  },
-  bannerError: {
-    fontSize: 10,
-    color: "#dc2626",
-    marginTop: 2,
-  },
-});
+const styles = StyleSheet.create({});
