@@ -95,7 +95,12 @@ import { requestLocationPermission } from "../native/location";
 import Geolocation from "@react-native-community/geolocation";
 import CreateWizardModal, { type AssetCreateType } from "../components/CreateWizardModal";
 import AssetDraftSheet from "../components/AssetDraftSheet";
-import { formatWorkType, getWorkOrderTypeColor } from "../constants/workOrderTypes";
+import {
+  formatWorkType,
+  getWorkOrderTypeColor,
+  getWorkOrderTypePattern,
+  getWorkOrderTypeStyle,
+} from "../constants/workOrderTypes";
 import { useMapWorkOrders } from "../hooks/useMapWorkOrders";
 import type { BBox } from "../db/types";
 import { useWorkOrderFilter } from "../state/FilterContext";
@@ -127,6 +132,7 @@ import { normalizeWorkOrderDetailsForType } from "../workOrders/pavementDetails"
 import { addWorkOrderPhoto } from "../services/workOrderPhotosService";
 import { getCurrentUserIdentitySnapshot } from "../services/userProfileService";
 import { toCreatorIdentitySnapshot } from "../utils/userIdentity";
+import { assignmentSummaryLabel } from "../utils/workOrderAssignment";
 import { assetsService } from "../services/assetsService";
 import { type SignVisualShape, type SignVisualStyle } from "../utils/signVisualStyle";
 import { normalizeSignEntries } from "../utils/signAssetDetails";
@@ -141,6 +147,7 @@ import {
 } from "../utils/workOrderGeo";
 import { deriveCreateFromAssetPayloadSeedLocation } from "../utils/assetGeometry";
 import {
+  buildBridgeRing,
   deriveBridgeCenter,
   normalizeBridgeCorners,
 } from "../utils/bridgeGeometry";
@@ -186,39 +193,89 @@ function deltaFor(zoom?: "close" | "street" | "wide") {
   return { latitudeDelta: 0.012, longitudeDelta: 0.012 }; // street default
 }
 
-function getBridgeOverlayStyle(region: Region | null | undefined): {
+function getBridgeOverlayStyle(args: {
+  region: Region | null | undefined;
+  colorblindMode: boolean;
+}): {
   fillColor: string;
+  strokeColor: string;
+  centerFillColor: string;
+  centerStrokeColor: string;
+  centerTextColor: string;
   polygonStrokeWidth: number;
   ringStrokeWidth: number;
+  ringDashPattern?: number[];
 } {
   const defaultStyle = {
-    fillColor: "rgba(15, 118, 110, 0.18)",
+    fillColor: args.colorblindMode ? "rgba(217, 119, 6, 0.20)" : "rgba(15, 118, 110, 0.18)",
+    strokeColor: args.colorblindMode ? "#111827" : "#0f766e",
+    centerFillColor: args.colorblindMode ? "#f59e0b" : "#0f766e",
+    centerStrokeColor: args.colorblindMode ? "#111827" : "#0b5f56",
+    centerTextColor: args.colorblindMode ? "#111827" : "#ecfeff",
     polygonStrokeWidth: 3,
     ringStrokeWidth: 5,
+    ringDashPattern: args.colorblindMode ? [8, 4] : undefined,
   };
 
-  if (!region || !Number.isFinite(region.latitudeDelta) || !Number.isFinite(region.longitudeDelta)) {
+  if (!args.region || !Number.isFinite(args.region.latitudeDelta) || !Number.isFinite(args.region.longitudeDelta)) {
     return defaultStyle;
   }
 
-  const zoomMetric = Math.max(region.latitudeDelta, region.longitudeDelta);
+  const zoomMetric = Math.max(args.region.latitudeDelta, args.region.longitudeDelta);
   if (zoomMetric <= 0.01) {
     return {
       fillColor: "rgba(15, 118, 110, 0.24)",
+      strokeColor: defaultStyle.strokeColor,
+      centerFillColor: defaultStyle.centerFillColor,
+      centerStrokeColor: defaultStyle.centerStrokeColor,
+      centerTextColor: defaultStyle.centerTextColor,
       polygonStrokeWidth: 3.5,
       ringStrokeWidth: 6,
+      ringDashPattern: defaultStyle.ringDashPattern,
     };
   }
 
   if (zoomMetric >= 0.06) {
     return {
-      fillColor: "rgba(15, 118, 110, 0.10)",
+      fillColor: args.colorblindMode ? "rgba(217, 119, 6, 0.14)" : "rgba(15, 118, 110, 0.10)",
+      strokeColor: defaultStyle.strokeColor,
+      centerFillColor: defaultStyle.centerFillColor,
+      centerStrokeColor: defaultStyle.centerStrokeColor,
+      centerTextColor: defaultStyle.centerTextColor,
       polygonStrokeWidth: 2,
       ringStrokeWidth: 4,
+      ringDashPattern: defaultStyle.ringDashPattern,
     };
   }
 
   return defaultStyle;
+}
+
+function isPointInsidePolygon(point: { lat: number; lng: number }, polygon: Array<{ lat: number; lng: number }>): boolean {
+  let inside = false;
+  for (let i = 0, j = polygon.length - 1; i < polygon.length; j = i, i += 1) {
+    const xi = polygon[i].lng;
+    const yi = polygon[i].lat;
+    const xj = polygon[j].lng;
+    const yj = polygon[j].lat;
+
+    const intersects =
+      yi > point.lat !== yj > point.lat &&
+      point.lng < ((xj - xi) * (point.lat - yi)) / ((yj - yi) || 1e-12) + xi;
+
+    if (intersects) inside = !inside;
+  }
+  return inside;
+}
+
+function distancePointToBridgeMeters(
+  point: { lat: number; lng: number },
+  corners: Array<{ lat: number; lng: number }>,
+): number | null {
+  const ring = buildBridgeRing(corners);
+  if (ring.length < 4) return null;
+  if (isPointInsidePolygon(point, ring.slice(0, -1))) return 0;
+  return distancePointToPolylineMeters(point, ring);
 }
 
 function mapDistanceMeters(a: { lat: number; lng: number }, b: { lat: number; lng: number }): number {
@@ -474,6 +531,22 @@ function EmojiAssetMarker({ emoji }: { emoji: string }) {
   );
 }
 
+function BridgeAssetMarker(args: {
+  shortLabel: string;
+  fillColor: string;
+  strokeColor: string;
+  textColor: string;
+}) {
+  return (
+    <View collapsable={false} style={styles.assetSignMarkerAnchor}>
+      <View style={[styles.bridgeMarkerBubble, { backgroundColor: args.fillColor, borderColor: args.strokeColor }]}>
+        <View style={[styles.bridgeMarkerDeck, { backgroundColor: args.strokeColor }]} />
+        <Text style={[styles.bridgeMarkerText, { color: args.textColor }]}>{args.shortLabel}</Text>
+      </View>
+    </View>
+  );
+}
+
 function formatStatusLabel(status: string): string {
   if (status === "Needs") return "Needs Work";
   if (status === "Done") return "Completed";
@@ -481,17 +554,13 @@ function formatStatusLabel(status: string): string {
   return status;
 }
 
-const MAP_LEGEND_SAMPLE_TYPES: string[] = [
-  "pothole",
+const MAP_LEGEND_SAMPLE_TYPES: WorkType[] = [
+  "pavement_repair",
   "brushing",
   "culvert",
   "sign",
   "spraying",
-  "asphalt",
 ];
-
-const ASSET_LEGEND_BRIDGE_FILL = "rgba(15, 118, 110, 0.18)";
-const ASSET_LEGEND_BRIDGE_STROKE = "#0f766e";
 
 function getCulvertEndpoints(asset: any): { inlet: { lat: number; lng: number }; outlet: { lat: number; lng: number } } | null {
   if (asset?.assetType !== "CULVERT") return null;
@@ -692,8 +761,8 @@ export default function MapScreen() {
   }, [visibleAssets, signVisualByAssetId]);
 
   const bridgeOverlayStyle = useMemo(
-    () => getBridgeOverlayStyle(mapRegion),
-    [mapRegion?.latitudeDelta, mapRegion?.longitudeDelta],
+    () => getBridgeOverlayStyle({ region: mapRegion, colorblindMode }),
+    [colorblindMode, mapRegion?.latitudeDelta, mapRegion?.longitudeDelta],
   );
 
   // Load nearby assets whenever viewport changes
@@ -1293,57 +1362,39 @@ export default function MapScreen() {
   );
 
   const handleLinearAssetWorkOrderTap = useCallback(
-    (item: { id: string; type?: string | null; assetId?: string | null }) => {
+    (item: { id: string }) => {
       if (pickingLocation) return;
-
-      const typeKey = String(item.type ?? "").toLowerCase();
-      const assetTypeForTap = typeKey.includes("culvert")
-        ? "CULVERT"
-        : typeKey.includes("guardrail")
-        ? "GUARDRAIL"
-        : null;
-
-      if (!assetTypeForTap || !showAssets) {
-        setSelectedId(item.id);
-        return;
-      }
-
-      const linkedAssetId = String(item.assetId ?? "").trim();
-      if (linkedAssetId) {
-        const linkedAsset = visibleAssets.find((a) => String(a.id) === linkedAssetId);
-        if (linkedAsset) {
-          handleAssetTap(linkedAsset, assetTypeForTap === "CULVERT" ? "culvert-line" : "guardrail-line");
-          return;
-        }
-
-        navigation.navigate("AssetDetail", { assetId: linkedAssetId });
-        return;
-      }
-
-      const nearestSameTypeAsset = visibleAssets.find(
-        (a) => String(a.assetType ?? "").toUpperCase() === assetTypeForTap,
-      );
-      if (nearestSameTypeAsset) {
-        handleAssetTap(
-          nearestSameTypeAsset,
-          assetTypeForTap === "CULVERT" ? "culvert-line" : "guardrail-line",
-        );
-        return;
-      }
-
       setSelectedId(item.id);
     },
-    [handleAssetTap, navigation, pickingLocation, showAssets, visibleAssets],
+    [pickingLocation],
   );
 
   function onMapPress(e: MapPressEvent) {
     if (!pickingLocation) {
-      if (showAssets) {
-        const tap = normalizeMapCoordPair(
-          e.nativeEvent.coordinate.latitude,
-          e.nativeEvent.coordinate.longitude,
-        );
+      const tap = normalizeMapCoordPair(
+        e.nativeEvent.coordinate.latitude,
+        e.nativeEvent.coordinate.longitude,
+      );
 
+      if (tap && isValidMapCoord(tap)) {
+        let bestWorkOrderLine: { id: string; distM: number } | null = null;
+        for (const item of dbItems) {
+          if (item.geomType !== "line") continue;
+          const linePoints = getWorkOrderLinePoints(item);
+          const distM = distancePointToPolylineMeters(tap, linePoints);
+          if (distM == null) continue;
+          if (!bestWorkOrderLine || distM < bestWorkOrderLine.distM) {
+            bestWorkOrderLine = { id: String(item.id), distM };
+          }
+        }
+
+        if (bestWorkOrderLine && bestWorkOrderLine.distM <= 20) {
+          setSelectedId(bestWorkOrderLine.id);
+          return;
+        }
+      }
+
+      if (showAssets) {
         if (tap && isValidMapCoord(tap)) {
           let best: { id: string; type: string; distM: number } | null = null;
           for (const asset of visibleAssets) {
@@ -1357,6 +1408,7 @@ export default function MapScreen() {
 
           // Prefer linear-asset geometry when user taps along culvert/guardrail lines.
           let bestLinearAsset: { id: string; type: "CULVERT" | "GUARDRAIL"; distM: number } | null = null;
+          let bestBridgeAsset: { id: string; distM: number } | null = null;
           for (const asset of visibleAssets) {
             const assetType = String(asset.assetType ?? "").toUpperCase();
             if (assetType === "CULVERT") {
@@ -1385,6 +1437,24 @@ export default function MapScreen() {
                   bestLinearAsset = { id: String(asset.id), type: "GUARDRAIL", distM };
                 }
               }
+            }
+
+            if (assetType === "BRIDGE") {
+              const corners = getBridgeAssetCorners(asset);
+              if (!corners || corners.length !== 4) continue;
+              const distM = distancePointToBridgeMeters(tap, corners);
+              if (distM == null) continue;
+              if (!bestBridgeAsset || distM < bestBridgeAsset.distM) {
+                bestBridgeAsset = { id: String(asset.id), distM };
+              }
+            }
+          }
+
+          if (bestBridgeAsset && bestBridgeAsset.distM <= 26) {
+            const matched = visibleAssets.find((a) => String(a.id) === bestBridgeAsset.id);
+            if (matched) {
+              handleAssetTap(matched, "marker");
+              return;
             }
           }
 
@@ -1468,7 +1538,7 @@ export default function MapScreen() {
     lat: number,
     lng: number,
     type: WorkType,
-    linkedAsset?: { id: string; assetType?: "SIGN" | "GUARDRAIL" | "CULVERT" | null },
+    linkedAsset?: { id: string; assetType?: "SIGN" | "GUARDRAIL" | "CULVERT" | "BRIDGE" | null },
   ) {
     const draft: DraftWorkOrder = {
       type,
@@ -1486,7 +1556,7 @@ export default function MapScreen() {
   async function stageLine(
     points: { lat: number; lng: number }[],
     type: WorkType,
-    linkedAsset?: { id: string; assetType?: "SIGN" | "GUARDRAIL" | "CULVERT" | null },
+    linkedAsset?: { id: string; assetType?: "SIGN" | "GUARDRAIL" | "CULVERT" | "BRIDGE" | null },
   ) {
     if (points.length < 2) return false;
     const draft: DraftWorkOrder = {
@@ -1597,6 +1667,9 @@ export default function MapScreen() {
         createdByFirstName: creator.firstName,
         createdByLastName: creator.lastName,
         createdByDisplayName: creator.displayName,
+        assignedToUid: draft.assignedToUid ?? null,
+        assignedToName: draft.assignedToName ?? null,
+        assignedToEmail: draft.assignedToEmail ?? null,
         assetId: linkedAssetId,
         assetType: linkedAssetType,
       };
@@ -1648,24 +1721,7 @@ export default function MapScreen() {
         }
       }
 
-      // 3) Log entry
-      if (draft.point) {
-        addLogEntry({
-          workOrderId: itemId,
-          orgId: safeOrgId,
-          event: "created",
-          message: `Created ${formatWorkType(draft.type)} @ ${draft.point.lat.toFixed(5)}, ${draft.point.lng.toFixed(5)}`,
-        });
-      } else if (draft.points) {
-        addLogEntry({
-          workOrderId: itemId,
-          orgId: safeOrgId,
-          event: "created",
-          message: `Created ${formatWorkType(draft.type)} line with ${draft.points.length} points`,
-        });
-      }
-
-      // 4) Best-effort sync
+      // 3) Best-effort sync
       console.log("[Offline] Saved work order + enqueued UPSERT_WORK_ORDER", { workOrderId: itemId });
       try { await manualSyncNow(); } catch {}
       if (__DEV__) debugLocalCounts(safeOrgId);
@@ -1793,6 +1849,28 @@ export default function MapScreen() {
         lastEventAt: null,
         lastInspectionAt: null,
         details,
+      });
+      await assetsService.addEvent({
+        id: uid(),
+        orgId: safeOrgId,
+        assetId: id,
+        kind: "NOTE",
+        at: now,
+        byUid: creator.uid,
+        byDisplayName: creator.displayName,
+        byEmail: creator.email,
+        actorUid: creator.uid,
+        actorDisplayName: creator.displayName,
+        actorEmail: creator.email,
+        notes: "Created asset record.",
+        photoIds: null,
+        details: {
+          _assetLifecycleTag: "MANUAL_CREATE",
+          assetType: modelType,
+          subtype: input.subtype ?? (draft.type === "delineator" ? "DELINEATOR" : null),
+        },
+        createdAt: now,
+        updatedAt: now,
       });
       try {
         await manualSyncNow();
@@ -1972,13 +2050,14 @@ export default function MapScreen() {
               return null;
             }
             const pinColor = getWorkOrderTypeColor(item.type as any, { colorblindMode });
+            const typeStyle = getWorkOrderTypeStyle(item.type as any, { colorblindMode });
             return (
               <Marker
                 key={item.id}
                 coordinate={{ latitude: center.lat, longitude: center.lng }}
                 pinColor={pinColor}
-                title={`${formatWorkType(item.type as any)} #${idx + 1}`}
-                description={`${formatStatusLabel(item.status)} • ${item.priority}\n${center.lat.toFixed(5)}, ${center.lng.toFixed(5)}`}
+                title={`${colorblindMode ? `${typeStyle.shortLabel} • ` : ""}${formatWorkType(item.type as any)} #${idx + 1}`}
+                description={`${formatStatusLabel(item.status)} • ${item.priority}\nAssigned: ${assignmentSummaryLabel(item, { unassignedLabel: "Unassigned" })}\n${center.lat.toFixed(5)}, ${center.lng.toFixed(5)}`}
                 onPress={() => {
                   if (pickingLocation) return;
                   handleLinearAssetWorkOrderTap(item);
@@ -2001,9 +2080,9 @@ export default function MapScreen() {
 
             const coords = points.map((p) => ({ latitude: p.lat, longitude: p.lng }));
             const typeKey = String(item.type ?? "").toLowerCase();
-            const isLinearAssetWorkOrder = typeKey.includes("culvert") || typeKey.includes("guardrail");
             const isGuardrailWorkOrder = typeKey.includes("guardrail");
-            const lineColor = typeKey.includes("guardrail") ? "#9ca3af" : typeKey.includes("culvert") ? "#111827" : undefined;
+            const lineColor = getWorkOrderTypeColor(item.type as any, { colorblindMode });
+            const dashPattern = getWorkOrderTypePattern(item.type as any, { colorblindMode });
             if (isGuardrailWorkOrder) {
               return (
                 <React.Fragment key={item.id}>
@@ -2016,10 +2095,10 @@ export default function MapScreen() {
                   <Polyline
                     coordinates={coords}
                     strokeWidth={5}
-                    strokeColor="#9ca3af"
-                    tappable={isLinearAssetWorkOrder}
+                    strokeColor={lineColor}
+                    {...(dashPattern ? { lineDashPattern: dashPattern } : null)}
+                    tappable
                     onPress={() => {
-                      if (!isLinearAssetWorkOrder) return;
                       handleLinearAssetWorkOrderTap(item);
                     }}
                   />
@@ -2032,10 +2111,10 @@ export default function MapScreen() {
                 key={item.id}
                 coordinates={coords}
                 strokeWidth={5}
-                {...(lineColor ? { strokeColor: lineColor } : null)}
-                tappable={isLinearAssetWorkOrder}
+                strokeColor={lineColor}
+                {...(dashPattern ? { lineDashPattern: dashPattern } : null)}
+                tappable
                 onPress={() => {
-                  if (!isLinearAssetWorkOrder) return;
                   handleLinearAssetWorkOrderTap(item);
                 }}
               />
@@ -2074,7 +2153,7 @@ export default function MapScreen() {
           <Marker
             coordinate={{ latitude: draftWorkOrder.point.lat, longitude: draftWorkOrder.point.lng }}
             pinColor={getWorkOrderTypeColor(draftWorkOrder.type, { colorblindMode })}
-            title={`Draft ${formatWorkType(draftWorkOrder.type)}`}
+            title={`Draft ${colorblindMode ? `${getWorkOrderTypeStyle(draftWorkOrder.type, { colorblindMode }).shortLabel} • ` : ""}${formatWorkType(draftWorkOrder.type)}`}
           />
         )}
 
@@ -2084,6 +2163,7 @@ export default function MapScreen() {
             coordinates={draftWorkOrder.points.map(p => ({ latitude: p.lat, longitude: p.lng }))}
             strokeWidth={5}
             strokeColor={getWorkOrderTypeColor(draftWorkOrder.type, { colorblindMode })}
+            {...(getWorkOrderTypePattern(draftWorkOrder.type, { colorblindMode }) ? { lineDashPattern: getWorkOrderTypePattern(draftWorkOrder.type, { colorblindMode }) } : null)}
           />
         )}
 
@@ -2114,12 +2194,12 @@ export default function MapScreen() {
           if (!corners || corners.length !== 4) return null;
 
           const footprint = corners.map((p) => ({ latitude: p.lat, longitude: p.lng }));
-          const ring = [...corners, corners[0]].map((p) => ({ latitude: p.lat, longitude: p.lng }));
+          const ring = buildBridgeRing(corners).map((p) => ({ latitude: p.lat, longitude: p.lng }));
           return (
             <React.Fragment key={`asset-bridge-footprint-${asset.id}`}>
               <MapPolygon
                 coordinates={footprint}
-                strokeColor="#0f766e"
+                strokeColor={bridgeOverlayStyle.strokeColor}
                 strokeWidth={bridgeOverlayStyle.polygonStrokeWidth}
                 fillColor={bridgeOverlayStyle.fillColor}
                 tappable
@@ -2131,8 +2211,9 @@ export default function MapScreen() {
               <Polyline
                 coordinates={ring}
                 strokeWidth={bridgeOverlayStyle.ringStrokeWidth}
-                strokeColor="#0f766e"
+                strokeColor={bridgeOverlayStyle.strokeColor}
                 lineCap="round"
+                {...(bridgeOverlayStyle.ringDashPattern ? { lineDashPattern: bridgeOverlayStyle.ringDashPattern } : null)}
                 tappable
                 zIndex={2}
                 onPress={() => {
@@ -2140,6 +2221,31 @@ export default function MapScreen() {
                 }}
               />
             </React.Fragment>
+          );
+        })}
+
+        {!suppressMarkers && showAssets && visibleAssets.map((asset) => {
+          if (String(asset.assetType ?? "").toUpperCase() !== "BRIDGE") return null;
+          const center = getAssetCenter(asset);
+          if (!center || !isValidMapCoord(center)) return null;
+          return (
+            <Marker
+              key={`asset-bridge-marker-${asset.id}`}
+              coordinate={{ latitude: center.lat, longitude: center.lng }}
+              anchor={{ x: 0.5, y: 0.5 }}
+              tracksViewChanges={false}
+              zIndex={21}
+              onPress={() => {
+                handleAssetTap(asset, "marker");
+              }}
+            >
+              <BridgeAssetMarker
+                shortLabel={colorblindMode ? "BR" : "Bridge"}
+                fillColor={bridgeOverlayStyle.centerFillColor}
+                strokeColor={bridgeOverlayStyle.centerStrokeColor}
+                textColor={bridgeOverlayStyle.centerTextColor}
+              />
+            </Marker>
           );
         })}
 
@@ -2226,7 +2332,7 @@ export default function MapScreen() {
             }
 
             const assetTypeUpper = String(asset.assetType ?? "").toUpperCase();
-            if (assetTypeUpper === "BRIDGE" && center.lat === 0 && center.lng === 0) {
+            if (assetTypeUpper === "BRIDGE") {
               return null;
             }
             const isDelineator = getAssetLayerKind(asset) === "delineator";
@@ -2399,11 +2505,18 @@ export default function MapScreen() {
         {!legendCollapsed && (
           <View style={styles.legendRows}>
             {MAP_LEGEND_SAMPLE_TYPES.map((sampleType) => {
-              const sampleColor = getWorkOrderTypeColor(sampleType, { colorblindMode });
+              const typeStyle = getWorkOrderTypeStyle(sampleType, { colorblindMode });
               return (
                 <View key={sampleType} style={styles.legendRow}>
-                  <View style={[styles.legendSwatch, { backgroundColor: sampleColor, borderColor: sampleColor }]} />
-                  <Text style={styles.legendLabel}>{formatWorkType(sampleType)}</Text>
+                  <View style={[styles.legendSwatch, { backgroundColor: typeStyle.color, borderColor: typeStyle.color }]}>
+                    {colorblindMode ? <Text style={styles.legendSwatchCode}>{typeStyle.shortLabel.slice(0, 2)}</Text> : null}
+                  </View>
+                  <View style={styles.legendTextWrap}>
+                    <Text style={styles.legendLabel}>{formatWorkType(sampleType)}</Text>
+                    {colorblindMode && typeStyle.usesPattern ? (
+                      <Text style={styles.legendMeta}>Patterned line / code {typeStyle.shortLabel}</Text>
+                    ) : null}
+                  </View>
                 </View>
               );
             })}
@@ -2423,12 +2536,14 @@ export default function MapScreen() {
                 style={[
                   styles.assetLegendBridgeSwatch,
                   {
-                    borderColor: ASSET_LEGEND_BRIDGE_STROKE,
-                    backgroundColor: ASSET_LEGEND_BRIDGE_FILL,
+                    borderColor: bridgeOverlayStyle.strokeColor,
+                    backgroundColor: bridgeOverlayStyle.fillColor,
                   },
                 ]}
-              />
-              <Text style={styles.legendLabel}>Bridge area/outline</Text>
+              >
+                <View style={[styles.assetLegendBridgeDot, { backgroundColor: bridgeOverlayStyle.centerFillColor }]} />
+              </View>
+              <Text style={styles.legendLabel}>Bridge footprint + center</Text>
             </View>
           </View>
         )}
@@ -2455,6 +2570,7 @@ export default function MapScreen() {
         <AssetDraftSheet
           draft={draftAsset}
           saving={savingDraftAsset}
+          bottomOffset={tabBarTopFromBottom + 12}
           onCreate={(input) => {
             createAssetFromDraft(draftAsset, input);
           }}
@@ -2499,6 +2615,30 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     paddingHorizontal: 4,
     paddingVertical: 2,
+  },
+  bridgeMarkerBubble: {
+    minWidth: 32,
+    minHeight: 26,
+    borderRadius: 9,
+    borderWidth: 2,
+    paddingHorizontal: 6,
+    paddingVertical: 3,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  bridgeMarkerDeck: {
+    position: "absolute",
+    left: 5,
+    right: 5,
+    bottom: 4,
+    height: 3,
+    borderRadius: 999,
+    opacity: 0.9,
+  },
+  bridgeMarkerText: {
+    fontSize: 7.5,
+    fontWeight: "900",
+    letterSpacing: 0.2,
   },
   assetSignMarkerAnchor: {
     width: 44,
@@ -2762,14 +2902,28 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontWeight: "800",
   },
+  legendTextWrap: { flex: 1 },
   legendRows: {
+    alignItems: "center",
+    justifyContent: "center",
     marginTop: 8,
     gap: 6,
+  },
+  legendSwatchCode: {
+    fontSize: 8,
+    fontWeight: "900",
+    color: "#ffffff",
+    lineHeight: 10,
   },
   legendDivider: {
     height: 1,
     backgroundColor: "#334155",
     marginVertical: 2,
+  },
+  legendMeta: {
+    fontSize: 11,
+    color: "#64748b",
+    marginTop: 1,
   },
   legendSectionTitle: {
     color: "#cbd5e1",
@@ -2781,13 +2935,15 @@ const styles = StyleSheet.create({
   legendRow: {
     flexDirection: "row",
     alignItems: "center",
+    gap: 8,
   },
   legendSwatch: {
     width: 10,
     height: 10,
     borderRadius: 999,
     borderWidth: 1,
-    marginRight: 7,
+    alignItems: "center",
+    justifyContent: "center",
   },
   legendLabel: {
     color: "#e2e8f0",
@@ -2817,6 +2973,13 @@ const styles = StyleSheet.create({
     borderRadius: 2,
     borderWidth: 1,
     marginRight: 7,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  assetLegendBridgeDot: {
+    width: 4,
+    height: 4,
+    borderRadius: 999,
   },
   assetFilterBarWrap: {
     position: "absolute",

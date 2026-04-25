@@ -10,9 +10,12 @@ import {
 import { ensureDbSchemaReady } from "../db/migrations";
 import { requireOrgId } from "../org/requireOrg";
 import { assetsRepo } from "../repositories/assetsRepo";
+import { maintenanceSlipsRepo } from "../repositories/maintenanceSlipsRepo";
 import { safeJsonParse } from "../repositories/repoUtils";
 import { workOrdersRepo } from "../repositories/workOrdersRepo";
 import { emitDbChanged } from "../state/DbEvents";
+import { listAssignableOrgMembers } from "../services/orgMembersService";
+import { addWorkOrderNoteActivity } from "../services/workOrderNoteActivityService";
 import {
   logSyncBreadcrumb,
   recordErrorWithContext,
@@ -21,6 +24,12 @@ import {
 import { getAuth } from "@react-native-firebase/auth";
 import { notifyWorkOrderFromRemoteSync } from "../services/notify";
 import type { Asset, AssetType } from "../types/Asset";
+import type {
+  MaintenanceSlip,
+  MaintenanceSlipNote,
+  MaintenanceSlipSeverity,
+  MaintenanceSlipStatus,
+} from "../types/MaintenanceSlip";
 import type { GeometryType, WorkOrder, WorkOrderPriority, WorkOrderStatus } from "../types/WorkOrder";
 import { normalizeWorkOrderDetailsForType } from "../workOrders/pavementDetails";
 
@@ -93,6 +102,58 @@ function normalizeWorkOrderPriority(raw: unknown): WorkOrderPriority {
   if (key === "high" || key === "3") return "High";
   if (key === "urgent" || key === "critical" || key === "4") return "Urgent";
   return "None";
+}
+
+function normalizeMaintenanceSlipStatus(raw: unknown): MaintenanceSlipStatus {
+  const key = String(raw ?? "")
+    .trim()
+    .toLowerCase()
+    .replace(/[\s-]+/g, "_");
+
+  if (key === "scheduled") return "scheduled";
+  if (key === "in_progress" || key === "inprogress" || key === "in-progress") return "in_progress";
+  if (key === "resolved" || key === "complete" || key === "completed" || key === "closed") return "resolved";
+  return "open";
+}
+
+function normalizeMaintenanceSlipSeverity(raw: unknown): MaintenanceSlipSeverity {
+  const key = String(raw ?? "")
+    .trim()
+    .toLowerCase();
+
+  if (key === "low") return "low";
+  if (key === "high") return "high";
+  if (key === "urgent" || key === "critical") return "urgent";
+  return "medium";
+}
+
+function normalizeMaintenanceSlipNotes(raw: unknown): MaintenanceSlipNote[] {
+  let parsed = raw;
+  if (typeof parsed === "string") {
+    parsed = safeJsonParse<unknown>(parsed, []);
+  }
+  if (!Array.isArray(parsed)) return [];
+
+  return parsed
+    .map((item, index) => {
+      if (!item || typeof item !== "object") return null;
+      const note = item as Record<string, unknown>;
+      const body = String(note.body ?? "").trim();
+      if (!body) return null;
+      const createdAt = toEpochMs(note.createdAt, Date.now() + index);
+      const kindRaw = String(note.kind ?? "note").trim().toLowerCase();
+      return {
+        id: String(note.id ?? `remote-note-${index}-${createdAt}`),
+        kind: kindRaw === "status" ? "status" : "note",
+        body,
+        createdAt,
+        createdByUid: String(note.createdByUid ?? "").trim() || null,
+        createdByDisplayName: String(note.createdByDisplayName ?? note.createdByName ?? "").trim() || null,
+        createdByEmail: String(note.createdByEmail ?? "").trim() || null,
+      } satisfies MaintenanceSlipNote;
+    })
+    .filter((note): note is MaintenanceSlipNote => note != null)
+    .sort((a, b) => a.createdAt - b.createdAt);
 }
 
 function normalizeAssetType(raw: unknown): AssetType | null {
@@ -423,6 +484,71 @@ function toLocalWorkOrder(
   };
 }
 
+function toLocalMaintenanceSlip(
+  orgId: string,
+  rowId: string,
+  data: Record<string, any>
+): MaintenanceSlip | null {
+  const dataOrgId = String(data.orgId ?? "").trim();
+  if (dataOrgId && dataOrgId !== orgId) {
+    if (__DEV__) {
+      console.warn("[RemoteSync][MS] skip org mismatch", { rowId, orgId, dataOrgId });
+    }
+    return null;
+  }
+
+  const createdAt = toEpochMs(data.createdAt, Date.now());
+  const updatedAt = toEpochMs(data.updatedAt, createdAt);
+  const notes = normalizeMaintenanceSlipNotes(data.notes ?? data.notesJson);
+
+  return {
+    id: rowId,
+    orgId,
+    vehicleAssetId: String(data.vehicleAssetId ?? "").trim() || null,
+    vehicleSource: (String(data.vehicleSource ?? (data.vehicleAssetId ? "linked_asset" : "manual_entry")).trim() || "manual_entry") as MaintenanceSlip["vehicleSource"],
+    vehicleSnapshot:
+      data.vehicleSnapshot && typeof data.vehicleSnapshot === "object"
+        ? data.vehicleSnapshot
+        : data.vehicleAssetSnapshot && typeof data.vehicleAssetSnapshot === "object"
+          ? data.vehicleAssetSnapshot
+          : null,
+    unitLabel: String(data.unitLabel ?? data.equipmentLabel ?? data.unit ?? data.equipment ?? "").trim(),
+    equipmentType: String(data.equipmentType ?? "").trim() || null,
+    maintenanceCategory: String(data.maintenanceCategory ?? "").trim() || null,
+    systemArea: String(data.systemArea ?? "").trim() || null,
+    issueTitle: String(data.issueTitle ?? data.title ?? "").trim(),
+    issueDescription: String(data.issueDescription ?? data.description ?? "").trim() || null,
+    locationHint: String(data.locationHint ?? data.location ?? "").trim() || null,
+    readingLabel: String(data.readingLabel ?? data.mileageHours ?? data.reading ?? "").trim() || null,
+    preferredServiceDate: data.preferredServiceDate == null ? null : toEpochMs(data.preferredServiceDate, updatedAt),
+    serviceRequest:
+      data.serviceRequest && typeof data.serviceRequest === "object"
+        ? data.serviceRequest
+        : null,
+    status: normalizeMaintenanceSlipStatus(data.status),
+    severity: normalizeMaintenanceSlipSeverity(data.severity),
+    createdAt,
+    updatedAt,
+    createdByUid: String(data.createdByUid ?? "").trim() || null,
+    createdByDisplayName: String(data.createdByDisplayName ?? data.createdByName ?? "").trim() || null,
+    createdByEmail: String(data.createdByEmail ?? "").trim() || null,
+    assignedToUid: String(data.assignedToUid ?? "").trim() || null,
+    assignedToName: String(data.assignedToName ?? "").trim() || null,
+    assignedToEmail: String(data.assignedToEmail ?? "").trim() || null,
+    deviceId: String(data.deviceId ?? "").trim() || null,
+    appVersion: String(data.appVersion ?? "").trim() || null,
+    notes,
+    lastStatusChangedAt: data.lastStatusChangedAt == null ? null : toEpochMs(data.lastStatusChangedAt, updatedAt),
+    lastStatusChangedByUid: String(data.lastStatusChangedByUid ?? "").trim() || null,
+    lastStatusChangedByDisplayName: String(data.lastStatusChangedByDisplayName ?? data.lastStatusChangedByName ?? "").trim() || null,
+    lastStatusChangedByEmail: String(data.lastStatusChangedByEmail ?? "").trim() || null,
+    resolvedAt: data.resolvedAt == null ? null : toEpochMs(data.resolvedAt, updatedAt),
+    resolvedByUid: String(data.resolvedByUid ?? "").trim() || null,
+    resolvedByDisplayName: String(data.resolvedByDisplayName ?? data.resolvedByName ?? "").trim() || null,
+    resolvedByEmail: String(data.resolvedByEmail ?? "").trim() || null,
+  };
+}
+
 function hasAnyGeometryInput(data: Record<string, any>): boolean {
   return Boolean(
     (data.lat != null && data.lng != null) ||
@@ -496,6 +622,14 @@ async function applyWorkOrdersSnapshot(
   let skipped = 0;
   let failed = 0;
   let skippedLogged = 0;
+  let mentionMembersPromise: Promise<any[]> | null = null;
+
+  const loadMentionMembers = () => {
+    if (!mentionMembersPromise) {
+      mentionMembersPromise = listAssignableOrgMembers(orgId).catch(() => []);
+    }
+    return mentionMembersPromise;
+  };
 
   console.log(`[RemoteSync][WO] snapshot size=${snapshot.size} changes=${snapshot.docChanges().length}`);
   logSyncBreadcrumb("inbound wo snapshot received", {
@@ -515,6 +649,7 @@ async function applyWorkOrdersSnapshot(
     setCustomKeySafe("syncStage", "doc_received");
 
     try {
+      const existingWorkOrder = await workOrdersRepo.getById({ orgId, id: rowId });
       let data = change.doc.data() as Record<string, any>;
       const deletedFlag =
         data.deleted === true ||
@@ -546,26 +681,25 @@ async function applyWorkOrdersSnapshot(
       }
 
       if (!hasAnyGeometryInput(data)) {
-        const existing = await workOrdersRepo.getById({ orgId, id: rowId });
-        if (existing) {
+        if (existingWorkOrder) {
           data = {
             ...data,
-            geomType: data.geomType ?? existing.geomType,
-            geometryType: data.geometryType ?? existing.geomType,
-            lat: data.lat ?? existing.lat,
-            lng: data.lng ?? existing.lng,
-            line: data.line ?? existing.line,
-            lineJson: data.lineJson ?? (existing.line ? JSON.stringify(existing.line) : null),
-            minLat: data.minLat ?? existing.minLat,
-            minLng: data.minLng ?? existing.minLng,
-            maxLat: data.maxLat ?? existing.maxLat,
-            maxLng: data.maxLng ?? existing.maxLng,
+            geomType: data.geomType ?? existingWorkOrder.geomType,
+            geometryType: data.geometryType ?? existingWorkOrder.geomType,
+            lat: data.lat ?? existingWorkOrder.lat,
+            lng: data.lng ?? existingWorkOrder.lng,
+            line: data.line ?? existingWorkOrder.line,
+            lineJson: data.lineJson ?? (existingWorkOrder.line ? JSON.stringify(existingWorkOrder.line) : null),
+            minLat: data.minLat ?? existingWorkOrder.minLat,
+            minLng: data.minLng ?? existingWorkOrder.minLng,
+            maxLat: data.maxLat ?? existingWorkOrder.maxLat,
+            maxLng: data.maxLng ?? existingWorkOrder.maxLng,
           };
 
           if (__DEV__) {
             console.log("[RemoteSync][WO] geometry fallback from local row", {
               rowId,
-              geomType: existing.geomType,
+              geomType: existingWorkOrder.geomType,
             });
           }
         }
@@ -594,6 +728,18 @@ async function applyWorkOrdersSnapshot(
       console.log(`[RemoteSync][WO] local upsert success id=${rowId} geom=${wo.geomType}`);
       await workOrdersRepo.upsert(wo);
       applied += 1;
+
+      const noteChanged = (existingWorkOrder?.note ?? null) !== (wo.note ?? null);
+      if (noteChanged && !options?.suppressNotifications) {
+        const members = await loadMentionMembers();
+        addWorkOrderNoteActivity({
+          workOrder: wo,
+          previousNote: existingWorkOrder?.note ?? null,
+          nextNote: wo.note ?? null,
+          members,
+          actor: { displayName: "A teammate" },
+        });
+      }
 
       // Derive cross-device alerts from inbound high-priority work-order changes.
       // This avoids depending on an external push pipeline and only alerts non-creators.
@@ -748,6 +894,49 @@ async function applyAssetsSnapshot(
   }
 }
 
+async function applyMaintenanceSlipsSnapshot(
+  orgId: string,
+  snapshot: FirebaseFirestoreTypes.QuerySnapshot<FirebaseFirestoreTypes.DocumentData>
+) {
+  let applied = 0;
+  let removed = 0;
+  let skipped = 0;
+
+  for (const change of snapshot.docChanges()) {
+    const rowId = change.doc.id;
+    if (change.type === "removed") {
+      await maintenanceSlipsRepo.deleteById({ orgId, id: rowId });
+      removed += 1;
+      continue;
+    }
+
+    const slip = toLocalMaintenanceSlip(orgId, rowId, change.doc.data() as Record<string, any>);
+    if (!slip || !slip.unitLabel || !slip.issueTitle) {
+      skipped += 1;
+      continue;
+    }
+
+    await maintenanceSlipsRepo.upsert(slip);
+    applied += 1;
+  }
+
+  if (applied > 0 || removed > 0) {
+    emitDbChanged();
+  }
+
+  if (__DEV__) {
+    console.log("[RemoteSync][MS] snapshot", {
+      orgId,
+      totalDocs: snapshot.docs.length,
+      changes: snapshot.docChanges().length,
+      fromCache: snapshot.metadata.fromCache,
+      applied,
+      removed,
+      skipped,
+    });
+  }
+}
+
 export async function startRemoteSyncForOrg(orgIdRaw: string): Promise<RemoteSyncHandle> {
   const orgId = requireOrgId(orgIdRaw);
   ensureDbSchemaReady("remoteSync.start");
@@ -756,10 +945,12 @@ export async function startRemoteSyncForOrg(orgIdRaw: string): Promise<RemoteSyn
   const orgDocRef = doc(collection(firestore, "orgs"), orgId);
   const workOrdersQuery = query(collection(orgDocRef, "workOrders"));
   const assetsQuery = query(collection(orgDocRef, "assets"));
+  const maintenanceSlipsQuery = query(collection(orgDocRef, "vehicleMaintenanceSlips"));
 
   let stopped = false;
   let workOrdersQueue = Promise.resolve();
   let assetsQueue = Promise.resolve();
+  let maintenanceSlipsQueue = Promise.resolve();
   let hasSeenWorkOrdersSnapshot = false;
 
   if (__DEV__) {
@@ -832,12 +1023,30 @@ export async function startRemoteSyncForOrg(orgIdRaw: string): Promise<RemoteSyn
     }
   );
 
+  const unsubMaintenanceSlips = onSnapshot(
+    maintenanceSlipsQuery,
+    (snapshot) => {
+      if (stopped) return;
+      maintenanceSlipsQueue = maintenanceSlipsQueue
+        .then(async () => {
+          await applyMaintenanceSlipsSnapshot(orgId, snapshot);
+        })
+        .catch((e) => {
+          console.warn("[RemoteSync][MS] apply failed", e);
+        });
+    },
+    (error) => {
+      console.warn("[RemoteSync][MS] listener error", error);
+    }
+  );
+
   return {
     stop: () => {
       if (stopped) return;
       stopped = true;
       unsubWorkOrders();
       unsubAssets();
+      unsubMaintenanceSlips();
       setCustomKeySafe("listenerActive", false);
       logSyncBreadcrumb("inbound listeners stopped", {
         syncDirection: "inbound",

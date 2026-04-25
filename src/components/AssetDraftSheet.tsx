@@ -16,6 +16,7 @@ type DraftAsset = {
 type Props = {
   draft: DraftAsset;
   saving?: boolean;
+  bottomOffset?: number;
   onCreate: (input: { subtype: string | null }) => void;
   onClose: () => void;
 };
@@ -25,11 +26,18 @@ function labelForType(type: AssetCreateType): string {
   if (type === "culvert") return "Culvert";
   if (type === "guardrail") return "Guardrail";
   if (type === "bridge") return "Bridge";
-  return "Delineator";
+  return "Asset";
 }
 
-export default function AssetDraftSheet({ draft, saving = false, onCreate, onClose }: Props) {
+export default function AssetDraftSheet({
+  draft,
+  saving = false,
+  bottomOffset = 0,
+  onCreate,
+  onClose,
+}: Props) {
   const [subtype, setSubtype] = useState("");
+  const isBridgeDraft = draft.type === "bridge";
 
   const geometrySummary = useMemo(() => {
     if (draft.bridge && draft.bridge.corners.length === 4) {
@@ -46,10 +54,14 @@ export default function AssetDraftSheet({ draft, saving = false, onCreate, onClo
   }, [draft.point, draft.points]);
 
   return (
-    <View style={styles.wrap}>
+    <View style={[styles.wrap, { bottom: bottomOffset }]}>
       <View style={styles.sheet}>
-        <Text style={styles.title}>Create Asset</Text>
-        <Text style={styles.hint}>Use this quick asset form. Work-order-only fields are not shown.</Text>
+        <Text style={styles.title}>{isBridgeDraft ? "Create Bridge Asset" : "Create Asset"}</Text>
+        <Text style={styles.hint}>
+          {isBridgeDraft
+            ? "Bridge setup stores ordered corners and center so the asset stays GIS-friendly for later map and export work."
+            : "Use this quick asset form. Work-order-only fields are not shown."}
+        </Text>
 
         <View style={styles.row}>
           <Text style={styles.label}>Type</Text>
@@ -66,12 +78,16 @@ export default function AssetDraftSheet({ draft, saving = false, onCreate, onClo
           <TextInput
             value={subtype}
             onChangeText={setSubtype}
-            placeholder="e.g. STOP, W_BEAM, DELINEATOR"
+            placeholder={isBridgeDraft ? "e.g. Bridge 12 / NB-204" : "e.g. STOP, W_BEAM"}
             placeholderTextColor="#94a3b8"
             style={styles.input}
             editable={!saving}
           />
         </View>
+
+        {isBridgeDraft ? (
+          <Text style={styles.bridgeHint}>Bridge geometry will be saved from the 4 captured corners.</Text>
+        ) : null}
 
         <View style={styles.footerRow}>
           <Pressable onPress={onClose} style={styles.secondary} disabled={saving}>
@@ -82,7 +98,7 @@ export default function AssetDraftSheet({ draft, saving = false, onCreate, onClo
             style={[styles.primary, saving && styles.primaryDisabled]}
             disabled={saving}
           >
-            <Text style={styles.primaryText}>{saving ? "Saving..." : "Create Asset"}</Text>
+            <Text style={styles.primaryText}>{saving ? "Saving..." : isBridgeDraft ? "Create Bridge Asset" : "Create Asset"}</Text>
           </Pressable>
         </View>
       </View>
@@ -98,7 +114,7 @@ const styles = StyleSheet.create({
     bottom: 0,
     backgroundColor: "rgba(0,0,0,0.28)",
     paddingHorizontal: 10,
-    paddingBottom: 10,
+    paddingBottom: 0,
   },
   sheet: {
     backgroundColor: "#ffffff",
@@ -118,6 +134,11 @@ const styles = StyleSheet.create({
   hint: {
     fontSize: 12,
     color: "#475569",
+  },
+  bridgeHint: {
+    fontSize: 12,
+    color: "#0f766e",
+    fontWeight: "700",
   },
   row: {
     flexDirection: "row",

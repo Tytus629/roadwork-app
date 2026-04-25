@@ -53,6 +53,7 @@ import { useWorkOrdersFiltered } from "../hooks/useWorkOrdersFiltered";
 import { formatWorkType, WORK_ORDER_TYPE_OPTIONS } from "../constants/workOrderTypes";
 import { useOrg } from "../state/OrgContext";
 import { formatWorkOrderCreator } from "../utils/workOrderCreator";
+import { assignmentSummaryLabel } from "../utils/workOrderAssignment";
 
 // Predefined work order types (matches DB schema and creation options)
 const TYPES = WORK_ORDER_TYPE_OPTIONS
@@ -288,7 +289,8 @@ export function WorkOrdersScreen() {
         contentContainerStyle={styles.listContent}
         renderItem={({ item }) => {
           const creatorLabel = formatWorkOrderCreator(item);
-          const subtitle = `${formatStatusLabel(item.status)} • ${item.priority} • ${new Date(item.createdAt).toLocaleDateString()} • By ${creatorLabel}`;
+          const subtitle = `${formatStatusLabel(item.status)} • ${item.priority} • ${new Date(item.createdAt).toLocaleDateString()}`;
+          const assignmentMeta = `Assigned: ${assignmentSummaryLabel(item, { unassignedLabel: "Unassigned" })} • By ${creatorLabel}`;
           return (
             <TouchableOpacity
               onPress={() => navigation.navigate("WorkItemSheet", { id: item.id })}
@@ -296,6 +298,7 @@ export function WorkOrdersScreen() {
             >
               <Text style={styles.listTitle}>{formatWorkType(item.type)}</Text>
               <Text style={styles.listSubtitle}>{subtitle}</Text>
+              <Text style={styles.listMeta}>{assignmentMeta}</Text>
             </TouchableOpacity>
           );
         }}
@@ -343,6 +346,7 @@ const styles = StyleSheet.create({
   listItem: { paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: "#eee" },
   listTitle: { fontWeight: "800", fontSize: 14 },
   listSubtitle: { marginTop: 3, color: "#6b7280", fontSize: 12 },
+  listMeta: { marginTop: 3, color: "#334155", fontSize: 12, fontWeight: "600" },
   emptyState: { paddingTop: 10 },
   emptyText: { color: "#6b7280", fontSize: 12 },
 });

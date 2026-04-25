@@ -41,13 +41,13 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import MapScreen from "../screens/MapScreen";
 import { WorkOrdersScreen } from "../screens/WorkOrdersScreen";
-import SignsHomeScreen from "../screens/SignsHomeScreen";
+import AssetsHomeScreen from "../screens/AssetsHomeScreen";
 import { MoreStack } from "./MoreStack";
 
 export type RootTabParamList = {
   Map: undefined;
   Work: undefined;
-  Signs: undefined;
+  Assets: undefined;
   More: undefined;
 };
 
@@ -125,10 +125,11 @@ export default function AppTabs() {
         }} 
       />
       <Tab.Screen 
-        name="Signs" 
-        component={SignsHomeScreen} 
+        name="Assets" 
+        component={AssetsHomeScreen} 
         options={{ 
-          title: "Signs",
+          title: "Assets",
+          tabBarLabel: "Assets",
         }} 
       />
       <Tab.Screen 

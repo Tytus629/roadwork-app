@@ -69,7 +69,7 @@ type ResolvedDevConnection = {
  */
 const DEV_ANDROID_MODE_DEFAULT: "auto" | AndroidDevClientMode = "auto";
 const DEV_ANDROID_EMULATOR_HOST = "10.0.2.2";
-const DEV_ANDROID_DEVICE_HOST_STRATEGY: AndroidDeviceHostStrategy = "lan";
+const DEV_ANDROID_DEVICE_HOST_STRATEGY: AndroidDeviceHostStrategy = "adb_reverse_localhost";
 const DEV_ANDROID_DEVICE_LAN_HOST = "192.168.1.37";
 
 const DEV_IOS_SIMULATOR_HOST = "localhost";

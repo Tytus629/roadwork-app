@@ -8,7 +8,7 @@ export type WorkType =
   | "asphalt" // legacy alias retained for backward compatibility
   | "culvert"
   | "ditching"
-  | "danger_tree"
+  | "danger_tree" // legacy value; new creation is normalized into brushing
   | "guardrail"
   | "sign";
 

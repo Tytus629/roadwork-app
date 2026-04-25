@@ -2,6 +2,7 @@ export type CanonicalRole =
   | "platform_owner"
   | "org_owner"
   | "org_admin"
+  | "mechanic"
   | "asset_manager"
   | "crew_member"
   | "viewer";
@@ -9,8 +10,13 @@ export type CanonicalRole =
 export type RolePermission =
   | "viewMap"
   | "viewWorkOrders"
+  | "viewVehicleAssets"
+  | "editVehicleAssets"
+  | "viewMaintenanceSlip"
   | "createWorkOrder"
   | "editWorkOrder"
+  | "createMaintenanceSlip"
+  | "editMaintenanceSlip"
   | "changeStatusPriority"
   | "deleteWorkOrder"
   | "addWorkOrderPhoto"
@@ -42,6 +48,8 @@ const ROLE_ALIASES: Record<string, CanonicalRole> = {
   assetmanager: "asset_manager",
   asset_mgr: "asset_manager",
 
+  mechanic: "mechanic",
+
   crew_member: "crew_member",
   crewmember: "crew_member",
   worker: "crew_member",
@@ -60,8 +68,13 @@ const ROLE_PERMISSIONS: Record<CanonicalRole, Record<RolePermission, boolean>> =
   platform_owner: {
     viewMap: true,
     viewWorkOrders: true,
+    viewVehicleAssets: true,
+    editVehicleAssets: true,
+    viewMaintenanceSlip: true,
     createWorkOrder: true,
     editWorkOrder: true,
+    createMaintenanceSlip: true,
+    editMaintenanceSlip: true,
     changeStatusPriority: true,
     deleteWorkOrder: true,
     addWorkOrderPhoto: true,
@@ -75,8 +88,13 @@ const ROLE_PERMISSIONS: Record<CanonicalRole, Record<RolePermission, boolean>> =
   org_owner: {
     viewMap: true,
     viewWorkOrders: true,
+    viewVehicleAssets: true,
+    editVehicleAssets: true,
+    viewMaintenanceSlip: true,
     createWorkOrder: true,
     editWorkOrder: true,
+    createMaintenanceSlip: true,
+    editMaintenanceSlip: true,
     changeStatusPriority: true,
     deleteWorkOrder: true,
     addWorkOrderPhoto: true,
@@ -90,8 +108,13 @@ const ROLE_PERMISSIONS: Record<CanonicalRole, Record<RolePermission, boolean>> =
   org_admin: {
     viewMap: true,
     viewWorkOrders: true,
+    viewVehicleAssets: true,
+    editVehicleAssets: true,
+    viewMaintenanceSlip: true,
     createWorkOrder: true,
     editWorkOrder: true,
+    createMaintenanceSlip: true,
+    editMaintenanceSlip: true,
     changeStatusPriority: true,
     deleteWorkOrder: true,
     addWorkOrderPhoto: true,
@@ -102,11 +125,36 @@ const ROLE_PERMISSIONS: Record<CanonicalRole, Record<RolePermission, boolean>> =
     manageOrgMembers: true,
     assignOrgOwner: false,
   },
+  mechanic: {
+    viewMap: false,
+    viewWorkOrders: false,
+    viewVehicleAssets: true,
+    editVehicleAssets: true,
+    viewMaintenanceSlip: true,
+    createWorkOrder: false,
+    editWorkOrder: false,
+    createMaintenanceSlip: true,
+    editMaintenanceSlip: true,
+    changeStatusPriority: false,
+    deleteWorkOrder: false,
+    addWorkOrderPhoto: false,
+    manageAssets: false,
+    createTailgate: false,
+    createDmi: false,
+    createCounter: false,
+    manageOrgMembers: false,
+    assignOrgOwner: false,
+  },
   asset_manager: {
     viewMap: true,
     viewWorkOrders: true,
+    viewVehicleAssets: true,
+    editVehicleAssets: true,
+    viewMaintenanceSlip: true,
     createWorkOrder: true,
     editWorkOrder: true,
+    createMaintenanceSlip: true,
+    editMaintenanceSlip: true,
     changeStatusPriority: true,
     deleteWorkOrder: false,
     addWorkOrderPhoto: true,
@@ -120,8 +168,13 @@ const ROLE_PERMISSIONS: Record<CanonicalRole, Record<RolePermission, boolean>> =
   crew_member: {
     viewMap: true,
     viewWorkOrders: true,
+    viewVehicleAssets: false,
+    editVehicleAssets: false,
+    viewMaintenanceSlip: true,
     createWorkOrder: true,
     editWorkOrder: true,
+    createMaintenanceSlip: true,
+    editMaintenanceSlip: true,
     changeStatusPriority: true,
     deleteWorkOrder: false,
     addWorkOrderPhoto: true,
@@ -136,8 +189,13 @@ const ROLE_PERMISSIONS: Record<CanonicalRole, Record<RolePermission, boolean>> =
   viewer: {
     viewMap: true,
     viewWorkOrders: true,
+    viewVehicleAssets: false,
+    editVehicleAssets: false,
+    viewMaintenanceSlip: true,
     createWorkOrder: false,
     editWorkOrder: false,
+    createMaintenanceSlip: false,
+    editMaintenanceSlip: false,
     changeStatusPriority: false,
     deleteWorkOrder: false,
     addWorkOrderPhoto: false,
@@ -194,10 +252,20 @@ export function assertRolePermission(permission: RolePermission, role?: unknown)
 
 export function permissionDeniedMessage(permission: RolePermission): string {
   switch (permission) {
+    case "viewVehicleAssets":
+      return "Your role cannot view vehicle assets.";
+    case "editVehicleAssets":
+      return "Your role cannot create or edit vehicle assets.";
     case "createWorkOrder":
       return "Your role cannot create work orders.";
+    case "viewMaintenanceSlip":
+      return "Your role cannot view vehicle maintenance slips.";
     case "editWorkOrder":
       return "Your role cannot edit this work order.";
+    case "createMaintenanceSlip":
+      return "Your role cannot create vehicle maintenance slips.";
+    case "editMaintenanceSlip":
+      return "Your role cannot edit vehicle maintenance slips.";
     case "changeStatusPriority":
       return "Your role cannot change status or priority.";
     case "deleteWorkOrder":

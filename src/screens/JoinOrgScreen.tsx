@@ -102,6 +102,7 @@ export function JoinOrgScreen({ onBack, onApproved }: Props) {
       stopPolling();
       return;
     }
+    void pollOnce(pendingOrgId, uid);
     startPolling(pendingOrgId, uid);
     return stopPolling;
     // eslint-disable-next-line react-hooks/exhaustive-deps

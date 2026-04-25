@@ -358,6 +358,94 @@ const MIGRATIONS: Migration[] = [
       `CREATE INDEX IF NOT EXISTS idx_tool_counter_org_createdAt ON tool_counter(orgId, createdAt DESC);`,
     ],
   },
+  {
+    id: 10,
+    name: 'add_notification_inbox',
+    sql: [
+      `CREATE TABLE IF NOT EXISTS notification_inbox (
+        id TEXT PRIMARY KEY,
+        orgId TEXT NOT NULL,
+        recipientUid TEXT,
+        recipientEmail TEXT,
+        category TEXT NOT NULL,
+        sourceType TEXT NOT NULL,
+        sourceId TEXT NOT NULL,
+        sourceCreatedAt INTEGER NOT NULL,
+        targetType TEXT,
+        targetId TEXT,
+        title TEXT NOT NULL,
+        body TEXT,
+        actorUid TEXT,
+        actorName TEXT,
+        actorEmail TEXT,
+        metadataJson TEXT,
+        readAt INTEGER,
+        openedAt INTEGER,
+        createdAt INTEGER NOT NULL,
+        updatedAt INTEGER NOT NULL
+      );`,
+      `CREATE INDEX IF NOT EXISTS idx_notification_inbox_org_recipient_time
+       ON notification_inbox(orgId, recipientUid, readAt, sourceCreatedAt DESC);`,
+      `CREATE INDEX IF NOT EXISTS idx_notification_inbox_org_email_time
+       ON notification_inbox(orgId, recipientEmail, readAt, sourceCreatedAt DESC);`,
+    ],
+  },
+  {
+    id: 11,
+    name: 'add_maintenance_slips',
+    sql: [
+      `CREATE TABLE IF NOT EXISTS maintenance_slips (
+        id TEXT PRIMARY KEY,
+        orgId TEXT NOT NULL,
+        unitLabel TEXT NOT NULL,
+        equipmentType TEXT,
+        systemArea TEXT,
+        issueTitle TEXT NOT NULL,
+        issueDescription TEXT,
+        locationHint TEXT,
+        readingLabel TEXT,
+        status TEXT NOT NULL,
+        severity TEXT NOT NULL,
+        createdAt INTEGER NOT NULL,
+        updatedAt INTEGER NOT NULL,
+        createdByUid TEXT,
+        createdByDisplayName TEXT,
+        createdByEmail TEXT,
+        assignedToUid TEXT,
+        assignedToName TEXT,
+        assignedToEmail TEXT,
+        deviceId TEXT,
+        appVersion TEXT,
+        notesJson TEXT,
+        lastStatusChangedAt INTEGER,
+        lastStatusChangedByUid TEXT,
+        lastStatusChangedByDisplayName TEXT,
+        lastStatusChangedByEmail TEXT,
+        resolvedAt INTEGER,
+        resolvedByUid TEXT,
+        resolvedByDisplayName TEXT,
+        resolvedByEmail TEXT
+      );`,
+      `CREATE INDEX IF NOT EXISTS idx_maintenance_slips_org_updated
+       ON maintenance_slips(orgId, updatedAt DESC);`,
+      `CREATE INDEX IF NOT EXISTS idx_maintenance_slips_org_status
+       ON maintenance_slips(orgId, status, updatedAt DESC);`,
+    ],
+  },
+  {
+    id: 12,
+    name: 'extend_maintenance_slips_vehicle_linkage',
+    sql: [
+      `ALTER TABLE maintenance_slips ADD COLUMN vehicleAssetId TEXT;`,
+      `ALTER TABLE maintenance_slips ADD COLUMN vehicleSource TEXT;`,
+      `ALTER TABLE maintenance_slips ADD COLUMN vehicleSnapshotJson TEXT;`,
+      `ALTER TABLE maintenance_slips ADD COLUMN maintenanceCategory TEXT;`,
+      `ALTER TABLE maintenance_slips ADD COLUMN preferredServiceDate INTEGER;`,
+      `ALTER TABLE maintenance_slips ADD COLUMN serviceRequestJson TEXT;`,
+      `CREATE INDEX IF NOT EXISTS idx_maintenance_slips_org_vehicle_asset
+       ON maintenance_slips(orgId, vehicleAssetId, updatedAt DESC);`,
+    ],
+  },
 ];
 
 function rowsToArray(rows: any): any[] {
@@ -485,6 +573,65 @@ function ensureAssetsSchema() {
   console.log("[DB][migrate] assets schema ensure success");
 }
 
+function ensureNotificationsSchema() {
+  ensureTableWithLog(
+    "notification_inbox",
+    `CREATE TABLE IF NOT EXISTS notification_inbox (
+      id TEXT PRIMARY KEY,
+      orgId TEXT NOT NULL,
+      recipientUid TEXT,
+      recipientEmail TEXT,
+      category TEXT NOT NULL,
+      sourceType TEXT NOT NULL,
+      sourceId TEXT NOT NULL,
+      sourceCreatedAt INTEGER NOT NULL,
+      targetType TEXT,
+      targetId TEXT,
+      title TEXT NOT NULL,
+      body TEXT,
+      actorUid TEXT,
+      actorName TEXT,
+      actorEmail TEXT,
+      metadataJson TEXT,
+      readAt INTEGER,
+      openedAt INTEGER,
+      createdAt INTEGER NOT NULL,
+      updatedAt INTEGER NOT NULL
+    );`
+  );
+
+  addColumnIfMissing("notification_inbox", "orgId", "TEXT");
+  addColumnIfMissing("notification_inbox", "recipientUid", "TEXT");
+  addColumnIfMissing("notification_inbox", "recipientEmail", "TEXT");
+  addColumnIfMissing("notification_inbox", "category", "TEXT");
+  addColumnIfMissing("notification_inbox", "sourceType", "TEXT");
+  addColumnIfMissing("notification_inbox", "sourceId", "TEXT");
+  addColumnIfMissing("notification_inbox", "sourceCreatedAt", "INTEGER");
+  addColumnIfMissing("notification_inbox", "targetType", "TEXT");
+  addColumnIfMissing("notification_inbox", "targetId", "TEXT");
+  addColumnIfMissing("notification_inbox", "title", "TEXT");
+  addColumnIfMissing("notification_inbox", "body", "TEXT");
+  addColumnIfMissing("notification_inbox", "actorUid", "TEXT");
+  addColumnIfMissing("notification_inbox", "actorName", "TEXT");
+  addColumnIfMissing("notification_inbox", "actorEmail", "TEXT");
+  addColumnIfMissing("notification_inbox", "metadataJson", "TEXT");
+  addColumnIfMissing("notification_inbox", "readAt", "INTEGER");
+  addColumnIfMissing("notification_inbox", "openedAt", "INTEGER");
+  addColumnIfMissing("notification_inbox", "createdAt", "INTEGER");
+  addColumnIfMissing("notification_inbox", "updatedAt", "INTEGER");
+
+  db.executeSync(
+    `CREATE INDEX IF NOT EXISTS idx_notification_inbox_org_recipient_time
+     ON notification_inbox(orgId, recipientUid, readAt, sourceCreatedAt DESC);`,
+  );
+  db.executeSync(
+    `CREATE INDEX IF NOT EXISTS idx_notification_inbox_org_email_time
+     ON notification_inbox(orgId, recipientEmail, readAt, sourceCreatedAt DESC);`,
+  );
+
+  console.log("[DB][migrate] notification inbox schema ensure success");
+}
+
 function getDbVersion(): number {
   db.executeSync(
     `CREATE TABLE IF NOT EXISTS meta (key TEXT PRIMARY KEY, value TEXT NOT NULL);`
@@ -560,6 +707,13 @@ export function runMigrations() {
     ensureAssetsSchema();
   } catch (e) {
     console.warn("[DB][migrate] assets schema ensure failed", e);
+    throw e;
+  }
+
+  try {
+    ensureNotificationsSchema();
+  } catch (e) {
+    console.warn("[DB][migrate] notification inbox schema ensure failed", e);
     throw e;
   }
 }

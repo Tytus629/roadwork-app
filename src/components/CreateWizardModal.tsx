@@ -63,7 +63,14 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { Modal, View, Text, StyleSheet, Pressable } from "react-native";
 import type { WorkType } from "../types/workItem";
-import { WORK_ORDER_TYPE_OPTIONS, getWorkOrderTypeColor } from "../constants/workOrderTypes";
+import {
+  WORK_ORDER_TYPE_OPTIONS,
+  getWorkOrderTypeBorderWidth,
+  getWorkOrderTypeChipBorder,
+  getWorkOrderTypeChipFill,
+  getWorkOrderTypeChipText,
+  getWorkOrderTypeStyle,
+} from "../constants/workOrderTypes";
 import { useColorblindModePreference } from "../settings/colorblindMode";
 import { useWorkOrderTypeVisibilityPreference } from "../settings/workOrderTypeVisibility";
 
@@ -73,7 +80,6 @@ const ASSET_TYPE_OPTIONS: ReadonlyArray<{ key: AssetCreateType; label: string }>
   { key: "sign", label: "Sign" },
   { key: "culvert", label: "Culvert" },
   { key: "guardrail", label: "Guardrail" },
-  { key: "delineator", label: "Delineator" },
   { key: "bridge", label: "Bridge" },
 ] as const;
 
@@ -98,6 +104,11 @@ type Props = {
   onPickLocationAsset: (type: AssetCreateType, mode: "point" | "line" | "bridge_corners") => void;
 };
 
+function getInitialStep(canCreateWorkOrder: boolean, canCreateAsset: boolean): 0 | 1 {
+  if (!canCreateWorkOrder && canCreateAsset) return 1;
+  return 0;
+}
+
 export default function CreateWizardModal({
   visible,
   canCreateWorkOrder,
@@ -120,39 +131,42 @@ export default function CreateWizardModal({
   const isLinearAssetType =
     target === "asset" && (assetType === "culvert" || assetType === "guardrail");
   const visibleWorkOrderTypeOptions = useMemo(
-    () => WORK_ORDER_TYPE_OPTIONS.filter((option) => !!workOrderTypeVisibility[option.key]),
+    () => {
+      const seen = new Set<WorkType>();
+
+      return WORK_ORDER_TYPE_OPTIONS.filter((option) => {
+        if (!workOrderTypeVisibility[option.key]) return false;
+        if (seen.has(option.key)) return false;
+        seen.add(option.key);
+        return true;
+      });
+    },
     [workOrderTypeVisibility],
   );
   const isCurrentLocationDisabled = isWorkOrderCulvertType || isLinearAssetType || isBridgeAssetType;
   const allowPointGeometry = target === "asset" ? !isLinearAssetType : !isWorkOrderCulvertType;
   const allowLineGeometry = target === "asset" ? isLinearAssetType : true;
   const allowBridgeCornersGeometry = target === "asset" && isBridgeAssetType;
+  const initialStep = getInitialStep(canCreateWorkOrder, canCreateAsset);
 
   useEffect(() => {
     if (!visible) return;
 
-    if (canCreateWorkOrder && canCreateAsset) {
+    if (canCreateAsset) {
+      setTarget(canCreateWorkOrder ? "work_order" : "asset");
+      setStep(initialStep);
+    } else {
       setTarget("work_order");
       setStep(0);
-      return;
     }
-
-    if (canCreateAsset) {
-      setTarget("asset");
-      setStep(1);
-      return;
-    }
-
-    setTarget("work_order");
-    setStep(1);
-  }, [canCreateAsset, canCreateWorkOrder, visible]);
+  }, [canCreateAsset, canCreateWorkOrder, initialStep, visible]);
 
   const header = useMemo(() => {
-    if (step === 0) return "Create • Choose Item";
-    if (step === 1) return "Create • Choose Type";
-    if (step === 2) return "Create • Choose Location";
-    return "Create • Choose Geometry";
-  }, [step]);
+    if (step === 0) return "Create • Choose Type";
+    if (step === 1) return target === "asset" ? "Create Asset • Choose Type" : "Create Work Order • Choose Type";
+    if (step === 2) return target === "asset" ? "Create Asset • Choose Location" : "Create Work Order • Choose Location";
+    return target === "asset" ? "Create Asset • Choose Geometry" : "Create Work Order • Choose Geometry";
+  }, [step, target]);
 
   useEffect(() => {
     if (target !== "work_order") return;
@@ -162,7 +176,7 @@ export default function CreateWizardModal({
   }, [target, type, visibleWorkOrderTypeOptions]);
 
   function closeAndReset() {
-    setStep(canCreateWorkOrder && canCreateAsset ? 0 : 1);
+    setStep(initialStep);
     setTarget(canCreateAsset && !canCreateWorkOrder ? "asset" : "work_order");
     setType("pavement_repair");
     setAssetType("sign");
@@ -177,7 +191,7 @@ export default function CreateWizardModal({
       onUseCurrentLocation(type);
     }
 
-    setStep(canCreateWorkOrder && canCreateAsset ? 0 : 1);
+    setStep(initialStep);
     setGeometryMode("point");
   }
 
@@ -188,7 +202,7 @@ export default function CreateWizardModal({
       } else {
         onPickLocation(type, "line");
       }
-      setStep(canCreateWorkOrder && canCreateAsset ? 0 : 1);
+      setStep(initialStep);
       setGeometryMode("point");
       return;
     }
@@ -200,9 +214,9 @@ export default function CreateWizardModal({
     if (target === "asset") {
       onPickLocationAsset(assetType, mode);
     } else {
-      onPickLocation(type, mode);
+      onPickLocation(type, mode === "line" ? "line" : "point");
     }
-    setStep(canCreateWorkOrder && canCreateAsset ? 0 : 1);
+    setStep(initialStep);
     setGeometryMode("point");
   }
 
@@ -219,68 +233,127 @@ export default function CreateWizardModal({
 
           {step === 0 && (
             <>
-              <Text style={styles.hint}>Create a work order or an asset.</Text>
-              <View style={styles.row}>
-                {canCreateWorkOrder && (
-                  <Pressable
-                    onPress={() => {
-                      setTarget("work_order");
-                      setStep(1);
-                    }}
-                    style={styles.bigChoice}
-                  >
-                    <Text style={styles.bigChoiceText}>Work Order</Text>
-                    <Text style={styles.small}>Track work and status</Text>
-                  </Pressable>
-                )}
+              <Text style={styles.hint}>Choose the road work order to create, or switch into Asset Creation.</Text>
+              <View style={styles.choiceGrid}>
+                {visibleWorkOrderTypeOptions.map(({ key: t, label }) => {
+                  const typeStyle = getWorkOrderTypeStyle(t, { colorblindMode });
+
+                  return (
+                    <Pressable
+                      key={t}
+                      onPress={() => {
+                        setTarget("work_order");
+                        setType(t);
+                        setStep(2);
+                      }}
+                      style={[
+                        styles.choiceTile,
+                        {
+                          borderColor: getWorkOrderTypeChipBorder(t, { colorblindMode }),
+                          backgroundColor: getWorkOrderTypeChipFill(t, { colorblindMode }),
+                        },
+                      ]}
+                    >
+                      {colorblindMode ? (
+                        <Text
+                          style={[
+                            styles.choiceTileCode,
+                            { color: getWorkOrderTypeChipText(t, { colorblindMode }) },
+                          ]}
+                        >
+                          {typeStyle.shortLabel}
+                        </Text>
+                      ) : null}
+                      <Text
+                        style={[
+                          styles.choiceTileTitle,
+                          { color: getWorkOrderTypeChipText(t, { colorblindMode }) },
+                        ]}
+                      >
+                        {label}
+                      </Text>
+                      <Text style={styles.choiceTileHint}>Create and place on the map</Text>
+                    </Pressable>
+                  );
+                })}
+
                 {canCreateAsset && (
                   <Pressable
                     onPress={() => {
                       setTarget("asset");
                       setStep(1);
                     }}
-                    style={styles.bigChoice}
+                    style={[styles.choiceTile, styles.assetCreationTile]}
                   >
-                    <Text style={styles.bigChoiceText}>Asset</Text>
-                    <Text style={styles.small}>Add to asset inventory</Text>
+                    <Text style={styles.assetCreationTitle}>Asset Creation</Text>
+                    <Text style={styles.assetCreationHint}>Sign, Culvert, Guardrail, Bridge</Text>
                   </Pressable>
                 )}
               </View>
+
+              {visibleWorkOrderTypeOptions.length === 0 && canCreateAsset && (
+                <Text style={styles.hint}>No work-order types are visible. Asset Creation is still available.</Text>
+              )}
+
+              {visibleWorkOrderTypeOptions.length === 0 && !canCreateAsset && (
+                <Text style={styles.hint}>No create types are currently available for your role and settings.</Text>
+              )}
             </>
           )}
 
           {step === 1 && (
             <>
-              <Text style={styles.hint}>Pick what you're creating.</Text>
+              <Text style={styles.hint}>
+                {target === "asset"
+                  ? "Choose the asset type to add to inventory."
+                  : "Choose the work-order type to create."}
+              </Text>
               <View style={styles.grid}>
                 {target === "work_order"
-                  ? visibleWorkOrderTypeOptions.map(({ key: t, label }) => (
-                      <Pressable
-                        key={t}
-                        onPress={() => {
-                          setType(t);
-                          setStep(2);
-                        }}
-                        style={[
-                          styles.pill,
-                          {
-                            borderColor: getWorkOrderTypeColor(t, { colorblindMode }),
-                            backgroundColor: type === t ? getWorkOrderTypeColor(t, { colorblindMode }) : "#ffffff",
-                          },
-                        ]}
-                      >
-                        <Text
+                  ? visibleWorkOrderTypeOptions.map(({ key: t, label }) => {
+                      const selected = type === t;
+                      const typeStyle = getWorkOrderTypeStyle(t, { colorblindMode });
+
+                      return (
+                        <Pressable
+                          key={t}
+                          onPress={() => {
+                            setType(t);
+                            setStep(2);
+                          }}
                           style={[
-                            styles.pillText,
+                            styles.pill,
+                            colorblindMode && styles.pillColorblind,
                             {
-                              color: type === t ? "#ffffff" : getWorkOrderTypeColor(t, { colorblindMode }),
+                              borderWidth: getWorkOrderTypeBorderWidth(colorblindMode),
+                              borderColor: getWorkOrderTypeChipBorder(t, { colorblindMode }),
+                              backgroundColor: getWorkOrderTypeChipFill(t, { colorblindMode, selected }),
                             },
                           ]}
                         >
-                          {label}
-                        </Text>
-                      </Pressable>
-                    ))
+                          {colorblindMode ? (
+                            <Text
+                              style={[
+                                styles.pillCode,
+                                { color: getWorkOrderTypeChipText(t, { colorblindMode, selected }) },
+                              ]}
+                            >
+                              {typeStyle.shortLabel}
+                            </Text>
+                          ) : null}
+                          <Text
+                            style={[
+                              styles.pillText,
+                              {
+                                color: getWorkOrderTypeChipText(t, { colorblindMode, selected }),
+                              },
+                            ]}
+                          >
+                            {label}
+                          </Text>
+                        </Pressable>
+                      );
+                    })
                   : ASSET_TYPE_OPTIONS.map(({ key: t, label }) => (
                       <Pressable
                         key={t}
@@ -314,7 +387,7 @@ export default function CreateWizardModal({
                 <Text style={styles.hint}>No work-order types are visible. Enable at least one type in Settings.</Text>
               )}
 
-              {canCreateWorkOrder && canCreateAsset && (
+              {canCreateWorkOrder && (
                 <View style={styles.footerRow}>
                   <Pressable onPress={() => setStep(0)} style={styles.secondary}>
                     <Text style={styles.secondaryText}>Back</Text>
@@ -331,9 +404,11 @@ export default function CreateWizardModal({
                   ? target === "work_order"
                     ? "Culvert inlet/outlet capture needs line mode. Pick two map points (inlet first, outlet second)."
                     : isBridgeAssetType
-                      ? "Bridge capture needs corner mode. Pick four map corners in order."
+                      ? "Bridge assets use corner capture. Pick four ordered map corners so future GIS/export workflows stay accurate."
                       : "Linear assets use line mode. Pick two or more map points."
-                  : "Use your current GPS location or pick a location on the map."}
+                  : target === "asset"
+                    ? "Use your current GPS location or pick a location on the map for the new asset."
+                    : "Use your current GPS location or pick a location on the map."}
               </Text>
               <View style={styles.row}>
                 <Pressable
@@ -361,7 +436,7 @@ export default function CreateWizardModal({
               </View>
 
               <View style={styles.footerRow}>
-                <Pressable onPress={() => setStep(1)} style={styles.secondary}>
+                <Pressable onPress={() => setStep(target === "asset" ? 1 : 0)} style={styles.secondary}>
                   <Text style={styles.secondaryText}>Back</Text>
                 </Pressable>
               </View>
@@ -415,10 +490,30 @@ const styles = StyleSheet.create({
 
   hint: { opacity: 0.7, fontSize: 12 },
 
+  choiceGrid: { flexDirection: "row", flexWrap: "wrap", gap: 10, marginTop: 8 },
+  choiceTile: {
+    width: "48%",
+    minHeight: 92,
+    paddingVertical: 12,
+    paddingHorizontal: 12,
+    borderRadius: 16,
+    borderWidth: 1,
+    justifyContent: "space-between",
+    backgroundColor: "#ffffff",
+  },
+  choiceTileCode: { fontSize: 10, fontWeight: "900", letterSpacing: 0.5 },
+  choiceTileTitle: { fontSize: 15, fontWeight: "900" },
+  choiceTileHint: { fontSize: 12, color: "#475569" },
+  assetCreationTile: { borderColor: "#0f172a", backgroundColor: "#111827" },
+  assetCreationTitle: { fontSize: 15, fontWeight: "900", color: "#ffffff" },
+  assetCreationHint: { fontSize: 12, color: "#cbd5e1" },
+
   grid: { flexDirection: "row", flexWrap: "wrap", gap: 8, marginTop: 8 },
   row: { flexDirection: "row", gap: 10, marginTop: 10 },
 
   pill: { paddingVertical: 8, paddingHorizontal: 12, borderRadius: 999, borderWidth: 1 },
+  pillColorblind: { minWidth: 122, paddingVertical: 10 },
+  pillCode: { fontSize: 10, fontWeight: "900", marginBottom: 4, letterSpacing: 0.5 },
   pillText: { fontSize: 12, fontWeight: "800" },
 
   bigChoice: { flex: 1, padding: 14, borderRadius: 14, borderWidth: 1, borderColor: "#cbd5e1", gap: 6, backgroundColor: "#f8fafc" },

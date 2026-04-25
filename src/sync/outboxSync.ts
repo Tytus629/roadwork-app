@@ -31,6 +31,7 @@ export type OutboxKind =
   | "UPSERT_ASSET"
   | "ADD_ASSET_EVENT"
   | "UPSERT_TAILGATE"
+  | "UPSERT_MAINTENANCE_SLIP"
   | "UPSERT_DMI"
   | "UPSERT_COUNTER";
 
@@ -1115,6 +1116,13 @@ async function handleRow(row: OutboxRow) {
     case "UPSERT_TAILGATE": {
       const res: any = await callFn("roadwork_upsertTailgateLog", { log: payload });
       console.log("[Sync] UPSERT_TAILGATE OK:", res?.data ?? res?.result);
+      deleteOutboxRow(row.id);
+      return;
+    }
+
+    case "UPSERT_MAINTENANCE_SLIP": {
+      const res: any = await callFn("roadwork_upsertMaintenanceSlip", { slip: payload });
+      console.log("[Sync] UPSERT_MAINTENANCE_SLIP OK:", res?.data ?? res?.result);
       deleteOutboxRow(row.id);
       return;
     }

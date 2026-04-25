@@ -138,13 +138,163 @@ const STYLE_BY_KIND: Record<
     shortLabel: "ST",
   },
   UNKNOWN: {
-    shape: "unknown",
-    fillColor: "#9ca3af",
-    borderColor: "#111827",
+    shape: "rectangle",
+    fillColor: "#e5e7eb",
+    borderColor: "#475569",
     textColor: "#111827",
-    shortLabel: "?",
+    shortLabel: "SIGN",
   },
 };
+
+const KEYWORD_EMBLEMS: Array<{
+  any: string[];
+  all?: string[];
+  emblem: EmblemSpec;
+}> = [
+  {
+    any: ["DO NOT ENTER"],
+    emblem: {
+      kind: "NO_PARKING",
+      shape: "rectangle",
+      fillColor: "#ffffff",
+      borderColor: "#111827",
+      textColor: "#dc2626",
+      shortLabel: "DNE",
+    },
+  },
+  {
+    any: ["WRONG WAY"],
+    emblem: {
+      kind: "ONE_WAY",
+      shape: "bar",
+      fillColor: "#111827",
+      borderColor: "#111827",
+      textColor: "#ffffff",
+      shortLabel: "WRNG",
+    },
+  },
+  {
+    any: ["NO PARKING"],
+    emblem: {
+      kind: "NO_PARKING",
+      shape: "rectangle",
+      fillColor: "#ffffff",
+      borderColor: "#111827",
+      textColor: "#dc2626",
+      shortLabel: "NP",
+    },
+  },
+  {
+    any: ["ONE WAY"],
+    emblem: {
+      kind: "ONE_WAY",
+      shape: "bar",
+      fillColor: "#111827",
+      borderColor: "#111827",
+      textColor: "#ffffff",
+      shortLabel: "1W",
+    },
+  },
+  {
+    any: ["RAILROAD CROSSING", "CROSSBUCK"],
+    emblem: {
+      kind: "RAILROAD",
+      shape: "crossbuck",
+      fillColor: "#ffffff",
+      borderColor: "#111827",
+      textColor: "#111827",
+      shortLabel: "RR",
+    },
+  },
+  {
+    any: ["PEDESTRIAN CROSSING", "PED XING", "PED XING"],
+    emblem: {
+      kind: "WARNING",
+      shape: "diamond",
+      fillColor: "#facc15",
+      borderColor: "#111827",
+      textColor: "#111827",
+      shortLabel: "PED",
+    },
+  },
+  {
+    any: ["SCHOOL ZONE", "SCHOOL CROSSING", "SCHOOL"],
+    emblem: {
+      kind: "SCHOOL",
+      shape: "pentagon",
+      fillColor: "#a3e635",
+      borderColor: "#111827",
+      textColor: "#111827",
+      shortLabel: "SCH",
+    },
+  },
+  {
+    any: ["MERGE"],
+    emblem: {
+      kind: "WARNING",
+      shape: "diamond",
+      fillColor: "#facc15",
+      borderColor: "#111827",
+      textColor: "#111827",
+      shortLabel: "MRG",
+    },
+  },
+  {
+    any: ["LANE ENDS"],
+    emblem: {
+      kind: "WARNING",
+      shape: "diamond",
+      fillColor: "#facc15",
+      borderColor: "#111827",
+      textColor: "#111827",
+      shortLabel: "LEND",
+    },
+  },
+  {
+    any: ["CHEVRON"],
+    emblem: {
+      kind: "WARNING",
+      shape: "diamond",
+      fillColor: "#facc15",
+      borderColor: "#111827",
+      textColor: "#111827",
+      shortLabel: "CHEV",
+    },
+  },
+  {
+    any: ["CURVE", "SHARP TURN", "WINDING ROAD"],
+    emblem: {
+      kind: "WARNING",
+      shape: "diamond",
+      fillColor: "#facc15",
+      borderColor: "#111827",
+      textColor: "#111827",
+      shortLabel: "CURV",
+    },
+  },
+  {
+    any: ["DEAD END"],
+    emblem: {
+      kind: "STREET_NAME",
+      shape: "rectangle",
+      fillColor: "#ffffff",
+      borderColor: "#111827",
+      textColor: "#111827",
+      shortLabel: "END",
+    },
+  },
+  {
+    any: ["ROAD CLOSED", "ROAD CLOSURE"],
+    emblem: {
+      kind: "WARNING",
+      shape: "diamond",
+      fillColor: "#fb923c",
+      borderColor: "#111827",
+      textColor: "#111827",
+      shortLabel: "CLSD",
+    },
+  },
+];
 
 function normalizeToken(raw: unknown): string | null {
   const text = String(raw ?? "").trim();
@@ -261,13 +411,19 @@ function isStopSign(input: SignVisualInput, tokens: string[], compactTokens: str
     .filter((token): token is string => !!token);
   const directCompact = directTokens.map(compactToken);
 
-  const hasStopWord = [...directTokens, ...tokens].some((t) =>
-    t.includes("STOP") || t === "R1 1" || t === "R1-1",
+  const expandedTokens = [...directTokens, ...tokens];
+  const hasStopAhead = expandedTokens.some((t) =>
+    t.includes("STOP AHEAD") ||
+    t.includes("PREPARED TO STOP") ||
+    t.includes("ALL TRAFFIC MUST STOP AHEAD"),
+  );
+  const hasStopWord = expandedTokens.some(
+    (t) => t === "STOP" || t === "STOP SIGN" || t === "ALL WAY STOP" || t === "R1 1" || t === "R1-1",
   );
   const hasStopCode = [...directCompact, ...compactTokens].some((t) => t === "R11");
   const hasStopTypeId = directCompact.some((t) => t === "STOP");
 
-  return hasStopWord || hasStopCode || hasStopTypeId;
+  return !hasStopAhead && (hasStopWord || hasStopCode || hasStopTypeId);
 }
 
 function hasToken(tokens: string[], phrase: string): boolean {
@@ -517,6 +673,31 @@ function emblemFromSignType(input: SignVisualInput): EmblemSpec | null {
   };
 }
 
+function emblemFromKeywords(tokens: string[]): EmblemSpec | null {
+  const joined = tokens.join(" ");
+
+  for (const matcher of KEYWORD_EMBLEMS) {
+    const hasAny = matcher.any.some((token) => joined.includes(token));
+    if (!hasAny) continue;
+    if (matcher.all && matcher.all.some((token) => !joined.includes(token))) continue;
+    return matcher.emblem;
+  }
+
+  const speedMatch = joined.match(/SPEED LIMIT\s+(\d{1,3})/);
+  if (speedMatch?.[1]) {
+    return {
+      kind: "SPEED_LIMIT",
+      shape: "rectangle",
+      fillColor: "#ffffff",
+      borderColor: "#111827",
+      textColor: "#111827",
+      shortLabel: speedMatch[1].slice(0, 4),
+    };
+  }
+
+  return null;
+}
+
 function classifySign(input: SignVisualInput, tokens: string[]): SignVisualKind {
   const compactTokens = tokens.map(compactToken);
 
@@ -575,6 +756,20 @@ export function getSignVisualStyle(input: SignVisualInput): SignVisualStyle {
   }
 
   const candidates = collectCandidates(input);
+  const keywordEmblem = emblemFromKeywords(candidates);
+  if (keywordEmblem) {
+    return {
+      kind: keywordEmblem.kind,
+      shape: keywordEmblem.shape,
+      fillColor: keywordEmblem.fillColor,
+      borderColor: keywordEmblem.borderColor,
+      textColor: keywordEmblem.textColor,
+      shortLabel: keywordEmblem.shortLabel,
+      rotationDeg: null,
+      normalizedType: candidates[0] ?? null,
+      usedFallback: false,
+    };
+  }
   const kind = classifySign(input, candidates);
   const base = STYLE_BY_KIND[kind];
 

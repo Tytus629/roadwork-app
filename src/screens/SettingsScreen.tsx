@@ -13,7 +13,16 @@ import { getAuth } from "@react-native-firebase/auth";
 import { getFunctions, httpsCallable } from "@react-native-firebase/functions";
 import { useOrg } from "../state/OrgContext";
 import { useNavigation } from "@react-navigation/native";
-import { WORK_ORDER_TYPE_OPTIONS, formatWorkType, getWorkOrderTypeColor } from "../constants/workOrderTypes";
+import {
+  WORK_ORDER_TYPE_OPTIONS,
+  formatWorkType,
+  getWorkOrderTypeA11yLabel,
+  getWorkOrderTypeChipBorder,
+  getWorkOrderTypeChipFill,
+  getWorkOrderTypeChipText,
+  getWorkOrderTypePreviewTypes,
+  getWorkOrderTypeStyle,
+} from "../constants/workOrderTypes";
 import type { WorkType } from "../types/workItem";
 import { forceCrash, sendCrashlyticsTestEvent } from "../telemetry/crashlytics";
 import { exportTailgateCsv } from "../export/exportTailgate";
@@ -53,7 +62,7 @@ const DEFAULTS: NotificationSettings = {
   notifyTypes: DEFAULT_TYPES,
 };
 
-const COLOR_PREVIEW_TYPES: string[] = ["pothole", "brushing", "culvert", "sign"];
+const COLOR_PREVIEW_TYPES: string[] = getWorkOrderTypePreviewTypes();
 
 export async function getNotificationSettings(): Promise<NotificationSettings> {
   try {
@@ -331,7 +340,7 @@ export default function SettingsScreen() {
           <View style={styles.settingText}>
             <Text style={styles.settingLabel}>Colorblind-friendly colors</Text>
             <Text style={styles.settingDescription}>
-              Uses a higher-contrast work-order color palette.
+              Uses a higher-contrast work-order palette and adds short-code cues in previews and the create chooser.
             </Text>
           </View>
           <Switch
@@ -349,19 +358,23 @@ export default function SettingsScreen() {
         <Text style={styles.previewTitle}>Sample work-order colors</Text>
         <View style={styles.previewWrap}>
           {COLOR_PREVIEW_TYPES.map((sampleType) => {
-            const chipColor = getWorkOrderTypeColor(sampleType, { colorblindMode });
+            const typeStyle = getWorkOrderTypeStyle(sampleType, { colorblindMode });
             return (
               <View
                 key={sampleType}
                 style={[
                   styles.previewChip,
+                  colorblindMode && styles.previewChipColorblind,
                   {
-                    borderColor: chipColor,
-                    backgroundColor: chipColor,
+                    borderColor: getWorkOrderTypeChipBorder(sampleType, { colorblindMode }),
+                    backgroundColor: getWorkOrderTypeChipFill(sampleType, { colorblindMode, selected: true }),
                   },
                 ]}
               >
-                <Text style={styles.previewChipText}>{formatWorkType(sampleType)}</Text>
+                {colorblindMode ? <Text style={styles.previewChipCode}>{typeStyle.shortLabel}</Text> : null}
+                <Text style={[styles.previewChipText, { color: getWorkOrderTypeChipText(sampleType, { colorblindMode, selected: true }) }]}>
+                  {formatWorkType(sampleType)}
+                </Text>
               </View>
             );
           })}
@@ -422,7 +435,22 @@ export default function SettingsScreen() {
 
           {WORK_ORDER_TYPE_OPTIONS.map((t) => (
             <View key={t.key} style={styles.typeRow}>
-              <Text style={styles.typeLabel}>{t.label}</Text>
+              <View style={styles.typeLabelWrap}>
+                <View
+                  style={[
+                    styles.typeSwatch,
+                    {
+                      borderColor: getWorkOrderTypeChipBorder(t.key, { colorblindMode }),
+                      backgroundColor: getWorkOrderTypeChipFill(t.key, { colorblindMode, selected: true }),
+                    },
+                  ]}
+                >
+                  {colorblindMode ? (
+                    <Text style={styles.typeSwatchCode}>{getWorkOrderTypeStyle(t.key, { colorblindMode }).shortLabel.slice(0, 2)}</Text>
+                  ) : null}
+                </View>
+                <Text style={styles.typeLabel}>{getWorkOrderTypeA11yLabel(t.key)}</Text>
+              </View>
               <Switch
                 value={!!settings.notifyTypes?.[t.key]}
                 onValueChange={(v) => updateSetting({
@@ -464,7 +492,22 @@ export default function SettingsScreen() {
 
         {WORK_ORDER_TYPE_OPTIONS.map((option) => (
           <View key={option.key} style={styles.typeRow}>
-            <Text style={styles.typeLabel}>{option.label}</Text>
+            <View style={styles.typeLabelWrap}>
+              <View
+                style={[
+                  styles.typeSwatch,
+                  {
+                    borderColor: getWorkOrderTypeChipBorder(option.key, { colorblindMode }),
+                    backgroundColor: getWorkOrderTypeChipFill(option.key, { colorblindMode, selected: true }),
+                  },
+                ]}
+              >
+                {colorblindMode ? (
+                  <Text style={styles.typeSwatchCode}>{getWorkOrderTypeStyle(option.key, { colorblindMode }).shortLabel.slice(0, 2)}</Text>
+                ) : null}
+              </View>
+              <Text style={styles.typeLabel}>{getWorkOrderTypeA11yLabel(option.key)}</Text>
+            </View>
             <Switch
               value={!!workOrderTypeVisibility[option.key]}
               onValueChange={(next) => {
@@ -947,6 +990,18 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     borderRadius: 999,
     borderWidth: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+  },
+  previewChipColorblind: {
+    borderWidth: 2,
+  },
+  previewChipCode: {
+    color: "#ffffff",
+    fontSize: 10,
+    fontWeight: "900",
+    letterSpacing: 0.4,
   },
   previewChipText: {
     color: "#ffffff",
@@ -1028,6 +1083,27 @@ const styles = StyleSheet.create({
     borderColor: "#e5e7eb",
     borderRadius: 12,
     backgroundColor: "#fafafa",
+  },
+  typeLabelWrap: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    flex: 1,
+    paddingRight: 8,
+  },
+  typeSwatch: {
+    width: 28,
+    height: 28,
+    borderRadius: 999,
+    borderWidth: 1,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  typeSwatchCode: {
+    color: "#ffffff",
+    fontSize: 9,
+    fontWeight: "900",
+    letterSpacing: 0.4,
   },
   typeLabel: {
     fontWeight: "700",

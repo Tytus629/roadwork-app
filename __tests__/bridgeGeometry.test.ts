@@ -1,5 +1,7 @@
 import {
+  buildBridgeRing,
   deriveBridgeCenter,
+  deriveBridgeFootprintMetrics,
   isValidBridgeCornerSet,
   normalizeBridgeCorners,
 } from "../src/utils/bridgeGeometry";
@@ -71,5 +73,36 @@ describe("deriveBridgeCenter", () => {
 
     expect(center.lat).toBe(2);
     expect(center.lng).toBe(2);
+  });
+});
+
+describe("buildBridgeRing", () => {
+  it("closes an open four-corner footprint", () => {
+    const ring = buildBridgeRing([
+      { lat: 0, lng: 0 },
+      { lat: 0, lng: 4 },
+      { lat: 4, lng: 4 },
+      { lat: 4, lng: 0 },
+    ]);
+
+    expect(ring).toHaveLength(5);
+    expect(ring[0]).toEqual(ring[4]);
+  });
+});
+
+describe("deriveBridgeFootprintMetrics", () => {
+  it("returns width, length, and perimeter for a rectangular bridge footprint", () => {
+    const metrics = deriveBridgeFootprintMetrics([
+      { order: 1, lat: 47.0, lng: -122.0 },
+      { order: 2, lat: 47.0, lng: -121.999 },
+      { order: 3, lat: 47.0004, lng: -121.999 },
+      { order: 4, lat: 47.0004, lng: -122.0 },
+    ]);
+
+    expect(metrics.bounds).not.toBeNull();
+    expect(metrics.lengthMeters).not.toBeNull();
+    expect(metrics.widthMeters).not.toBeNull();
+    expect(metrics.perimeterMeters).not.toBeNull();
+    expect((metrics.lengthMeters ?? 0) >= (metrics.widthMeters ?? 0)).toBe(true);
   });
 });

@@ -6,6 +6,8 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { View, Text, ScrollView, StyleSheet, Pressable, Alert } from "react-native";
 import { useFocusEffect, useNavigation } from "@react-navigation/native";
+import AssetBadge from "../components/AssetBadge";
+import { openWorkOrderDetail } from "../navigation/openWorkOrderDetail";
 import { assetsRepo } from "../repositories/assetsRepo";
 import { assetEventsRepo } from "../repositories/assetEventsRepo";
 import { workOrdersRepo } from "../repositories/workOrdersRepo";
@@ -18,17 +20,24 @@ import {
   normalizeMapCoordPair,
 } from "../utils/workOrderGeo";
 import { deriveAssetWorkOrderSeedLocation } from "../utils/assetGeometry";
-import { deriveBridgeCenter, normalizeBridgeCorners } from "../utils/bridgeGeometry";
+import {
+  buildBridgeRing,
+  deriveBridgeCenter,
+  deriveBridgeFootprintMetrics,
+  normalizeBridgeCorners,
+} from "../utils/bridgeGeometry";
 import { hasRolePermission, permissionDeniedMessage } from "../permissions/rolePermissions";
 import { requestMapCreateWorkOrderFromAsset } from "../state/MapCreateWorkOrderEvents";
 import { getDbTick, subscribeDbChanged } from "../state/DbEvents";
 import { formatPersonDisplayName } from "../utils/userIdentity";
+import { assignmentSummaryLabel } from "../utils/workOrderAssignment";
 import {
   logSyncBreadcrumb,
   recordErrorWithContext,
   setCustomKeySafe,
 } from "../telemetry/crashlytics";
 import { getTypeGroup } from "../workOrders/typeGroups";
+import { getAssetTypeLabel } from "../utils/assetTypes";
 
 class AssetDetailRenderBoundary extends React.Component<
   { children: React.ReactNode },
@@ -74,11 +83,7 @@ function SafeView({ children, style }: { children: React.ReactNode; style?: any 
 }
 
 function assetTypeLabel(t: string) {
-  if (t === "SIGN") return "Sign";
-  if (t === "GUARDRAIL") return "Guardrail";
-  if (t === "CULVERT") return "Culvert";
-  if (t === "BRIDGE") return "Bridge";
-  return t;
+  return getAssetTypeLabel(t);
 }
 
 function kindLabel(k: string) {
@@ -125,6 +130,11 @@ function formatDateTime(ts: number) {
   return new Date(ts).toLocaleString();
 }
 
+function formatDateOnly(ts: number | null | undefined) {
+  if (typeof ts !== "number" || !Number.isFinite(ts) || ts <= 0) return "—";
+  return new Date(ts).toLocaleDateString();
+}
+
 function formatDateGroup(ts: number) {
   return new Date(ts).toLocaleDateString(undefined, {
     weekday: "short",
@@ -141,6 +151,42 @@ function statusLabel(status: string | null | undefined) {
   if (v === "Done") return "Completed";
   return v;
 }
+
+function truncateText(value: string, max = 96) {
+  if (value.length <= max) return value;
+  return `${value.slice(0, Math.max(0, max - 1)).trimEnd()}…`;
+}
+
+function workOrderNotePreview(wo: WorkOrder | null | undefined): string | null {
+  if (!wo) return null;
+
+  const details = (wo.details as Record<string, any> | null | undefined) ?? null;
+  const candidates = [
+    wo.note,
+    details?.note,
+    details?.notes,
+    details?.summary,
+    details?.description,
+  ];
+
+  for (const candidate of candidates) {
+    const text = String(candidate ?? "").trim();
+    if (!text) continue;
+    return truncateText(text, 110);
+  }
+
+  return null;
+}
+
+type RepairRow = {
+  workOrderId: string;
+  title: string;
+  eyebrow: string;
+  subtitle: string;
+  assignmentText: string;
+  notePreview: string | null;
+  isCompleted: boolean;
+};
 
 function isCompletedWorkOrderStatus(status: string | null | undefined): boolean {
   const normalized = String(status ?? "").trim().toLowerCase();
@@ -301,11 +347,29 @@ function getCulvertEndpointText(asset: Asset): { inlet: string; outlet: string }
   };
 }
 
+function formatDistanceText(value: number | null | undefined): string {
+  if (typeof value !== "number" || !Number.isFinite(value) || value <= 0) return "—";
+  if (value >= 1000) return `${(value / 1000).toFixed(2)} km`;
+  return `${Math.round(value)} m`;
+}
+
 function getBridgeDetailsDisplay(asset: Asset): {
   cornerCount: number;
   geometryType: string;
   center: { lat: number; lng: number; text: string } | null;
+  centerSource: string;
   centerAvailable: boolean;
+  anchor: { lat: number; lng: number; text: string } | null;
+  anchorSource: string;
+  boundsText: string | null;
+  lengthText: string;
+  widthText: string;
+  perimeterText: string;
+  cornerRows: Array<{ label: string; text: string }>;
+  footprintStatus: string;
+  geometryStorage: string;
+  hasFutureInspectionData: boolean;
+  hasFutureStructureData: boolean;
   hasUsableGeometry: boolean;
   isIncomplete: boolean;
   mapHint: string;
@@ -315,7 +379,19 @@ function getBridgeDetailsDisplay(asset: Asset): {
       cornerCount: 0,
       geometryType: "Unknown",
       center: null,
+      centerSource: "Missing",
       centerAvailable: false,
+      anchor: null,
+      anchorSource: "Missing",
+      boundsText: null,
+      lengthText: "—",
+      widthText: "—",
+      perimeterText: "—",
+      cornerRows: [],
+      footprintStatus: "Geometry unavailable",
+      geometryStorage: "No bridge geometry stored",
+      hasFutureInspectionData: false,
+      hasFutureStructureData: false,
       hasUsableGeometry: false,
       isIncomplete: false,
       mapHint: "",
@@ -346,12 +422,40 @@ function getBridgeDetailsDisplay(asset: Asset): {
   );
   const derivedCenter = !storedCenter && normalizedCorners ? deriveBridgeCenter(normalizedCorners) : null;
   const centerValue = storedCenter ?? derivedCenter;
+  const centerSource = storedCenter ? "Stored center" : derivedCenter ? "Derived from corners" : "Missing";
   const center = centerValue
     ? {
         lat: centerValue.lat,
         lng: centerValue.lng,
         text: `${centerValue.lat.toFixed(6)}, ${centerValue.lng.toFixed(6)}`,
       }
+    : null;
+  const assetAnchor = normalizeMapCoordPair(asset.lat, asset.lng);
+  const anchor = assetAnchor
+    ? {
+        lat: assetAnchor.lat,
+        lng: assetAnchor.lng,
+        text: `${assetAnchor.lat.toFixed(6)}, ${assetAnchor.lng.toFixed(6)}`,
+      }
+    : null;
+
+  const metrics = deriveBridgeFootprintMetrics(normalizedCorners);
+  const boundsText = metrics.bounds
+    ? `${metrics.bounds.minLat.toFixed(6)}, ${metrics.bounds.minLng.toFixed(6)} -> ${metrics.bounds.maxLat.toFixed(6)}, ${metrics.bounds.maxLng.toFixed(6)}`
+    : null;
+  const cornerRows = normalizedCorners
+    ? buildBridgeRing(normalizedCorners)
+        .slice(0, 4)
+        .map((corner, index) => ({
+          label: `Corner ${index + 1}`,
+          text: `${corner.lat.toFixed(6)}, ${corner.lng.toFixed(6)}`,
+        }))
+    : [];
+  const bridgeInspection = rawDetails?.bridgeInspection && typeof rawDetails.bridgeInspection === "object"
+    ? rawDetails.bridgeInspection
+    : null;
+  const bridgeStructure = rawDetails?.bridgeStructure && typeof rawDetails.bridgeStructure === "object"
+    ? rawDetails.bridgeStructure
     : null;
 
   const hasRawCorners = Array.isArray(rawCorners) && rawCorners.length > 0;
@@ -368,7 +472,23 @@ function getBridgeDetailsDisplay(asset: Asset): {
     cornerCount,
     geometryType: normalizedCorners ? "Bridge corners" : "Geometry unavailable",
     center,
+    centerSource,
     centerAvailable: !!center,
+    anchor,
+    anchorSource: anchor ? "Asset anchor" : "Missing",
+    boundsText,
+    lengthText: formatDistanceText(metrics.lengthMeters),
+    widthText: formatDistanceText(metrics.widthMeters),
+    perimeterText: formatDistanceText(metrics.perimeterMeters),
+    cornerRows,
+    footprintStatus: normalizedCorners ? "Ordered 4-corner footprint stored" : isIncomplete ? "Partial corner capture stored" : "No bridge footprint stored",
+    geometryStorage: normalizedCorners
+      ? "details.bridge.geometryKind=bridge_corners with ordered corners and center"
+      : bridgeRaw
+        ? "Bridge detail payload found, but geometry is incomplete"
+        : "No bridge geometry payload found",
+    hasFutureInspectionData: !!bridgeInspection,
+    hasFutureStructureData: !!bridgeStructure,
     hasUsableGeometry,
     isIncomplete,
     mapHint,
@@ -460,9 +580,9 @@ export default function AssetDetailScreen({ route }: any) {
     canCreateWorkOrder && !(asset?.assetType === "BRIDGE" && bridgeSeed != null && !bridgeSeed.ok);
 
   const repairRows = useMemo(() => {
-    if (!asset) return [] as Array<{ workOrderId: string; title: string; subtitle: string }>;
+    if (!asset) return [] as RepairRow[];
 
-    const rows: Array<{ workOrderId: string; title: string; subtitle: string }> = [];
+    const rows: RepairRow[] = [];
     const seen = new Set<string>();
     const repairEventIds = new Set(
       events
@@ -527,12 +647,19 @@ export default function AssetDetailScreen({ route }: any) {
       }
       counts.relevantTypeMatchCount += 1;
 
+      const rowDate = Number(wo.updatedAt ?? wo.createdAt ?? 0);
+      const completed = isCompletedWorkOrderStatus(wo.status);
+
       seen.add(workOrderId);
       counts.dedupedCount += 1;
       rows.push({
         workOrderId,
-        title: `WO ${shortId(workOrderId)} • ${humanizeCode(wo.type)}`,
-        subtitle: `${statusLabel(wo.status)} • ${formatDateTime(wo.updatedAt)}`,
+        title: humanizeCode(wo.type),
+        eyebrow: `WO ${shortId(workOrderId)} • ${statusLabel(wo.status)}`,
+        subtitle: `${completed ? "Completed" : "Updated"} ${formatDateTime(rowDate)}`,
+        assignmentText: `Assigned: ${assignmentSummaryLabel(wo, { unassignedLabel: "Unassigned" })}`,
+        notePreview: workOrderNotePreview(wo),
+        isCompleted: completed,
       });
     }
 
@@ -558,14 +685,10 @@ export default function AssetDetailScreen({ route }: any) {
   const filteredRepairRows = useMemo(() => {
     if (showCompletedRepairWorkOrders) return repairRows;
 
-    return repairRows.filter((row) => {
-      const linked = workOrdersById[row.workOrderId] ?? null;
-      if (!linked) return false;
-      return !isCompletedWorkOrderStatus(linked.status);
-    });
-  }, [repairRows, showCompletedRepairWorkOrders, workOrdersById]);
+    return repairRows.filter((row) => !row.isCompleted);
+  }, [repairRows, showCompletedRepairWorkOrders]);
 
-  const handleOpenLinkedRepair = useCallback(
+  const handleOpenLinkedWorkOrder = useCallback(
     (workOrderId: string) => {
       if (!asset) return;
 
@@ -594,7 +717,22 @@ export default function AssetDetailScreen({ route }: any) {
       }
 
       try {
-        navigation.navigate("WorkItemSheet", { id: workOrderId });
+        const opened = openWorkOrderDetail(navigation, workOrderId, {
+          missingMessage: "This linked work order is not available on this device yet.",
+          errorMessage: "Please try again.",
+        });
+        if (opened) return;
+
+        recordErrorWithContext(new Error("asset repair navigation helper returned false"), {
+          message: "asset repair navigation failed",
+          extras: {
+            sourceScreen: "AssetDetail",
+            navigationTarget: "WorkItemSheet",
+            assetId: asset.id,
+            assetType: asset.assetType,
+            workOrderId,
+          },
+        });
       } catch (error) {
         recordErrorWithContext(error, {
           message: "asset repair navigation failed",
@@ -766,12 +904,55 @@ export default function AssetDetailScreen({ route }: any) {
     asset.assetType === "SIGN"
       ? normalizeSignEntries((asset.details as Record<string, any> | null | undefined) ?? null)
       : [];
+  const assetDisplayName =
+    asset.assetType === "SIGN"
+      ? signEntries[0]?.signLabel ?? asset.subtype ?? assetTypeLabel(asset.assetType)
+      : asset.subtype ?? assetTypeLabel(asset.assetType);
+  const assetHeaderSubtitleParts = [assetTypeLabel(asset.assetType), `Asset ${shortId(asset.id, 12)}`];
+  if (asset.assetType === "SIGN" && signEntries.length > 1) {
+    assetHeaderSubtitleParts.push(`${signEntries.length} mounted signs`);
+  }
+  const assetHeaderSubtitle = assetHeaderSubtitleParts.join(" • ");
 
   return (
     <AssetDetailRenderBoundary>
       <ScrollView style={styles.container} contentContainerStyle={styles.contentContainer}>
         <SafeView>
-          <Text style={styles.title}>{assetTypeLabel(asset.assetType)}</Text>
+          <View style={styles.summaryCard}>
+            <View style={styles.summaryTopRow}>
+              <View style={styles.headerTitleRow}>
+                <AssetBadge asset={asset} size="md" />
+                <View style={styles.headerTextWrap}>
+                  <Text style={styles.summaryEyebrow}>{assetTypeLabel(asset.assetType)}</Text>
+                  <Text style={styles.title}>{assetDisplayName}</Text>
+                  <Text style={styles.summarySubtitle}>{assetHeaderSubtitle}</Text>
+                </View>
+              </View>
+
+              <View style={[styles.statusPill, asset.status === "ACTIVE" ? styles.statusPillActive : styles.statusPillRetired]}>
+                <Text style={styles.statusPillText}>{humanizeCode(asset.status)}</Text>
+              </View>
+            </View>
+
+            <View style={styles.summaryGrid}>
+              <View style={styles.summaryStat}>
+                <Text style={styles.summaryStatLabel}>Created</Text>
+                <Text style={styles.summaryStatValue}>{formatDateOnly(asset.createdAt)}</Text>
+              </View>
+              <View style={styles.summaryStat}>
+                <Text style={styles.summaryStatLabel}>Last Inspection</Text>
+                <Text style={styles.summaryStatValue}>{formatDateOnly(asset.lastInspectionAt)}</Text>
+              </View>
+              <View style={styles.summaryStat}>
+                <Text style={styles.summaryStatLabel}>Last Event</Text>
+                <Text style={styles.summaryStatValue}>{formatDateOnly(asset.lastEventAt)}</Text>
+              </View>
+              <View style={styles.summaryStat}>
+                <Text style={styles.summaryStatLabel}>Linked Work</Text>
+                <Text style={styles.summaryStatValue}>{repairRows.length}</Text>
+              </View>
+            </View>
+          </View>
 
           <Pressable
             onPress={handleCreateWorkOrderForAsset}
@@ -789,7 +970,7 @@ export default function AssetDetailScreen({ route }: any) {
           )}
 
           <View style={styles.row}>
-            <Text style={styles.label}>Subtype</Text>
+            <Text style={styles.label}>{asset.assetType === "BRIDGE" ? "Bridge Name/ID" : "Subtype"}</Text>
             <Text style={styles.value}>{asset.subtype ?? "—"}</Text>
           </View>
 
@@ -814,11 +995,6 @@ export default function AssetDetailScreen({ route }: any) {
           )}
 
           <View style={styles.row}>
-            <Text style={styles.label}>Status</Text>
-            <Text style={styles.value}>{asset.status}</Text>
-          </View>
-
-          <View style={styles.row}>
             <Text style={styles.label}>Location</Text>
             <Text style={styles.value}>
               {asset.lat.toFixed(6)}, {asset.lng.toFixed(6)}
@@ -840,7 +1016,27 @@ export default function AssetDetailScreen({ route }: any) {
 
           {asset.assetType === "BRIDGE" && (
             <View style={styles.bridgeSection}>
-              <Text style={styles.bridgeSectionTitle}>Bridge Geometry</Text>
+              <Text style={styles.bridgeSectionTitle}>Bridge Overview</Text>
+              <Text style={styles.bridgeSummary}>{bridgeDetails.footprintStatus}</Text>
+
+              <View style={styles.bridgeSummaryGrid}>
+                <View style={styles.bridgeSummaryCard}>
+                  <Text style={styles.bridgeSummaryLabel}>Asset record</Text>
+                  <Text style={styles.bridgeSummaryValue}>{shortId(asset.id, 12)}</Text>
+                </View>
+                <View style={styles.bridgeSummaryCard}>
+                  <Text style={styles.bridgeSummaryLabel}>Updated</Text>
+                  <Text style={styles.bridgeSummaryValue}>{formatDateOnly(asset.updatedAt)}</Text>
+                </View>
+                <View style={styles.bridgeSummaryCard}>
+                  <Text style={styles.bridgeSummaryLabel}>Geometry</Text>
+                  <Text style={styles.bridgeSummaryValue}>{bridgeDetails.geometryType}</Text>
+                </View>
+                <View style={styles.bridgeSummaryCard}>
+                  <Text style={styles.bridgeSummaryLabel}>Center source</Text>
+                  <Text style={styles.bridgeSummaryValue}>{bridgeDetails.centerSource}</Text>
+                </View>
+              </View>
 
               {bridgeDetails.hasUsableGeometry ? (
                 <>
@@ -856,42 +1052,76 @@ export default function AssetDetailScreen({ route }: any) {
                     <Text style={styles.label}>Center available</Text>
                     <Text style={styles.value}>{bridgeDetails.centerAvailable ? "Yes" : "No"}</Text>
                   </View>
+                  <View style={styles.row}>
+                    <Text style={styles.label}>Anchor</Text>
+                    <Text style={styles.value}>{bridgeDetails.anchor?.text ?? "—"}</Text>
+                  </View>
+                  <View style={styles.row}>
+                    <Text style={styles.label}>Anchor source</Text>
+                    <Text style={styles.value}>{bridgeDetails.anchorSource}</Text>
+                  </View>
                   {bridgeDetails.center && (
                     <View style={styles.row}>
                       <Text style={styles.label}>Center</Text>
                       <Text style={styles.value}>{bridgeDetails.center.text}</Text>
                     </View>
                   )}
+                  <View style={styles.row}>
+                    <Text style={styles.label}>Approx. length</Text>
+                    <Text style={styles.value}>{bridgeDetails.lengthText}</Text>
+                  </View>
+                  <View style={styles.row}>
+                    <Text style={styles.label}>Approx. width</Text>
+                    <Text style={styles.value}>{bridgeDetails.widthText}</Text>
+                  </View>
+                  <View style={styles.row}>
+                    <Text style={styles.label}>Perimeter</Text>
+                    <Text style={styles.value}>{bridgeDetails.perimeterText}</Text>
+                  </View>
+                  {bridgeDetails.boundsText ? (
+                    <View style={styles.row}>
+                      <Text style={styles.label}>Bounds</Text>
+                      <Text style={styles.valueCompact}>{bridgeDetails.boundsText}</Text>
+                    </View>
+                  ) : null}
+                  {bridgeDetails.cornerRows.length > 0 ? (
+                    <View style={styles.bridgeCornerSection}>
+                      <Text style={styles.bridgeCornerTitle}>Captured Corners</Text>
+                      {bridgeDetails.cornerRows.map((corner) => (
+                        <View key={corner.label} style={styles.row}>
+                          <Text style={styles.label}>{corner.label}</Text>
+                          <Text style={styles.value}>{corner.text}</Text>
+                        </View>
+                      ))}
+                    </View>
+                  ) : null}
+                  <View style={styles.bridgeStorageCard}>
+                    <Text style={styles.bridgeStorageTitle}>Storage</Text>
+                    <Text style={styles.bridgeStorageText}>{bridgeDetails.geometryStorage}</Text>
+                  </View>
                   <Text style={styles.bridgeNote}>{bridgeDetails.mapHint}.</Text>
                 </>
               ) : (
                 <Text style={styles.emptyText}>Geometry unavailable</Text>
               )}
-            </View>
-          )}
 
-          <View style={styles.row}>
-            <Text style={styles.label}>Created</Text>
-            <Text style={styles.value}>
-              {new Date(asset.createdAt).toLocaleDateString()}
-            </Text>
-          </View>
+              <View style={styles.bridgePlaceholderSection}>
+                <Text style={styles.bridgePlaceholderTitle}>Bridge Inspection</Text>
+                <Text style={styles.bridgePlaceholderText}>
+                  {bridgeDetails.hasFutureInspectionData
+                    ? "Bridge inspection fields are present and ready for future display expansion."
+                    : "No bridge inspection fields are stored yet for this asset."}
+                </Text>
+              </View>
 
-          {asset.lastEventAt && (
-            <View style={styles.row}>
-              <Text style={styles.label}>Last Event</Text>
-              <Text style={styles.value}>
-                {new Date(asset.lastEventAt).toLocaleDateString()}
-              </Text>
-            </View>
-          )}
-
-          {asset.lastInspectionAt && (
-            <View style={styles.row}>
-              <Text style={styles.label}>Last Inspection</Text>
-              <Text style={styles.value}>
-                {new Date(asset.lastInspectionAt).toLocaleDateString()}
-              </Text>
+              <View style={styles.bridgePlaceholderSection}>
+                <Text style={styles.bridgePlaceholderTitle}>Bridge Structure Data</Text>
+                <Text style={styles.bridgePlaceholderText}>
+                  {bridgeDetails.hasFutureStructureData
+                    ? "Bridge structure fields are present and ready for future display expansion."
+                    : "No bridge-specific structure attributes are stored yet."}
+                </Text>
+              </View>
             </View>
           )}
 
@@ -913,9 +1143,7 @@ export default function AssetDetailScreen({ route }: any) {
               )}
 
               <Text style={styles.sectionTitle}>
-                {asset.assetType === "BRIDGE"
-                  ? `Linked Bridge Work Orders (${filteredRepairRows.length})`
-                  : `Repair Work Orders (${filteredRepairRows.length})`}
+                {`Linked Work History (${filteredRepairRows.length})`}
               </Text>
 
               {filteredRepairRows.length > 0 && (
@@ -923,18 +1151,22 @@ export default function AssetDetailScreen({ route }: any) {
                   {filteredRepairRows.map((repair) => (
                     <Pressable
                       key={repair.workOrderId}
-                      onPress={() => handleOpenLinkedRepair(repair.workOrderId)}
+                      onPress={() => handleOpenLinkedWorkOrder(repair.workOrderId)}
                       style={styles.repairRow}
                     >
+                      <Text style={styles.repairEyebrow}>{repair.eyebrow}</Text>
                       <Text style={styles.repairTitle}>{repair.title}</Text>
                       <Text style={styles.repairSubtitle}>{repair.subtitle}</Text>
+                      <Text style={styles.repairAssignment}>{repair.assignmentText}</Text>
+                      {repair.notePreview ? <Text style={styles.repairNote}>{repair.notePreview}</Text> : null}
+                      <Text style={styles.repairLinkText}>Open work order</Text>
                     </Pressable>
                   ))}
                 </>
               )}
 
-              {filteredRepairRows.length === 0 && asset.assetType === "BRIDGE" && (
-                <Text style={styles.emptyText}>No linked bridge work orders yet.</Text>
+              {filteredRepairRows.length === 0 && (
+                <Text style={styles.emptyText}>No linked work orders match the current filter.</Text>
               )}
             </View>
           )}
@@ -954,16 +1186,18 @@ export default function AssetDetailScreen({ route }: any) {
                     <View style={styles.timelineDot} />
                   </View>
 
-                  {item.workOrderId && workOrdersById[item.workOrderId] ? (
+                  {item.workOrderId ? (
                     <Pressable
-                      onPress={() => handleOpenLinkedRepair(item.workOrderId!)}
+                      onPress={() => handleOpenLinkedWorkOrder(item.workOrderId!)}
                       style={({ pressed }) => [styles.eventCard, styles.eventCardLink, pressed && styles.eventCardPressed]}
                     >
                       <View style={styles.eventHeader}>
                         <Text style={styles.eventKind}>{item.title}</Text>
                         <View style={styles.eventHeaderRight}>
                           <Text style={styles.eventDate}>{formatDateTime(item.at)}</Text>
-                          <Text style={styles.eventChevron}>{">"}</Text>
+                          <Text style={styles.eventChevron}>
+                            {workOrdersById[item.workOrderId] ? "Open" : "Missing"}
+                          </Text>
                         </View>
                       </View>
 
@@ -979,6 +1213,9 @@ export default function AssetDetailScreen({ route }: any) {
                         <Text style={styles.eventMeta}>Attachments: {item.attachmentsText}</Text>
                       ) : null}
                       {item.notes ? <Text style={styles.eventNotes}>{item.notes}</Text> : null}
+                      {!workOrdersById[item.workOrderId] ? (
+                        <Text style={styles.eventUnavailable}>Linked work order is not downloaded on this device.</Text>
+                      ) : null}
                     </Pressable>
                   ) : (
                     <View style={styles.eventCard}>
@@ -1014,10 +1251,90 @@ export default function AssetDetailScreen({ route }: any) {
 }
 
 const styles = StyleSheet.create({
+  headerTitleRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    flex: 1,
+  },
   container: { flex: 1, padding: 20, backgroundColor: "#fff" },
   contentContainer: { paddingBottom: 8 },
   loading: { flex: 1, justifyContent: "center", alignItems: "center" },
-  title: { fontSize: 24, fontWeight: "bold", color: "#111827", marginBottom: 16 },
+  summaryCard: {
+    borderWidth: 1,
+    borderColor: "#dbeafe",
+    backgroundColor: "#f8fafc",
+    borderRadius: 14,
+    padding: 12,
+    gap: 12,
+    marginBottom: 12,
+  },
+  summaryTopRow: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    justifyContent: "space-between",
+    gap: 12,
+  },
+  headerTextWrap: {
+    flex: 1,
+  },
+  summaryEyebrow: {
+    fontSize: 12,
+    fontWeight: "800",
+    color: "#2563eb",
+    marginBottom: 2,
+  },
+  title: { fontSize: 24, fontWeight: "bold", color: "#111827" },
+  summarySubtitle: {
+    fontSize: 13,
+    color: "#475569",
+    marginTop: 4,
+  },
+  statusPill: {
+    paddingVertical: 6,
+    paddingHorizontal: 10,
+    borderRadius: 999,
+    borderWidth: 1,
+  },
+  statusPillActive: {
+    backgroundColor: "#ecfdf5",
+    borderColor: "#86efac",
+  },
+  statusPillRetired: {
+    backgroundColor: "#f8fafc",
+    borderColor: "#cbd5e1",
+  },
+  statusPillText: {
+    fontSize: 11,
+    fontWeight: "900",
+    color: "#0f172a",
+  },
+  summaryGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 10,
+  },
+  summaryStat: {
+    minWidth: "47%",
+    flexGrow: 1,
+    borderWidth: 1,
+    borderColor: "#e2e8f0",
+    borderRadius: 10,
+    paddingVertical: 9,
+    paddingHorizontal: 10,
+    backgroundColor: "#ffffff",
+  },
+  summaryStatLabel: {
+    fontSize: 11,
+    fontWeight: "800",
+    color: "#64748b",
+    marginBottom: 2,
+  },
+  summaryStatValue: {
+    fontSize: 14,
+    fontWeight: "800",
+    color: "#0f172a",
+  },
   createWoButton: {
     backgroundColor: "#1d4ed8",
     paddingVertical: 10,
@@ -1048,6 +1365,7 @@ const styles = StyleSheet.create({
   },
   label: { fontSize: 14, color: "#64748b", fontWeight: "600" },
   value: { fontSize: 14, color: "#111827" },
+  valueCompact: { flex: 1, textAlign: "right", fontSize: 13, color: "#111827" },
   signSection: { marginBottom: 10 },
   bridgeSection: {
     marginTop: 16,
@@ -1070,6 +1388,78 @@ const styles = StyleSheet.create({
     color: "#334155",
     fontWeight: "700",
     marginBottom: 2,
+  },
+  bridgeSummaryGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 8,
+    marginTop: 8,
+    marginBottom: 8,
+  },
+  bridgeSummaryCard: {
+    minWidth: "47%",
+    flexGrow: 1,
+    borderWidth: 1,
+    borderColor: "#cbd5e1",
+    borderRadius: 10,
+    paddingVertical: 8,
+    paddingHorizontal: 10,
+    backgroundColor: "#ffffff",
+  },
+  bridgeSummaryLabel: {
+    fontSize: 11,
+    fontWeight: "800",
+    color: "#64748b",
+    marginBottom: 2,
+  },
+  bridgeSummaryValue: {
+    fontSize: 13,
+    fontWeight: "800",
+    color: "#0f172a",
+  },
+  bridgeCornerSection: {
+    marginTop: 8,
+  },
+  bridgeCornerTitle: {
+    fontSize: 13,
+    fontWeight: "800",
+    color: "#0f172a",
+    marginBottom: 4,
+  },
+  bridgeStorageCard: {
+    marginTop: 10,
+    borderWidth: 1,
+    borderColor: "#bfdbfe",
+    borderRadius: 10,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    backgroundColor: "#eff6ff",
+  },
+  bridgeStorageTitle: {
+    fontSize: 12,
+    fontWeight: "800",
+    color: "#1d4ed8",
+    marginBottom: 2,
+  },
+  bridgeStorageText: {
+    fontSize: 12,
+    color: "#1e3a8a",
+  },
+  bridgePlaceholderSection: {
+    marginTop: 10,
+    borderTopWidth: 1,
+    borderTopColor: "#dbeafe",
+    paddingTop: 10,
+  },
+  bridgePlaceholderTitle: {
+    fontSize: 13,
+    fontWeight: "800",
+    color: "#0f172a",
+    marginBottom: 4,
+  },
+  bridgePlaceholderText: {
+    fontSize: 12,
+    color: "#475569",
   },
   bridgeNote: {
     fontSize: 12,
@@ -1118,8 +1508,12 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     marginBottom: 8,
   },
+  repairEyebrow: { color: "#334155", fontSize: 11, fontWeight: "800", marginBottom: 3 },
   repairTitle: { color: "#1e3a8a", fontSize: 13, fontWeight: "700" },
   repairSubtitle: { color: "#475569", fontSize: 12, marginTop: 2 },
+  repairAssignment: { color: "#334155", fontSize: 12, fontWeight: "700", marginTop: 2 },
+  repairNote: { color: "#0f172a", fontSize: 12, marginTop: 6 },
+  repairLinkText: { color: "#2563eb", fontSize: 12, fontWeight: "800", marginTop: 8 },
   sectionTitle: {
     fontSize: 18,
     fontWeight: "bold",
@@ -1167,6 +1561,12 @@ const styles = StyleSheet.create({
   },
   eventCardPressed: {
     opacity: 0.86,
+  },
+  eventUnavailable: {
+    marginTop: 8,
+    color: "#b45309",
+    fontSize: 12,
+    fontWeight: "700",
   },
   eventHeader: {
     flexDirection: "row",

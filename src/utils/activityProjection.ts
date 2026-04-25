@@ -43,6 +43,15 @@ function normalizeActionType(raw: string): string {
     .replace(/^_+|_+$/g, "") || "unknown";
 }
 
+function assetEventLifecycleAction(event: AssetEvent): string | null {
+  if (event.kind !== "NOTE") return null;
+  const details = toRecord(event.details);
+  const lifecycleTag = String(details._assetLifecycleTag ?? "").trim().toUpperCase();
+  if (lifecycleTag === "MANUAL_CREATE") return "asset_created";
+  if (lifecycleTag === "AUTO_CREATE_ADDED") return "asset_created";
+  return null;
+}
+
 function buildAssetEventMessage(event: AssetEvent): string {
   const labelByKind: Record<string, string> = {
     INSTALL: "Asset installed",
@@ -77,7 +86,7 @@ function buildActorEmail(source: Record<string, unknown>): string | null {
 export function projectAssetEventToActivity(event: AssetEvent): ActivityProjection {
   const source = toRecord(event);
   const createdAt = Number(event.at ?? event.createdAt ?? Date.now());
-  const actionType = normalizeActionType(event.kind);
+  const actionType = assetEventLifecycleAction(event) ?? normalizeActionType(event.kind);
 
   return {
     id: String(event.id),
@@ -102,9 +111,20 @@ export function projectAssetEventToActivity(event: AssetEvent): ActivityProjecti
 }
 
 export function projectLogEntryToActivity(entry: LogEntry): ActivityProjection {
-  const source = toRecord(entry);
+  const payload = toRecord(entry.payload);
+  const source = {
+    ...payload,
+    ...toRecord(entry),
+  };
   const actionType = normalizeActionType(entry.event);
   const message = String(entry.message ?? "").trim() || String(entry.event ?? "").trim() || "Log event";
+  const targetTypeRaw = String(entry.targetType ?? payload.targetType ?? "").trim().toLowerCase();
+  const targetType: ActivityProjectionTargetType =
+    targetTypeRaw === "asset"
+      ? "asset"
+      : targetTypeRaw === "work_order"
+        ? "work_order"
+        : "work_order";
 
   return {
     id: String(entry.id),
@@ -113,12 +133,13 @@ export function projectLogEntryToActivity(entry: LogEntry): ActivityProjection {
     actorUid: firstNonBlank(source, ["actorUid", "byUid", "uid"]),
     actorName: buildActorName(source),
     actorEmail: buildActorEmail(source),
-    targetType: "work_order",
+    targetType,
     targetId: String(entry.workOrderId ?? "").trim() || null,
     message,
     messageTemplate: `work_order_log.${actionType}`,
     createdAt: Number(entry.createdAt) || Date.now(),
     metadata: {
+      ...payload,
       event: entry.event,
       orgId: entry.orgId ?? null,
     },

@@ -43,12 +43,14 @@
  * 5. Delete button
  */
 
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
+  NativeSyntheticEvent,
   View,
   Text,
   TouchableOpacity,
   TextInput,
+  TextInputSelectionChangeEventData,
   ScrollView,
   Alert,
   Modal,
@@ -105,16 +107,34 @@ import {
   recordErrorWithContext,
   setCustomKeySafe,
 } from "../telemetry/crashlytics";
+import AssignmentPickerModal from "./AssignmentPickerModal";
+import {
+  assignmentSummaryLabel,
+  hasAssignedPerson,
+  toAssignmentPatch,
+  type AssignmentCandidate,
+} from "../utils/workOrderAssignment";
+import { listAssignableOrgMembers } from "../services/orgMembersService";
+import {
+  applyMentionSuggestion,
+  buildMentionSuggestions,
+  getActiveMentionQuery,
+  getMentionSuggestions,
+  type MentionSuggestion,
+} from "../utils/mentions";
 
 export type DraftWorkOrder = {
   type: WorkType;
   point?: { lat: number; lng: number };
   points?: { lat: number; lng: number }[];
   linkedAssetId?: string | null;
-  linkedAssetType?: "SIGN" | "GUARDRAIL" | "CULVERT" | null;
+  linkedAssetType?: "SIGN" | "GUARDRAIL" | "CULVERT" | "BRIDGE" | null;
   status: WorkStatus;
   priority: Priority;
   note?: string | null;
+  assignedToUid?: string | null;
+  assignedToName?: string | null;
+  assignedToEmail?: string | null;
   photos?: WorkPhoto[];
   details?: PavementRepairDetails | Record<string, any> | null;
   signDetails?: {
@@ -378,10 +398,17 @@ export default function WorkItemSheet(props: Props) {
   const [signDetails, setSignDetails] = useState<ReturnType<typeof getSignDetailsByWorkOrderId>>(null);
   const [dbTick, setDbTick] = useState(0);
   const [pickerOpen, setPickerOpen] = useState(false);
+  const [assignmentPickerOpen, setAssignmentPickerOpen] = useState(false);
   const [existingPhotos, setExistingPhotos] = useState<WorkPhoto[]>([]);
   const [remotePhotos, setRemotePhotos] = useState<WorkPhoto[]>([]);
   const [photoBusy, setPhotoBusy] = useState(false);
+  const createDraftInFlightRef = useRef(false);
+  const [createDraftBusy, setCreateDraftBusy] = useState(false);
   const [photoPreviewUri, setPhotoPreviewUri] = useState<string | null>(null);
+  const noteInputRef = useRef<TextInput>(null);
+  const [noteSelection, setNoteSelection] = useState({ start: 0, end: 0 });
+  const [mentionMembers, setMentionMembers] = useState<MentionSuggestion[]>([]);
+  const [mentionError, setMentionError] = useState<string | null>(null);
   const [latestRemoteFetchOutcome, setLatestRemoteFetchOutcome] = useState<{
     status: "idle" | "success" | "failed";
     at: number | null;
@@ -597,6 +624,81 @@ export default function WorkItemSheet(props: Props) {
     if (!wo?.id) return;
     setNoteDraft(wo.note ?? "");
   }, [wo?.id, wo?.note]);
+
+  useEffect(() => {
+    const safeOrgId = String(orgId ?? "").trim();
+    if (!safeOrgId) {
+      setMentionMembers([]);
+      setMentionError(null);
+      return;
+    }
+
+    let cancelled = false;
+    listAssignableOrgMembers(safeOrgId)
+      .then((rows) => {
+        if (cancelled) return;
+        setMentionMembers(buildMentionSuggestions(rows));
+        setMentionError(null);
+      })
+      .catch((error: any) => {
+        if (cancelled) return;
+        setMentionMembers([]);
+        setMentionError(error?.message ?? "Could not load org members for mentions.");
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [orgId]);
+
+  const activeMentionQuery = useMemo(
+    () => getActiveMentionQuery({ text: noteDraft, cursor: noteSelection.start }),
+    [noteDraft, noteSelection.start],
+  );
+
+  const noteMentionSuggestions = useMemo(() => {
+    if (!activeMentionQuery) return [];
+    return getMentionSuggestions({
+      members: mentionMembers,
+      query: activeMentionQuery.query,
+      limit: 5,
+    });
+  }, [activeMentionQuery, mentionMembers]);
+
+  const handleNoteSelectionChange = useCallback(
+    (event: NativeSyntheticEvent<TextInputSelectionChangeEventData>) => {
+      setNoteSelection(event.nativeEvent.selection);
+    },
+    [],
+  );
+
+  const handleSelectMention = useCallback((suggestion: MentionSuggestion) => {
+    if (!activeMentionQuery) return;
+    const next = applyMentionSuggestion({
+      text: noteDraft,
+      range: activeMentionQuery,
+      suggestion,
+    });
+    setNoteDraft(next.text);
+    setNoteSelection({ start: next.cursor, end: next.cursor });
+    if (isDraft && canCreateWorkOrder) {
+      setLocalDraft((prev) => (prev ? { ...prev, note: next.text } : null));
+    }
+
+    requestAnimationFrame(() => {
+      noteInputRef.current?.focus();
+      noteInputRef.current?.setNativeProps({
+        selection: { start: next.cursor, end: next.cursor },
+      });
+    });
+  }, [activeMentionQuery, canCreateWorkOrder, isDraft, noteDraft]);
+
+  const saveNote = useCallback(() => {
+    if (isDraft || !wo || !orgId) return;
+    workOrdersService
+      .patchAndEnqueue({ orgId, id: wo.id, patch: { note: noteDraft } })
+      .catch((e: any) => Alert.alert("Save failed", e?.message ?? "Missing orgId"));
+  }, [isDraft, noteDraft, orgId, wo]);
 
   useEffect(() => {
     if (isDraft || !wo?.id) {
@@ -995,6 +1097,79 @@ export default function WorkItemSheet(props: Props) {
     }
   }
 
+  const assignmentSource = isDraft
+    ? {
+        assignedToUid: localDraft?.assignedToUid ?? null,
+        assignedToName: localDraft?.assignedToName ?? null,
+        assignedToEmail: localDraft?.assignedToEmail ?? null,
+      }
+    : {
+        assignedToUid:
+          wo && typeof wo === "object" && "assignedToUid" in wo
+            ? (wo.assignedToUid ?? null)
+            : null,
+        assignedToName:
+          wo && typeof wo === "object" && "assignedToName" in wo
+            ? (wo.assignedToName ?? null)
+            : null,
+        assignedToEmail:
+          wo && typeof wo === "object" && "assignedToEmail" in wo
+            ? (wo.assignedToEmail ?? null)
+            : null,
+      };
+  const assignedLabel = assignmentSummaryLabel(assignmentSource, { unassignedLabel: "Unassigned" });
+  const assignedEmail = String(assignmentSource?.assignedToEmail ?? "").trim() || null;
+  const showAssignedEmail =
+    !!assignedEmail &&
+    hasAssignedPerson(assignmentSource) &&
+    assignedEmail.toLowerCase() !== assignedLabel.trim().toLowerCase();
+
+  async function handleAssignmentChange(candidate: AssignmentCandidate | null) {
+    if (!canEditCurrentWorkOrder) {
+      showPermissionDenied(isDraft ? "createWorkOrder" : "editWorkOrder");
+      return;
+    }
+    if (!orgId) {
+      Alert.alert("Assignment unavailable", "Select an organization before changing assignment.");
+      return;
+    }
+
+    const patch = toAssignmentPatch(candidate);
+
+    if (isDraft) {
+      setLocalDraft((prev) => {
+        if (!prev) return null;
+        if (
+          (prev.assignedToUid ?? null) === (patch.assignedToUid ?? null) &&
+          (prev.assignedToName ?? null) === (patch.assignedToName ?? null) &&
+          (prev.assignedToEmail ?? null) === (patch.assignedToEmail ?? null)
+        ) {
+          return prev;
+        }
+
+        return {
+          ...prev,
+          assignedToUid: patch.assignedToUid ?? null,
+          assignedToName: patch.assignedToName ?? null,
+          assignedToEmail: patch.assignedToEmail ?? null,
+        };
+      });
+      return;
+    }
+
+    if (!wo) return;
+
+    try {
+      await workOrdersService.patchAndEnqueue({
+        orgId,
+        id: wo.id,
+        patch,
+      });
+    } catch (e: any) {
+      Alert.alert("Assignment failed", e?.message ?? "Could not update assignment.");
+    }
+  }
+
   const detailsSummaryRows = buildDetailsSummaryRows(wo?.details);
   const creatorIdentity = !isDraft && wo && "createdByUid" in wo ? wo : null;
   const creatorLabel = formatWorkOrderCreator(creatorIdentity);
@@ -1012,6 +1187,7 @@ export default function WorkItemSheet(props: Props) {
               Created: {new Date(wo.createdAt).toLocaleDateString()}
             </Text>
             <Text style={styles.subtitle}>Created by: {creatorLabel}</Text>
+            <Text style={styles.subtitle}>Assigned to: {assignedLabel}</Text>
           </View>
           <TouchableOpacity onPress={handleClose} style={styles.closeButton}>
             <Text style={styles.closeButtonText}>X</Text>
@@ -1043,6 +1219,58 @@ export default function WorkItemSheet(props: Props) {
                 onPress={() => changePriority(p)}
               />
             ))}
+          </View>
+
+          <Text style={styles.sectionTitle}>Assigned To</Text>
+          <View style={styles.assignmentCard}>
+            <View style={styles.assignmentInfo}>
+              <Text
+                style={[
+                  styles.assignmentName,
+                  !hasAssignedPerson(assignmentSource) && styles.assignmentNameMuted,
+                ]}
+              >
+                {assignedLabel}
+              </Text>
+              {showAssignedEmail ? <Text style={styles.assignmentMeta}>{assignedEmail}</Text> : null}
+              {!canEditCurrentWorkOrder ? (
+                <Text style={styles.assignmentHint}>Your role cannot change assignment.</Text>
+              ) : !orgId ? (
+                <Text style={styles.assignmentHint}>Select an organization before changing assignment.</Text>
+              ) : (
+                <Text style={styles.assignmentHint}>Assignment updates save through the normal sync queue.</Text>
+              )}
+            </View>
+
+            <View style={styles.assignmentActions}>
+              <TouchableOpacity
+                onPress={() => setAssignmentPickerOpen(true)}
+                disabled={!canEditCurrentWorkOrder || !orgId}
+                style={[
+                  styles.assignmentButton,
+                  (!canEditCurrentWorkOrder || !orgId) && styles.assignmentButtonDisabled,
+                ]}
+              >
+                <Text style={styles.assignmentButtonText}>
+                  {hasAssignedPerson(assignmentSource) ? "Change" : "Assign"}
+                </Text>
+              </TouchableOpacity>
+
+              {hasAssignedPerson(assignmentSource) ? (
+                <TouchableOpacity
+                  onPress={() => {
+                    handleAssignmentChange(null).catch(() => undefined);
+                  }}
+                  disabled={!canEditCurrentWorkOrder || !orgId}
+                  style={[
+                    styles.assignmentGhostButton,
+                    (!canEditCurrentWorkOrder || !orgId) && styles.assignmentButtonDisabled,
+                  ]}
+                >
+                  <Text style={styles.assignmentGhostButtonText}>Clear</Text>
+                </TouchableOpacity>
+              ) : null}
+            </View>
           </View>
 
           {!!detailsSummaryRows.length && !isGuardrail && (
@@ -1544,6 +1772,7 @@ export default function WorkItemSheet(props: Props) {
 
           <Text style={styles.sectionTitle}>Note</Text>
           <TextInput
+            ref={noteInputRef}
             value={noteDraft}
             onChangeText={(text) => {
               setNoteDraft(text);
@@ -1551,18 +1780,43 @@ export default function WorkItemSheet(props: Props) {
                 setLocalDraft(prev => prev ? { ...prev, note: text } : null);
               }
             }}
+            onSelectionChange={handleNoteSelectionChange}
             placeholder="Add a note..."
             multiline
             editable={isDraft ? canCreateWorkOrder : canEditWorkOrder}
             style={styles.noteInput}
           />
+          {activeMentionQuery ? (
+            <View style={styles.mentionAssistCard}>
+              {noteMentionSuggestions.length ? (
+                <>
+                  <Text style={styles.mentionAssistTitle}>Mention someone</Text>
+                  {noteMentionSuggestions.map((suggestion) => (
+                    <TouchableOpacity
+                      key={`${suggestion.uid}:${suggestion.mentionTrigger}`}
+                      onPress={() => handleSelectMention(suggestion)}
+                      style={styles.mentionAssistRow}
+                    >
+                      <View style={styles.mentionAssistCopy}>
+                        <Text style={styles.mentionAssistName}>{suggestion.displayName}</Text>
+                        <Text style={styles.mentionAssistMeta}>
+                          {suggestion.secondaryLabel ?? suggestion.mentionTrigger}
+                        </Text>
+                      </View>
+                      <Text style={styles.mentionAssistToken}>{suggestion.mentionTrigger}</Text>
+                    </TouchableOpacity>
+                  ))}
+                </>
+              ) : mentionError ? (
+                <Text style={styles.mentionAssistEmpty}>{mentionError}</Text>
+              ) : (
+                <Text style={styles.mentionAssistEmpty}>No matching org member for this mention.</Text>
+              )}
+            </View>
+          ) : null}
           {!isDraft && canEditWorkOrder && (
             <TouchableOpacity
-              onPress={() => {
-                workOrdersService
-                  .patchAndEnqueue({ orgId: orgId!, id: wo.id, patch: { note: noteDraft } })
-                  .catch((e: any) => Alert.alert("Save failed", e?.message ?? "Missing orgId"));
-              }}
+              onPress={saveNote}
               style={styles.saveButton}
             >
               <Text style={styles.saveButtonText}>Save Note</Text>
@@ -1580,23 +1834,38 @@ export default function WorkItemSheet(props: Props) {
                 </TouchableOpacity>
                 <TouchableOpacity
                   onPress={() => {
-                    if (props.mode === "draft" && localDraft) {
-                      if (!canCreateWorkOrder) {
-                        showPermissionDenied("createWorkOrder");
-                        return;
-                      }
-                      props.onCreateDraft(localDraft);
+                    if (props.mode !== "draft" || !localDraft) return;
+                    if (!canCreateWorkOrder) {
+                      showPermissionDenied("createWorkOrder");
+                      return;
+                    }
+                    if (createDraftInFlightRef.current) return;
+
+                    createDraftInFlightRef.current = true;
+                    setCreateDraftBusy(true);
+
+                    try {
+                      props.onCreateDraft({
+                        ...localDraft,
+                        note: noteDraft,
+                      });
                       onClose();
+                    } catch (error) {
+                      createDraftInFlightRef.current = false;
+                      setCreateDraftBusy(false);
+                      throw error;
                     }
                   }}
-                  disabled={!canCreateWorkOrder}
+                  disabled={!canCreateWorkOrder || createDraftBusy}
                   style={[
                     styles.actionButton,
                     styles.createButton,
-                    !canCreateWorkOrder && styles.photoActionButtonDisabled,
+                    (!canCreateWorkOrder || createDraftBusy) && styles.photoActionButtonDisabled,
                   ]}
                 >
-                  <Text style={styles.createButtonText}>Create Work Order</Text>
+                  <Text style={styles.createButtonText}>
+                    {createDraftBusy ? "Creating..." : "Create Work Order"}
+                  </Text>
                 </TouchableOpacity>
               </>
             ) : (
@@ -1680,6 +1949,16 @@ export default function WorkItemSheet(props: Props) {
         </ScrollView>
       </View>
     </Modal>
+    <AssignmentPickerModal
+      visible={assignmentPickerOpen}
+      orgId={orgId}
+      selectedUid={assignmentSource?.assignedToUid ?? null}
+      onClose={() => setAssignmentPickerOpen(false)}
+      onSelect={(candidate) => {
+        setAssignmentPickerOpen(false);
+        handleAssignmentChange(candidate).catch(() => undefined);
+      }}
+    />
     <Modal
       visible={!!photoPreviewUri}
       transparent
@@ -1802,6 +2081,122 @@ const styles = StyleSheet.create({
     minHeight: 90,
     textAlignVertical: "top",
     fontSize: 15,
+  },
+  mentionAssistCard: {
+    marginTop: 10,
+    borderWidth: 1,
+    borderColor: "#cbd5e1",
+    borderRadius: 12,
+    backgroundColor: "#f8fafc",
+    overflow: "hidden",
+  },
+  mentionAssistTitle: {
+    paddingHorizontal: 12,
+    paddingTop: 10,
+    paddingBottom: 4,
+    fontSize: 12,
+    fontWeight: "800",
+    color: "#334155",
+  },
+  mentionAssistRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    gap: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    borderTopWidth: 1,
+    borderTopColor: "#e2e8f0",
+  },
+  mentionAssistCopy: {
+    flex: 1,
+  },
+  mentionAssistName: {
+    fontSize: 14,
+    fontWeight: "800",
+    color: "#0f172a",
+  },
+  mentionAssistMeta: {
+    marginTop: 2,
+    fontSize: 12,
+    color: "#64748b",
+  },
+  mentionAssistToken: {
+    fontSize: 12,
+    fontWeight: "800",
+    color: "#1d4ed8",
+  },
+  mentionAssistEmpty: {
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    fontSize: 12,
+    color: "#64748b",
+  },
+  assignmentCard: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    gap: 12,
+    padding: 14,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: "#e5e7eb",
+    backgroundColor: "#f8fafc",
+  },
+  assignmentInfo: {
+    flex: 1,
+  },
+  assignmentName: {
+    fontSize: 15,
+    fontWeight: "800",
+    color: "#0f172a",
+  },
+  assignmentNameMuted: {
+    color: "#64748b",
+  },
+  assignmentMeta: {
+    marginTop: 4,
+    fontSize: 12,
+    color: "#475569",
+  },
+  assignmentHint: {
+    marginTop: 6,
+    fontSize: 12,
+    color: "#64748b",
+  },
+  assignmentActions: {
+    justifyContent: "center",
+    alignItems: "flex-end",
+    gap: 8,
+  },
+  assignmentButton: {
+    minWidth: 86,
+    paddingVertical: 10,
+    paddingHorizontal: 14,
+    borderRadius: 10,
+    backgroundColor: "#0f172a",
+    alignItems: "center",
+  },
+  assignmentButtonDisabled: {
+    opacity: 0.45,
+  },
+  assignmentButtonText: {
+    fontSize: 12,
+    fontWeight: "900",
+    color: "white",
+  },
+  assignmentGhostButton: {
+    minWidth: 86,
+    paddingVertical: 9,
+    paddingHorizontal: 14,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: "#cbd5e1",
+    backgroundColor: "white",
+    alignItems: "center",
+  },
+  assignmentGhostButtonText: {
+    fontSize: 12,
+    fontWeight: "900",
+    color: "#0f172a",
   },
   photoActionRow: {
     flexDirection: "row",

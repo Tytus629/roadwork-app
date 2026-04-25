@@ -52,6 +52,26 @@ function enqueueOutbox(orgId: string, kind: string, entityId: string, payload: a
 // ─── Public interface ─────────────────────────────────────────────────
 
 export const assetEventsRepo = {
+  async listRecentForOrg({
+    orgId,
+    limit = 100,
+  }: {
+    orgId: string;
+    limit?: number;
+  }): Promise<AssetEvent[]> {
+    const r = db.executeSync(
+      `
+      SELECT *
+      FROM asset_events
+      WHERE orgId = ?
+      ORDER BY at DESC
+      LIMIT ?
+      `,
+      [orgId, limit],
+    );
+    return rowsToArray(r?.rows).map(mapRow);
+  },
+
   async listForAsset({
     orgId,
     assetId,

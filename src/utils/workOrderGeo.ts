@@ -177,7 +177,7 @@ function extractBridgeCorners(details: any): Array<MapCoord> | null {
         corner?.lng ?? corner?.lon ?? corner?.longitude,
       ),
     )
-    .filter((p): p is MapCoord => !!p);
+    .filter((p: MapCoord | null): p is MapCoord => !!p);
 
   if (parsed.length !== 4) return null;
   return parsed;

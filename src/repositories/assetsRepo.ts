@@ -9,6 +9,13 @@ import { Asset } from "../types/Asset";
 import { encodeDetails, decodeDetails } from "./detailsCodec";
 import { safeJsonStringify } from "./repoUtils";
 
+export type AssetInspectionDueMode =
+  | "overdue_default"
+  | "overdue_30d"
+  | "overdue_1y"
+  | "overdue_5y"
+  | "never_inspected";
+
 // ─── Helpers ─────────────────────────────────────────────────────────
 
 function rowsToArray(rows: any): any[] {
@@ -45,6 +52,17 @@ function mapRow(r: any): Asset {
 
     details: decodeDetails(r.detailsJson),
   };
+}
+
+function cutoffForInspectionMode(mode: AssetInspectionDueMode): number | null {
+  const now = Date.now();
+  const day = 24 * 60 * 60 * 1000;
+
+  if (mode === "overdue_30d") return now - 30 * day;
+  if (mode === "overdue_1y") return now - 365 * day;
+  if (mode === "overdue_5y") return now - 365 * 5 * day;
+  if (mode === "overdue_default") return now - 365 * 2 * day;
+  return null;
 }
 
 function enqueueOutbox(orgId: string, kind: string, entityId: string, payload: any) {
@@ -150,6 +168,45 @@ export const assetsRepo = {
     args.push(lat, lat, lng, lng);
 
     const r = db.executeSync(sql, args);
+    return rowsToArray(r?.rows).map(mapRow);
+  },
+
+  async listInspectableDue({
+    orgId,
+    mode = "overdue_default",
+    limit = 2000,
+  }: {
+    orgId: string;
+    mode?: AssetInspectionDueMode;
+    limit?: number;
+  }): Promise<Asset[]> {
+    const cutoff = cutoffForInspectionMode(mode);
+    const params: any[] = [orgId];
+    let inspectionClause = "lastInspectionAt IS NULL";
+
+    if (mode !== "never_inspected") {
+      inspectionClause = "(lastInspectionAt IS NULL OR lastInspectionAt < ?)";
+      params.push(cutoff);
+    }
+
+    params.push(limit);
+
+    const r = db.executeSync(
+      `
+      SELECT *
+      FROM assets
+      WHERE orgId = ?
+        AND status = 'ACTIVE'
+        AND ${inspectionClause}
+      ORDER BY
+        CASE WHEN lastInspectionAt IS NULL THEN 0 ELSE 1 END ASC,
+        lastInspectionAt ASC,
+        updatedAt DESC
+      LIMIT ?
+      `,
+      params,
+    );
+
     return rowsToArray(r?.rows).map(mapRow);
   },
 
