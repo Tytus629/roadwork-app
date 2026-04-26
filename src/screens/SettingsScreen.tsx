@@ -44,6 +44,8 @@ import {
 } from "../settings/workOrderTypeVisibility";
 import DeviceInfo from "react-native-device-info";
 import { getEmulatorConnectionInfo, getRecommendedMetroHost } from "../firebase/emulators";
+import { getDevFunctionUrl } from "../firebase/devFunctionsHttp";
+import { getGlobalWorkOrderPhotoDevDiagnostics } from "../services/workOrderPhotosService";
 
 const KEY = "settings.notifications.v1";
 
@@ -128,8 +130,19 @@ export default function SettingsScreen() {
     hasRolePermission("createDmi", role) ||
     hasRolePermission("createCounter", role);
   const authUid = getAuth(getApp()).currentUser?.uid ?? null;
+  const authEmail = getAuth(getApp()).currentUser?.email ?? null;
   const isSimulatorOrEmulator = DeviceInfo.isEmulatorSync();
   const devConn = getEmulatorConnectionInfo();
+  const devFunctionsBase = (() => {
+    try {
+      const full = getDevFunctionUrl("roadwork_devBootstrapOrg");
+      const idx = full.indexOf("/us-central1/");
+      return idx >= 0 ? full.slice(0, idx) : full;
+    } catch {
+      return "unavailable";
+    }
+  })();
+  const globalPhotoDiag = __DEV__ ? getGlobalWorkOrderPhotoDevDiagnostics() : null;
 
   useEffect(() => {
     (async () => {
@@ -595,11 +608,43 @@ export default function SettingsScreen() {
             <Text style={styles.devInfoTitle}>Runtime Diagnostics</Text>
             <Text style={styles.devInfoLine}>Platform: {Platform.OS}</Text>
             <Text style={styles.devInfoLine}>Simulator/Emulator: {isSimulatorOrEmulator ? "yes" : "no"}</Text>
-            <Text style={styles.devInfoLine}>Org ID: {orgId ?? "none"}</Text>
-            <Text style={styles.devInfoLine}>User ID: {authUid ?? "none"}</Text>
-            <Text style={styles.devInfoLine}>DEV Host: {devConn.selectedHost}</Text>
+            <Text style={styles.devInfoLine}>Device mode: {devConn.mode}</Text>
+            <Text style={styles.devInfoLine}>ADB reverse expected: {devConn.adbReverseAssumed ? "yes" : "no"}</Text>
+            <Text style={styles.devInfoLine}>Current orgId: {orgId ?? "none"}</Text>
+            <Text style={styles.devInfoLine}>Current uid: {authUid ?? "none"}</Text>
+            <Text style={styles.devInfoLine}>Current email: {authEmail ?? "none"}</Text>
+            <Text style={styles.devInfoLine}>Firebase emulator host: {devConn.selectedHost}</Text>
+            <Text style={styles.devInfoLine}>Functions URL base: {devFunctionsBase}</Text>
             <Text style={styles.devInfoLine}>Functions Target: {devConn.functionsTarget}</Text>
-            <Text style={styles.devInfoLine}>Metro Host Hint: {getRecommendedMetroHost()}:2468</Text>
+            <Text style={styles.devInfoLine}>Firestore Target: {devConn.firestoreTarget}</Text>
+            <Text style={styles.devInfoLine}>Auth Target: {devConn.authUrl}</Text>
+            <Text style={styles.devInfoLine}>Storage Target: {devConn.storageTarget}</Text>
+            <Text style={styles.devInfoLine}>Metro Host Hint: {getRecommendedMetroHost()}</Text>
+            <Text style={styles.devInfoLine}>Metro Port: 2468</Text>
+            <Text style={styles.devInfoLine}>Photo sync debug: Work Order details to DEV Photo Sync Diagnostics</Text>
+            <Text style={styles.devInfoLine}>Photo last WO: {globalPhotoDiag?.lastOpenedWorkOrderId ?? "n/a"}</Text>
+            <Text style={styles.devInfoLine}>Photo upload status: {globalPhotoDiag?.latestUploadStatus ?? "idle"}</Text>
+            <Text style={styles.devInfoLine}>Photo upload error code: {globalPhotoDiag?.latestUploadErrorCode ?? "n/a"}</Text>
+            <Text style={styles.devInfoLine}>Photo upload error message: {globalPhotoDiag?.latestUploadErrorMessage ?? "none"}</Text>
+            <Text style={styles.devInfoLine}>Photo upload storage path: {globalPhotoDiag?.latestUploadStoragePath ?? "n/a"}</Text>
+            <Text style={styles.devInfoLine}>Photo upload orgId: {globalPhotoDiag?.latestSelectedOrgId ?? "n/a"}</Text>
+            <Text style={styles.devInfoLine}>Photo upload auth UID: {globalPhotoDiag?.latestAuthUid ?? "n/a"}</Text>
+            <Text style={styles.devInfoLine}>Photo upload auth email: {globalPhotoDiag?.latestAuthEmail ?? "n/a"}</Text>
+            <Text style={styles.devInfoLine}>Photo upload dev emulator mode: {globalPhotoDiag?.latestDevEmulatorModeActive == null ? "n/a" : globalPhotoDiag.latestDevEmulatorModeActive ? "yes" : "no"}</Text>
+            <Text style={styles.devInfoLine}>Photo upload URI: {globalPhotoDiag?.latestUploadLocalUri ?? "n/a"}</Text>
+            <Text style={styles.devInfoLine}>Photo upload URI scheme: {globalPhotoDiag?.latestUploadUriScheme ?? "n/a"}</Text>
+            <Text style={styles.devInfoLine}>Attachment write status: {globalPhotoDiag?.latestAttachmentWriteStatus ?? "idle"}</Text>
+            <Text style={styles.devInfoLine}>Attachment write error: {globalPhotoDiag?.latestAttachmentWriteErrorMessage ?? "none"}</Text>
+            <Text style={styles.devInfoLine}>Attachment count(last): {globalPhotoDiag?.latestRemoteAttachmentCount ?? "n/a"}</Text>
+            <Text style={styles.devInfoLine}>Photo diag error: {globalPhotoDiag?.latestRemoteFetchError ?? "none"}</Text>
+            <Text style={styles.devInfoLine}>Photo storage emulator host: {globalPhotoDiag?.latestStorageEmulatorHost ?? "n/a"}</Text>
+            <Text style={styles.devInfoLine}>Photo storage target: {globalPhotoDiag?.latestStorageEmulatorTarget ?? "n/a"}</Text>
+            <Text style={styles.devInfoLine}>Photo storage bucket: {globalPhotoDiag?.latestStorageBucket ?? "n/a"}</Text>
+            <Text style={styles.devInfoLine}>Photo storage app: {globalPhotoDiag?.latestStorageAppName ?? "n/a"}</Text>
+            <Text style={styles.devInfoLine}>Photo storage library: {globalPhotoDiag?.latestStorageLibrary ?? "n/a"}</Text>
+            <Text style={styles.devInfoLine}>Membership exists: {globalPhotoDiag?.latestMembershipDocExists == null ? "n/a" : globalPhotoDiag.latestMembershipDocExists ? "true" : "false"}</Text>
+            <Text style={styles.devInfoLine}>Membership status/role/active: {(globalPhotoDiag?.latestMembershipStatus ?? "n/a") + " / " + (globalPhotoDiag?.latestMembershipRole ?? "n/a") + " / " + (globalPhotoDiag?.latestMembershipActive ?? "n/a")}</Text>
+            <Text style={styles.devInfoLine}>Membership warning: {globalPhotoDiag?.latestMembershipWarning ?? "none"}</Text>
           </View>
           
           <Button

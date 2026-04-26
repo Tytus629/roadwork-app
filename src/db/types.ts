@@ -1,4 +1,4 @@
-import type { WorkOrderDetails } from "../types/WorkOrder";
+import type { WorkOrderAttachment, WorkOrderDetails } from "../types/WorkOrder";
 
 export type WorkStatus = "Needs" | "In Progress" | "Done" | "Deferred";
 export type Priority = "None" | "Low" | "Medium" | "High" | "Urgent";
@@ -43,6 +43,7 @@ export type WorkOrderRow = {
   } | null;
 
   details?: WorkOrderDetails | null;
+  attachments?: WorkOrderAttachment[] | null;
 };
 
 export type SignDetailsRow = {

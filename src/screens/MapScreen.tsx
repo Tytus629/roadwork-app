@@ -1717,7 +1717,7 @@ export default function MapScreen() {
       // 2b) Persist draft photos once a real work-order id exists
       if (draft.photos?.length) {
         for (const photo of draft.photos) {
-          addWorkOrderPhoto({ workOrderId: itemId, photo });
+          await addWorkOrderPhoto({ workOrderId: itemId, photo });
         }
       }
 

@@ -37,7 +37,7 @@ export function workOrderPhotoPath(args: {
   workOrderId: string;
   fileName: string;
 }): string {
-  return `${orgRoot(args.orgId)}/workOrders/${cleanSegment(args.workOrderId, "workOrderId")}/photos/${cleanFileName(args.fileName)}`;
+  return `${orgRoot(args.orgId)}/workOrders/${cleanSegment(args.workOrderId, "workOrderId")}/${cleanFileName(args.fileName)}`;
 }
 
 export function assetPhotoPath(args: {
@@ -124,6 +124,16 @@ export function assertOrgScopedPathsInPayload(orgIdRaw: string, payload: unknown
       }
       if (typeof x.entityId !== "string" || !x.entityId.trim()) {
         throw new Error("Upload metadata must include entityId.");
+      }
+    }
+  }
+
+  if (Array.isArray(p.attachments)) {
+    for (const attachment of p.attachments) {
+      if (!attachment || typeof attachment !== "object") continue;
+      const x = attachment as Record<string, unknown>;
+      if (typeof x.storagePath === "string") {
+        assertOrgScopedStoragePath(orgIdRaw, x.storagePath);
       }
     }
   }

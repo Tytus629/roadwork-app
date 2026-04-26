@@ -22,6 +22,7 @@ import DeviceInfo from "react-native-device-info";
 
 let _didConnect = false;
 let _emulatorHost = "localhost";
+const GLOBAL_EMULATOR_CONNECTED_KEY = "__WAYCREW_FIREBASE_EMULATORS_CONNECTED__";
 
 /**
  * Dev-only emulator toggle.
@@ -49,6 +50,7 @@ type ResolvedDevConnection = {
     | "ios_simulator"
     | "ios_device_usb_or_lan"
     | "ios_or_other";
+  hostStrategy: string;
   selectedHost: string;
   adbReverseAssumed: boolean;
   authUrl: string;
@@ -72,9 +74,26 @@ const DEV_ANDROID_EMULATOR_HOST = "10.0.2.2";
 const DEV_ANDROID_DEVICE_HOST_STRATEGY: AndroidDeviceHostStrategy = "adb_reverse_localhost";
 const DEV_ANDROID_DEVICE_LAN_HOST = "192.168.1.37";
 
-const DEV_IOS_SIMULATOR_HOST = "localhost";
+const DEV_IOS_SIMULATOR_HOST = "127.0.0.1";
 const DEV_IOS_DEVICE_HOST_STRATEGY: IOSDeviceHostStrategy = "lan";
 const DEV_IOS_DEVICE_LAN_HOST = "192.168.1.37";
+
+function wasEmulatorConnectedGlobally(): boolean {
+  return (globalThis as any)[GLOBAL_EMULATOR_CONNECTED_KEY] === true;
+}
+
+function markEmulatorConnectedGlobally() {
+  (globalThis as any)[GLOBAL_EMULATOR_CONNECTED_KEY] = true;
+}
+
+function isAlreadyConnectedError(err: unknown): boolean {
+  const msg = String((err as any)?.message ?? err ?? "").toLowerCase();
+  return (
+    msg.includes("already") ||
+    msg.includes("cannot be changed") ||
+    msg.includes("has already been called")
+  );
+}
 
 function detectAndroidEmulatorHeuristic(): boolean {
   const constants = (Platform.constants ?? {}) as Record<string, unknown>;
@@ -130,6 +149,7 @@ function resolveDevConnection(hostOverride?: string): ResolvedDevConnection {
       enabled: false,
       platform: Platform.OS,
       mode: "ios_or_other",
+      hostStrategy: explicitHost ? "explicit_override" : "disabled_non_dev_or_flag_off",
       selectedHost,
       adbReverseAssumed: false,
       authUrl: `http://${selectedHost}:9099`,
@@ -141,6 +161,7 @@ function resolveDevConnection(hostOverride?: string): ResolvedDevConnection {
 
   let mode: ResolvedDevConnection["mode"] = "ios_or_other";
   let selectedHost = explicitHost || "localhost";
+  let hostStrategy = explicitHost ? "explicit_override" : "default_localhost";
   let adbReverseAssumed = false;
 
   if (!explicitHost && Platform.OS === "android") {
@@ -148,13 +169,16 @@ function resolveDevConnection(hostOverride?: string): ResolvedDevConnection {
 
     if (mode === "android_emulator") {
       selectedHost = DEV_ANDROID_EMULATOR_HOST;
+      hostStrategy = "android_emulator_10_0_2_2";
       adbReverseAssumed = false;
     } else {
       if (DEV_ANDROID_DEVICE_HOST_STRATEGY === "adb_reverse_localhost") {
         selectedHost = "127.0.0.1";
+        hostStrategy = "android_device_adb_reverse_localhost";
         adbReverseAssumed = true;
       } else {
         selectedHost = DEV_ANDROID_DEVICE_LAN_HOST;
+        hostStrategy = "android_device_lan";
         adbReverseAssumed = false;
       }
     }
@@ -164,13 +188,16 @@ function resolveDevConnection(hostOverride?: string): ResolvedDevConnection {
 
     if (isSimulator) {
       selectedHost = DEV_IOS_SIMULATOR_HOST;
+      hostStrategy = "ios_simulator_loopback";
       adbReverseAssumed = false;
     } else {
       if (DEV_IOS_DEVICE_HOST_STRATEGY === "localhost_tunneled") {
         selectedHost = "127.0.0.1";
+        hostStrategy = "ios_device_tunneled_localhost";
         adbReverseAssumed = true;
       } else {
         selectedHost = DEV_IOS_DEVICE_LAN_HOST;
+        hostStrategy = "ios_device_lan";
         adbReverseAssumed = false;
       }
     }
@@ -180,6 +207,7 @@ function resolveDevConnection(hostOverride?: string): ResolvedDevConnection {
     enabled: true,
     platform: Platform.OS,
     mode,
+    hostStrategy,
     selectedHost,
     adbReverseAssumed,
     authUrl: `http://${selectedHost}:9099`,
@@ -214,6 +242,13 @@ export function connectToEmulatorsIfDev(hostOverride?: string) {
     return;
   }
 
+  if (wasEmulatorConnectedGlobally()) {
+    _didConnect = true;
+    _emulatorHost = resolved.selectedHost;
+    console.log("[Emulators] Already connected (global flag)");
+    return;
+  }
+
   _emulatorHost = resolved.selectedHost;
 
   if (getApps().length === 0) {
@@ -236,19 +271,65 @@ export function connectToEmulatorsIfDev(hostOverride?: string) {
 
     // Auth FIRST
     const authInst = getAuth(app);
-    connectAuthEmulator(authInst, resolved.authUrl, {
-      disableWarnings: true,
-    });
+    try {
+      connectAuthEmulator(authInst, resolved.authUrl, {
+        disableWarnings: true,
+      });
+    } catch (authErr) {
+      if (!isAlreadyConnectedError(authErr)) throw authErr;
+    }
 
-    connectFirestoreEmulator(getFirestore(app), resolved.selectedHost, 8080);
-    connectFunctionsEmulator(getFunctions(app), resolved.selectedHost, 5001);
-    connectStorageEmulator(getStorage(app), resolved.selectedHost, 9199);
+    try {
+      connectFirestoreEmulator(getFirestore(app), resolved.selectedHost, 8080);
+    } catch (firestoreErr) {
+      if (!isAlreadyConnectedError(firestoreErr)) throw firestoreErr;
+    }
+
+    try {
+      connectFunctionsEmulator(getFunctions(app), resolved.selectedHost, 5001);
+    } catch (functionsErr) {
+      if (!isAlreadyConnectedError(functionsErr)) throw functionsErr;
+    }
+
+    try {
+      connectStorageEmulator(getStorage(app), resolved.selectedHost, 9199);
+    } catch (storageErr) {
+      if (!isAlreadyConnectedError(storageErr)) throw storageErr;
+    }
 
     _didConnect = true;
+    markEmulatorConnectedGlobally();
+    console.log("[Emulators] Firebase emulator mode enabled", {
+      platform: resolved.platform,
+      mode: resolved.mode,
+      hostStrategy: resolved.hostStrategy,
+      adbReverseAssumed: resolved.adbReverseAssumed,
+    });
+    console.log("[Emulators] Auth target", {
+      host: resolved.selectedHost,
+      port: 9099,
+      url: resolved.authUrl,
+    });
+    console.log("[Emulators] Firestore target", {
+      host: resolved.selectedHost,
+      port: 8080,
+      target: resolved.firestoreTarget,
+    });
+    console.log("[Emulators] Functions target", {
+      host: resolved.selectedHost,
+      port: 5001,
+      target: resolved.functionsTarget,
+    });
+    console.log("[Emulators] Storage target", {
+      host: resolved.selectedHost,
+      port: 9199,
+      target: resolved.storageTarget,
+    });
     console.log("[Emulators] Connected", {
       enabled: resolved.enabled,
       platform: resolved.platform,
       mode: resolved.mode,
+      hostStrategy: resolved.hostStrategy,
       host: resolved.selectedHost,
       adbReverseAssumed: resolved.adbReverseAssumed,
       authUrl: resolved.authUrl,

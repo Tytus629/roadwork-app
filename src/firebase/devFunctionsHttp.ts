@@ -91,6 +91,10 @@ function summarizeUpsertWorkOrderWireRequest(functionName: string, payload: Reco
         ? Object.keys(payload).sort()
         : [],
     detailsKeys: details ? Object.keys(details).sort() : [],
+    attachmentsCount: Array.isArray(payload?.attachments) ? payload.attachments.length : 0,
+    attachmentsStoragePaths: Array.isArray(payload?.attachments)
+      ? payload.attachments.map((a: any) => a?.storagePath).filter(Boolean)
+      : [],
     assetLinkageFields: linkage ? Object.keys(linkage).sort() : [],
     hasAssetRef: !!assetRef,
     assetRefFields: assetRef ? Object.keys(assetRef).sort() : [],

@@ -11,14 +11,26 @@
 //   deviceId, appVersion,
 //   assetId, assetMatchJson
 
-import { db, ensureWorkOrdersOrgIdColumn } from "../db/db";
+import { addColumnIfMissing, db, ensureWorkOrdersOrgIdColumn } from "../db/db";
 import { withTxSync } from "../db/tx";
-import { WorkOrder } from "../types/WorkOrder";
+import { WorkOrder, WorkOrderAttachment } from "../types/WorkOrder";
 import { decodeDetails, encodeDetails } from "./detailsCodec";
 import { safeJsonParse, safeJsonStringify } from "./repoUtils";
 import { requireOrgId } from "../org/requireOrg";
+import { normalizeWorkOrderAttachments } from "../workOrders/attachments";
 
 let orgIdColumnCheckDone = false;
+let attachmentsColumnCheckDone = false;
+
+function ensureAttachmentsColumnReady() {
+  if (attachmentsColumnCheckDone) return;
+  try {
+    addColumnIfMissing("work_orders", "attachmentsJson", "TEXT");
+    attachmentsColumnCheckDone = true;
+  } catch (e) {
+    console.warn("[DB][runtime] Failed ensuring work_orders.attachmentsJson", e);
+  }
+}
 
 function ensureOrgIdColumnReady(context: string) {
   if (orgIdColumnCheckDone) return;
@@ -78,6 +90,7 @@ function bboxFromLine(points: { lat: number; lng: number }[]) {
 function mapRowToWorkOrder(r: any): WorkOrder {
   const assetMatch = safeJsonParse<WorkOrder["assetMatch"]>(r.assetMatchJson, null);
   const line = safeJsonParse<{ lat: number; lng: number }[] | null>(r.lineJson, null);
+  const attachmentsRaw = safeJsonParse<WorkOrderAttachment[] | null>(r.attachmentsJson, null);
   const orgId = requireOrgId(r.orgId);
 
   return {
@@ -120,6 +133,10 @@ function mapRowToWorkOrder(r: any): WorkOrder {
     assetMatch: assetMatch ?? null,
 
     details: decodeDetails(r.detailsJson),
+    attachments: normalizeWorkOrderAttachments(attachmentsRaw, {
+      orgId,
+      workOrderId: String(r.id),
+    }),
   };
 }
 
@@ -160,6 +177,7 @@ export type WorkOrdersRepo = {
         | "details"
         | "assetId"
         | "assetMatch"
+        | "attachments"
         | "updatedAt"
         | "createdByUid"
         | "createdByEmail"
@@ -179,6 +197,7 @@ export type WorkOrdersRepo = {
 export const workOrdersRepo: WorkOrdersRepo = {
   async getById({ orgId, id }) {
     ensureOrgIdColumnReady("repositories.getById");
+    ensureAttachmentsColumnReady();
     const safeOrgId = requireOrgId(orgId);
     const r = db.executeSync(
       `SELECT * FROM work_orders WHERE orgId = ? AND id = ? LIMIT 1`,
@@ -191,6 +210,7 @@ export const workOrdersRepo: WorkOrdersRepo = {
 
   async listForAsset({ orgId, assetId, limit = 250 }) {
     ensureOrgIdColumnReady("repositories.listForAsset");
+    ensureAttachmentsColumnReady();
     const safeOrgId = requireOrgId(orgId);
     const r = db.executeSync(
       `
@@ -209,6 +229,7 @@ export const workOrdersRepo: WorkOrdersRepo = {
 
   async getInViewport({ orgId, minLat, minLng, maxLat, maxLng, limit = 500 }) {
     ensureOrgIdColumnReady("repositories.getInViewport");
+    ensureAttachmentsColumnReady();
     const safeOrgId = requireOrgId(orgId);
     // bbox overlap: NOT (maxLat < viewMin OR minLat > viewMax …)
     const r = db.executeSync(
@@ -231,10 +252,16 @@ export const workOrdersRepo: WorkOrdersRepo = {
 
   async upsert(wo) {
     ensureOrgIdColumnReady("repositories.upsert");
+    ensureAttachmentsColumnReady();
     const safeOrgId = requireOrgId(wo.orgId);
     withTxSync(() => {
       const detailsJson = encodeDetails(wo.details);
       const assetMatchJson = wo.assetMatch ? safeJsonStringify(wo.assetMatch) : null;
+      const attachments = normalizeWorkOrderAttachments(wo.attachments, {
+        orgId: safeOrgId,
+        workOrderId: wo.id,
+      });
+      const attachmentsJson = attachments.length ? safeJsonStringify(attachments) : null;
 
       // Compute bbox from geometry
       let { minLat, minLng, maxLat, maxLng } = wo;
@@ -292,6 +319,7 @@ export const workOrdersRepo: WorkOrdersRepo = {
         "appVersion",
         "assetId",
         "assetMatchJson",
+        "attachmentsJson",
       ];
 
       const insertValues = [
@@ -330,6 +358,7 @@ export const workOrdersRepo: WorkOrdersRepo = {
 
         wo.assetId ?? null,
         assetMatchJson,
+        attachmentsJson,
       ];
 
       const placeholders = insertValues.map(() => "?").join(", ");
@@ -346,12 +375,14 @@ export const workOrdersRepo: WorkOrdersRepo = {
 
   async deleteById({ orgId, id }) {
     ensureOrgIdColumnReady("repositories.deleteById");
+    ensureAttachmentsColumnReady();
     const safeOrgId = requireOrgId(orgId);
     db.executeSync(`DELETE FROM work_orders WHERE orgId = ? AND id = ?`, [safeOrgId, id]);
   },
 
   async updateFields({ orgId, id, patch }) {
     ensureOrgIdColumnReady("repositories.updateFields");
+    ensureAttachmentsColumnReady();
     const safeOrgId = requireOrgId(orgId);
     withTxSync(() => {
       const sets: string[] = [];
@@ -383,6 +414,21 @@ export const workOrdersRepo: WorkOrdersRepo = {
       if (patch.assetId !== undefined) set("assetId", patch.assetId ?? null);
       if (patch.assetMatch !== undefined)
         set("assetMatchJson", patch.assetMatch ? safeJsonStringify(patch.assetMatch) : null);
+      if (patch.attachments !== undefined) {
+        const attachments = normalizeWorkOrderAttachments(patch.attachments, {
+          orgId: safeOrgId,
+          workOrderId: id,
+        });
+        if (__DEV__) {
+          console.log("[workOrdersRepo.updateFields] attachments patch", {
+            orgId: safeOrgId,
+            workOrderId: id,
+            attachmentsCount: attachments.length,
+            storagePaths: attachments.map((a) => a.storagePath),
+          });
+        }
+        set("attachmentsJson", attachments.length ? safeJsonStringify(attachments) : null);
+      }
 
       // Always bump updatedAt unless caller explicitly set it
       const updatedAt = patch.updatedAt ?? Date.now();

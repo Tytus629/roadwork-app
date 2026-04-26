@@ -4,11 +4,16 @@
   "private": true,
   "scripts": {
     "android": "react-native run-android --port 2468",
+    "android:devices": "adb devices",
+    "android:usb:reverse": "node scripts/adb-reverse-all.js",
+    "android:usb": "node scripts/run-android-target.js usb",
+    "android:emu": "node scripts/run-android-target.js emu",
     "android:qa": "react-native run-android --mode qa --port 2468",
     "ios": "react-native run-ios --port 2468",
     "ios:sim": "react-native run-ios --simulator \"iPhone 15\" --port 2468",
     "ios:device": "react-native run-ios --device --port 2468",
     "lint": "eslint .",
+    "start:metro": "npm run start",
     "start": "react-native start --host 0.0.0.0 --port 2468",
     "test": "jest",
     "postinstall": "node scripts/ensure-rnfirebase-tsconfig-base.js"

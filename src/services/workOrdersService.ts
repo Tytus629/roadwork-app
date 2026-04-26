@@ -48,6 +48,7 @@ function buildChangedFieldLabels(patch: Record<string, unknown>): string[] {
   if (patch.priority !== undefined) labels.push("priority");
   if (patch.note !== undefined) labels.push("notes");
   if (patch.details !== undefined) labels.push("details");
+  if (patch.attachments !== undefined) labels.push("attachments");
   if (patch.assetId !== undefined || patch.assetMatch !== undefined) labels.push("asset link");
   return labels;
 }
@@ -149,6 +150,7 @@ export const workOrdersService = {
         | "details"
         | "assetId"
         | "assetMatch"
+        | "attachments"
         | "assignedToUid"
         | "assignedToName"
         | "assignedToEmail"

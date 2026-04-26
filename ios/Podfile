@@ -5,6 +5,9 @@ require Pod::Executable.execute_command('node', ['-p',
     {paths: [process.argv[1]]},
   )', __dir__]).strip
 
+# Keep pod install quieter and more stable in CI/local environments.
+ENV['COCOAPODS_DISABLE_STATS'] = 'true'
+
 # react-native-permissions — declare only the permissions actually used
 require Pod::Executable.execute_command('node', ['-p',
   'require.resolve(
@@ -27,8 +30,14 @@ prepare_react_native_project!
 
 linkage = ENV['USE_FRAMEWORKS']
 if linkage != nil
-  Pod::UI.puts "Configuring Pod with #{linkage}ally linked Frameworks".green
-  use_frameworks! :linkage => linkage.to_sym
+  linkage_value = linkage.strip.downcase
+  if linkage_value == 'static' || linkage_value == 'dynamic'
+    Pod::UI.puts "Configuring Pod with #{linkage_value}ally linked Frameworks".green
+    use_frameworks! :linkage => linkage_value.to_sym
+  else
+    Pod::UI.puts "USE_FRAMEWORKS='#{linkage}' is invalid. Expected 'static' or 'dynamic'; defaulting to static.".yellow
+    use_frameworks! :linkage => :static
+  end
 end
 
 target 'RoadWorkTracker' do

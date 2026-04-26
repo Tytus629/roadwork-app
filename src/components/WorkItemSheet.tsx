@@ -59,6 +59,8 @@ import {
 } from "react-native";
 import { launchCamera, launchImageLibrary } from "react-native-image-picker";
 import type { Asset as PickerAsset } from "react-native-image-picker";
+import { getApp } from "@react-native-firebase/app";
+import { doc, getDoc, getFirestore } from "@react-native-firebase/firestore";
 import type { Priority, WorkStatus } from "../db/types";
 import { SignTypePickerModal } from "./SignTypePickerModal";
 import { getSignTypeById } from "../utils/signTypeLookup";
@@ -91,8 +93,9 @@ import { PHOTO_FEATURE_ENABLED } from "../constants/featureFlags";
 import { requestCameraPermission, requestPhotoLibraryPermission } from "../native/photos";
 import {
   addWorkOrderPhoto,
+  getAttachmentPhotosForWorkOrder,
   getWorkOrderPhotoDevDiagnostics,
-  getRemoteWorkOrderPhotos,
+  reportWorkOrderPhotoRenderDiagnostic,
   getWorkOrderPhotos,
   removeWorkOrderPhoto,
 } from "../services/workOrderPhotosService";
@@ -414,6 +417,10 @@ export default function WorkItemSheet(props: Props) {
     at: number | null;
     message: string;
   }>({ status: "idle", at: null, message: "" });
+  const [remoteAttachmentCheck, setRemoteAttachmentCheck] = useState<{
+    status: "idle" | "running" | "success" | "failed";
+    message: string;
+  }>({ status: "idle", message: "" });
   const diagnosticsAssetId = isDraft
     ? localDraft?.linkedAssetId ?? ""
     : ((wo as any)?.assetId ?? "");
@@ -708,6 +715,8 @@ export default function WorkItemSheet(props: Props) {
     setExistingPhotos(getWorkOrderPhotos(wo.id));
   }, [isDraft, wo?.id, dbTick]);
 
+  const workOrderAttachments = (wo as any)?.attachments;
+
   useEffect(() => {
     let alive = true;
 
@@ -719,19 +728,24 @@ export default function WorkItemSheet(props: Props) {
       };
     }
 
-    getRemoteWorkOrderPhotos({ orgId, workOrderId: wo.id })
+    getAttachmentPhotosForWorkOrder({
+      orgId,
+      workOrderId: wo.id,
+      attachmentsRaw: workOrderAttachments,
+    })
       .then((rows) => {
         if (!alive) return;
         setRemotePhotos(rows);
         setLatestRemoteFetchOutcome({
           status: "success",
           at: Date.now(),
-          message: `count=${rows.length}`,
+          message: `attachmentsResolved=${rows.length}`,
         });
         if (__DEV__) {
           console.log("[WorkItemSheet][photo-fetch-success]", {
             workOrderId: wo.id,
             orgId,
+            attachmentsCount: Array.isArray(workOrderAttachments) ? workOrderAttachments.length : 0,
             remoteCount: rows.length,
           });
         }
@@ -754,7 +768,7 @@ export default function WorkItemSheet(props: Props) {
     return () => {
       alive = false;
     };
-  }, [isDraft, orgId, wo?.id, dbTick]);
+  }, [dbTick, isDraft, orgId, wo, workOrderAttachments]);
 
   const localPhotoIds = useMemo(() => new Set(existingPhotos.map((p) => p.id)), [existingPhotos]);
   const photos = useMemo(() => {
@@ -771,11 +785,12 @@ export default function WorkItemSheet(props: Props) {
     if (isDraft || !wo?.id) return;
     console.log("[WorkItemSheet][photo-render-count]", {
       workOrderId: wo.id,
+      attachmentsCount: Array.isArray(workOrderAttachments) ? workOrderAttachments.length : 0,
       localCount: existingPhotos.length,
       remoteCount: remotePhotos.length,
       renderedCount: photos.length,
     });
-  }, [existingPhotos.length, isDraft, photos.length, remotePhotos.length, wo?.id]);
+  }, [existingPhotos.length, isDraft, photos.length, remotePhotos.length, wo, workOrderAttachments]);
 
   // Sync inspection draft from DB/signDetails when work order changes
   useEffect(() => {
@@ -1014,10 +1029,17 @@ export default function WorkItemSheet(props: Props) {
           return { ...prev, photos: [photo, ...(prev.photos ?? [])] };
         });
       } else if (wo) {
-        addWorkOrderPhoto({ workOrderId: wo.id, photo });
+        await addWorkOrderPhoto({ workOrderId: wo.id, photo });
       }
     } catch (e: any) {
-      Alert.alert("Could not add photo", e?.message ?? "Unknown error");
+      const rawMessage = String(e?.message ?? "Unknown error");
+      const unauthorized = rawMessage.toLowerCase().includes("storage/unauthorized") || String(e?.code ?? "").toLowerCase().includes("storage/unauthorized");
+      Alert.alert(
+        "Could not add photo",
+        unauthorized
+          ? "Photo upload failed: storage/unauthorized. Check org membership and Storage rules."
+          : rawMessage,
+      );
     } finally {
       setPhotoBusy(false);
     }
@@ -1052,10 +1074,17 @@ export default function WorkItemSheet(props: Props) {
           return { ...prev, photos: [photo, ...(prev.photos ?? [])] };
         });
       } else if (wo) {
-        addWorkOrderPhoto({ workOrderId: wo.id, photo });
+        await addWorkOrderPhoto({ workOrderId: wo.id, photo });
       }
     } catch (e: any) {
-      Alert.alert("Could not add photo", e?.message ?? "Unknown error");
+      const rawMessage = String(e?.message ?? "Unknown error");
+      const unauthorized = rawMessage.toLowerCase().includes("storage/unauthorized") || String(e?.code ?? "").toLowerCase().includes("storage/unauthorized");
+      Alert.alert(
+        "Could not add photo",
+        unauthorized
+          ? "Photo upload failed: storage/unauthorized. Check org membership and Storage rules."
+          : rawMessage,
+      );
     } finally {
       setPhotoBusy(false);
     }
@@ -1094,6 +1123,45 @@ export default function WorkItemSheet(props: Props) {
       Alert.alert("Updated", "Work order updated.");
     } catch (e: any) {
       Alert.alert("Update failed", e?.message ?? "Missing orgId");
+    }
+  }
+
+  async function checkRemoteAttachmentsNow() {
+    if (!__DEV__ || isDraft || !wo?.id || !orgId) return;
+
+    setRemoteAttachmentCheck({ status: "running", message: "Checking..." });
+    try {
+      const db = getFirestore(getApp());
+      const snap = await getDoc(doc(db, "orgs", orgId, "workOrders", wo.id));
+      if (!snap.exists()) {
+        setRemoteAttachmentCheck({
+          status: "failed",
+          message: "Remote document not found",
+        });
+        return;
+      }
+
+      const data = snap.data() as Record<string, any>;
+      const raw = Array.isArray(data?.attachments) ? data.attachments : [];
+      const firstStoragePath = String(raw?.[0]?.storagePath ?? "").trim() || "none";
+      setRemoteAttachmentCheck({
+        status: "success",
+        message: `count=${raw.length}, firstStoragePath=${firstStoragePath}`,
+      });
+      console.log("[WorkItemSheet][remote-attachments-check]", {
+        orgId,
+        workOrderId: wo.id,
+        remoteAttachmentsCount: raw.length,
+        firstStoragePath,
+      });
+    } catch (e: any) {
+      const message = e?.message ?? String(e);
+      setRemoteAttachmentCheck({ status: "failed", message });
+      console.warn("[WorkItemSheet][remote-attachments-check-failed]", {
+        orgId,
+        workOrderId: wo.id,
+        error: message,
+      });
     }
   }
 
@@ -1717,29 +1785,67 @@ export default function WorkItemSheet(props: Props) {
 
               {photos.length ? (
                 <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.photoStrip}>
-                  {photos.map((p) => (
+                  {photos.map((p) => {
+                    const uri = String(p.uri ?? "").trim();
+                    const isRemoteOnly = !isDraft && !localPhotoIds.has(p.id) && /^https?:\/\//i.test(uri);
+                    return (
                     <View key={p.id} style={styles.photoCard}>
-                      <TouchableOpacity onPress={() => setPhotoPreviewUri(p.uri)} activeOpacity={0.85}>
-                        <Image source={{ uri: p.uri }} style={styles.photoThumb} />
+                      <TouchableOpacity
+                        onPress={() => {
+                          setPhotoPreviewUri(p.uri);
+                          if (__DEV__) {
+                            reportWorkOrderPhotoRenderDiagnostic({
+                              workOrderId: wo.id,
+                              photoId: p.id,
+                              uri: p.uri,
+                              error: null,
+                            });
+                          }
+                        }}
+                        activeOpacity={0.85}
+                      >
+                        <Image
+                          source={{ uri: p.uri }}
+                          style={styles.photoThumb}
+                          onError={() => {
+                            const uriPresent = !!String(p.uri ?? "").trim();
+                            const uriPrefix = String(p.uri ?? "").slice(0, 48);
+                            if (__DEV__) {
+                              reportWorkOrderPhotoRenderDiagnostic({
+                                workOrderId: wo.id,
+                                photoId: p.id,
+                                uri: p.uri,
+                                error: "thumbnail-render-error",
+                              });
+                              console.warn("[WorkItemSheet][photo-render-error]", {
+                                workOrderId: wo.id,
+                                photoId: p.id,
+                                uriPresent,
+                                uriPrefix,
+                              });
+                            }
+                          }}
+                        />
                       </TouchableOpacity>
                       <TouchableOpacity
                         onPress={() => {
                           if (!canAddPhotos) return;
+                          if (isRemoteOnly) return;
                           if (!isDraft && !localPhotoIds.has(p.id)) return;
                           removePhoto(p.id);
                         }}
-                        disabled={!canAddPhotos || (!isDraft && !localPhotoIds.has(p.id))}
+                        disabled={!canAddPhotos || isRemoteOnly || (!isDraft && !localPhotoIds.has(p.id))}
                         style={[
                           styles.photoRemoveButton,
-                          (!canAddPhotos || (!isDraft && !localPhotoIds.has(p.id))) && styles.photoActionButtonDisabled,
+                          (!canAddPhotos || isRemoteOnly || (!isDraft && !localPhotoIds.has(p.id))) && styles.photoActionButtonDisabled,
                         ]}
                       >
                         <Text style={styles.photoRemoveText}>
-                          {canAddPhotos && (isDraft || localPhotoIds.has(p.id)) ? "Remove" : "Synced"}
+                          {canAddPhotos && !isRemoteOnly && (isDraft || localPhotoIds.has(p.id)) ? "Remove" : "Synced"}
                         </Text>
                       </TouchableOpacity>
                     </View>
-                  ))}
+                  )})}
                 </ScrollView>
               ) : (
                 <Text style={styles.photoEmpty}>No photos attached yet.</Text>
@@ -1756,14 +1862,100 @@ export default function WorkItemSheet(props: Props) {
                     Latest upload success: {photoDevDiagnostics?.latestUploadSuccessAt ? new Date(photoDevDiagnostics.latestUploadSuccessAt).toLocaleTimeString() : "n/a"}
                   </Text>
                   <Text style={styles.devDiagLine}>
-                    Latest metadata write success: {photoDevDiagnostics?.latestMetadataWriteSuccessAt ? new Date(photoDevDiagnostics.latestMetadataWriteSuccessAt).toLocaleTimeString() : "n/a"}
+                    Last photo traceId: {photoDevDiagnostics?.lastPhotoTraceId ?? "n/a"}
+                  </Text>
+                  <Text style={styles.devDiagLine}>
+                    Upload status: {photoDevDiagnostics?.latestUploadStatus ?? "idle"}
+                  </Text>
+                  <Text style={styles.devDiagLine}>
+                    Last upload stage: {photoDevDiagnostics?.latestUploadStage ?? "n/a"}
+                  </Text>
+                  <Text style={styles.devDiagLine}>
+                    Upload error code: {photoDevDiagnostics?.latestUploadErrorCode ?? "n/a"}
+                  </Text>
+                  <Text style={styles.devDiagLine}>
+                    Upload error message: {photoDevDiagnostics?.latestUploadErrorMessage ?? "none"}
+                  </Text>
+                  <Text style={styles.devDiagLine}>
+                    Upload storage path: {photoDevDiagnostics?.latestUploadStoragePath ?? "n/a"}
+                  </Text>
+                  <Text style={styles.devDiagLine}>
+                    Upload orgId: {photoDevDiagnostics?.latestSelectedOrgId ?? "n/a"}
+                  </Text>
+                  <Text style={styles.devDiagLine}>
+                    Upload auth UID/email: {(photoDevDiagnostics?.latestAuthUid ?? "n/a") + " / " + (photoDevDiagnostics?.latestAuthEmail ?? "n/a")}
+                  </Text>
+                  <Text style={styles.devDiagLine}>
+                    DEV emulator mode active: {photoDevDiagnostics?.latestDevEmulatorModeActive == null ? "n/a" : photoDevDiagnostics.latestDevEmulatorModeActive ? "yes" : "no"}
+                  </Text>
+                  <Text style={styles.devDiagLine}>
+                    Upload local URI: {photoDevDiagnostics?.latestUploadLocalUri ?? "n/a"}
+                  </Text>
+                  <Text style={styles.devDiagLine}>
+                    Upload URI scheme: {photoDevDiagnostics?.latestUploadUriScheme ?? "n/a"}
+                  </Text>
+                  <Text style={styles.devDiagLine}>
+                    Latest attachment write: {photoDevDiagnostics?.latestAttachmentWriteAt ? new Date(photoDevDiagnostics.latestAttachmentWriteAt).toLocaleTimeString() : "n/a"}
+                  </Text>
+                  <Text style={styles.devDiagLine}>
+                    Attachment write status: {photoDevDiagnostics?.latestAttachmentWriteStatus ?? "idle"}
+                  </Text>
+                  <Text style={styles.devDiagLine}>
+                    Last attachment write stage: {photoDevDiagnostics?.latestAttachmentWriteStage ?? "n/a"}
+                  </Text>
+                  <Text style={styles.devDiagLine}>
+                    Attachment write error: {photoDevDiagnostics?.latestAttachmentWriteErrorMessage ?? "none"}
+                  </Text>
+                  <Text style={styles.devDiagLine}>
+                    Last queued attachments count: {photoDevDiagnostics?.latestQueuedAttachmentsCount ?? "n/a"}
+                  </Text>
+                  <Text style={styles.devDiagLine}>
+                    Last sent attachments count: {photoDevDiagnostics?.latestSentAttachmentsCount ?? "n/a"}
+                  </Text>
+                  <Text style={styles.devDiagLine}>
+                    Last backend upsert result: {photoDevDiagnostics?.latestBackendUpsertResult ?? "n/a"}
                   </Text>
                   <Text style={styles.devDiagLine}>
                     Latest remote fetch result: {latestRemoteFetchOutcome.status}
                     {latestRemoteFetchOutcome.message ? ` (${latestRemoteFetchOutcome.message})` : ""}
                   </Text>
                   <Text style={styles.devDiagLine}>
-                    Latest remote fetch count: {photoDevDiagnostics?.latestRemoteFetchCount ?? "n/a"}
+                    Latest attachment count: {photoDevDiagnostics?.latestRemoteAttachmentCount ?? "n/a"}
+                  </Text>
+                  <Text style={styles.devDiagLine}>
+                    Latest local row count: {photoDevDiagnostics?.latestLocalRowCount ?? "n/a"}
+                  </Text>
+                  <Text style={styles.devDiagLine}>
+                    Latest render URI type: {photoDevDiagnostics?.latestRenderUriType ?? "n/a"}
+                  </Text>
+                  <Text style={styles.devDiagLine}>
+                    Latest render error: {photoDevDiagnostics?.latestRenderError ?? "none"}
+                  </Text>
+                  <Text style={styles.devDiagLine}>
+                    Storage emulator host: {photoDevDiagnostics?.latestStorageEmulatorHost ?? "n/a"}
+                  </Text>
+                  <Text style={styles.devDiagLine}>
+                    Storage emulator target: {photoDevDiagnostics?.latestStorageEmulatorTarget ?? "n/a"}
+                  </Text>
+                  <Text style={styles.devDiagLine}>
+                    Storage bucket/app: {(photoDevDiagnostics?.latestStorageBucket ?? "n/a") + " / " + (photoDevDiagnostics?.latestStorageAppName ?? "n/a")}
+                  </Text>
+                  <Text style={styles.devDiagLine}>
+                    Membership exists/status/role/active: {(photoDevDiagnostics?.latestMembershipDocExists == null ? "n/a" : photoDevDiagnostics.latestMembershipDocExists ? "true" : "false") + " / " + (photoDevDiagnostics?.latestMembershipStatus ?? "n/a") + " / " + (photoDevDiagnostics?.latestMembershipRole ?? "n/a") + " / " + (photoDevDiagnostics?.latestMembershipActive ?? "n/a")}
+                  </Text>
+                  <Text style={styles.devDiagLine}>
+                    Membership warning: {photoDevDiagnostics?.latestMembershipWarning ?? "none"}
+                  </Text>
+                  <TouchableOpacity
+                    onPress={checkRemoteAttachmentsNow}
+                    style={[styles.photoActionButton, remoteAttachmentCheck.status === "running" && styles.photoActionButtonDisabled]}
+                    disabled={remoteAttachmentCheck.status === "running"}
+                  >
+                    <Text style={styles.photoActionText}>Check Remote Attachments</Text>
+                  </TouchableOpacity>
+                  <Text style={styles.devDiagLine}>
+                    Remote check: {remoteAttachmentCheck.status}
+                    {remoteAttachmentCheck.message ? ` (${remoteAttachmentCheck.message})` : ""}
                   </Text>
                 </View>
               )}
@@ -1977,6 +2169,14 @@ export default function WorkItemSheet(props: Props) {
             source={{ uri: photoPreviewUri }}
             style={styles.photoPreviewImage}
             resizeMode="contain"
+            onError={() => {
+              if (!__DEV__ || !wo?.id) return;
+              reportWorkOrderPhotoRenderDiagnostic({
+                workOrderId: wo.id,
+                uri: photoPreviewUri,
+                error: "preview-render-error",
+              });
+            }}
           />
         )}
       </View>

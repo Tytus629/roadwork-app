@@ -16,12 +16,14 @@ import {
   normalizeWorkOrderDetailsForType,
   validatePavementRepairDetails,
 } from "../workOrders/pavementDetails";
+import { normalizeWorkOrderAttachments } from "../workOrders/attachments";
 import { getTypeGroup } from "../workOrders/typeGroups";
 import {
   logSyncBreadcrumb,
   recordErrorWithContext,
   setCustomKeySafe,
 } from "../telemetry/crashlytics";
+import { updatePhotoDevDiagnostics } from "../services/workOrderPhotoDiagnosticsStore";
 
 // ─── Types ───────────────────────────────────────────────────────────────
 
@@ -482,6 +484,7 @@ function summarizeWorkOrderPayload(
     linePointCount: Array.isArray(linePoints) ? linePoints.length : 0,
     hasDetails: !!details,
     detailsKeys: details ? Object.keys(details).sort() : [],
+    attachmentsCount: Array.isArray(payload?.attachments) ? payload.attachments.length : 0,
     assetId: payload?.assetId ?? assetRef?.assetId ?? assetRef?.id ?? null,
     assetType: payload?.assetType ?? assetRef?.assetType ?? assetRef?.type ?? null,
     assetMatchMethod: payload?.assetMatchMethod ?? payload?.assetMatch?.method ?? null,
@@ -763,6 +766,33 @@ async function handleRow(row: OutboxRow) {
       const geometryPresence = summarizeGeometryPresence(payload);
 
       payload.details = normalizeWorkOrderDetailsForType(payload.type, payload.details);
+      payload.attachments = normalizeWorkOrderAttachments(payload.attachments, {
+        orgId: payload.orgId,
+        workOrderId: workOrderId ?? row.entityId,
+      });
+
+      if (__DEV__) {
+        const attachmentsCount = Array.isArray(payload.attachments) ? payload.attachments.length : 0;
+        const attachmentStoragePaths = Array.isArray(payload.attachments)
+          ? payload.attachments.map((a: any) => a?.storagePath).filter(Boolean)
+          : [];
+        console.log(`[Sync] UPSERT_WORK_ORDER attachments count: ${attachmentsCount}`);
+        console.log(`[Sync] UPSERT_WORK_ORDER attachment storagePaths: ${JSON.stringify(attachmentStoragePaths)}`);
+        console.log("[Sync] UPSERT_WORK_ORDER attachments", {
+          orgId: payload.orgId,
+          workOrderId,
+          attachmentsCount,
+          storagePaths: attachmentStoragePaths,
+        });
+
+        if (workOrderId) {
+          updatePhotoDevDiagnostics(String(workOrderId), {
+            latestSentAttachmentsCount: attachmentsCount,
+            latestSentAttachmentStoragePaths: attachmentStoragePaths,
+            latestAttachmentWriteStage: "outboxSync-before-send",
+          });
+        }
+      }
 
       if (isPavementRepairType(payload.type)) {
         const normalized = normalizePavementRepairDetails(payload.details);
@@ -782,6 +812,7 @@ async function handleRow(row: OutboxRow) {
           hasGeo: !!payload.geo,
           ...geometryPresence,
           hasDetails: !!payload.details,
+          attachmentsCount: Array.isArray(payload.attachments) ? payload.attachments.length : 0,
           hasAssetId: !!payload.assetId,
           assetType: payload.assetType ?? null,
           assetTypeSource,
@@ -822,6 +853,21 @@ async function handleRow(row: OutboxRow) {
         logOutgoingWorkOrderPayload("initial", row.id, payload);
         res = await callFn("roadwork_upsertWorkOrder", payload);
         console.log("[Sync] step 1 OK — response:", res?.data ?? res?.result);
+        if (__DEV__) {
+          const attachmentsCountSent = Array.isArray(payload.attachments) ? payload.attachments.length : 0;
+          console.log("[Sync][outboxSync-after-send]", {
+            workOrderId,
+            backendResult: "success",
+            attachmentsCountSent,
+          });
+          if (workOrderId) {
+            updatePhotoDevDiagnostics(String(workOrderId), {
+              latestBackendUpsertResult: "success",
+              latestSentAttachmentsCount: attachmentsCountSent,
+              latestAttachmentWriteStage: "outboxSync-after-send-success",
+            });
+          }
+        }
         setCustomKeySafe("syncStage", "step1_success");
         logSyncBreadcrumb("outbound wo step1 success", {
           syncDirection: "outbound",
@@ -866,6 +912,13 @@ async function handleRow(row: OutboxRow) {
 
         if (!looksInternal) {
           console.error("[Sync] step 1 FAILED — callable threw", e1);
+          if (__DEV__ && workOrderId) {
+            updatePhotoDevDiagnostics(String(workOrderId), {
+              latestBackendUpsertResult: `failed:${String(e1?.message ?? "unknown")}`,
+              latestAttachmentWriteStage: "outboxSync-after-send-failed",
+              latestAttachmentWriteErrorMessage: String(e1?.message ?? "Unknown send error"),
+            });
+          }
           setCustomKeySafe("syncStage", "step1_failed");
           recordErrorWithContext(e1, {
             message: "outbound wo step1 callable failed",

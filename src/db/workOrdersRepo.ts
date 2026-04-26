@@ -72,7 +72,7 @@
  *   listSignsNotInspectedSince, listWorkOrders
  */
 
-import { db, ensureWorkOrdersOrgIdColumn } from "./db";
+import { addColumnIfMissing, db, ensureWorkOrdersOrgIdColumn } from "./db";
 import { bboxForLine, bboxForPoint } from "./geom";
 import {
   BBox,
@@ -90,6 +90,7 @@ import {
   normalizePavementRepairDetails,
 } from "../workOrders/pavementDetails";
 import { formatWorkType, normalizeWorkTypeKey } from "../constants/workOrderTypes";
+import { normalizeWorkOrderAttachments } from "../workOrders/attachments";
 
 /** Sign inspection validity period in days. Change this to adjust overdue_default threshold. */
 export const SIGN_INSPECTION_VALID_DAYS = 365 * 2; // 2 years
@@ -99,6 +100,7 @@ function nowMs() {
 }
 
 let orgIdColumnCheckDone = false;
+let attachmentsColumnCheckDone = false;
 
 function ensureOrgIdColumnReady(context: string) {
   if (orgIdColumnCheckDone) return;
@@ -112,6 +114,16 @@ function ensureOrgIdColumnReady(context: string) {
     }
   } catch (e) {
     console.warn(`[DB][runtime] Failed ensuring work_orders.orgId in ${context}`, e);
+  }
+}
+
+function ensureAttachmentsColumnReady(context: string) {
+  if (attachmentsColumnCheckDone) return;
+  try {
+    addColumnIfMissing("work_orders", "attachmentsJson", "TEXT");
+    attachmentsColumnCheckDone = true;
+  } catch (e) {
+    console.warn(`[DB][runtime] Failed ensuring work_orders.attachmentsJson in ${context}`, e);
   }
 }
 
@@ -213,10 +225,19 @@ function rowToWorkOrder(r: any): WorkOrderRow {
   const rawType = String(r?.type ?? "").trim();
   const safeType = rawType.length ? rawType : "unknown";
   const assetMatch = decodeAssetMatch(r.assetMatchJson);
+  const orgId = r.orgId ?? null;
+  const attachmentsRaw = (() => {
+    if (!r.attachmentsJson) return null;
+    try {
+      return JSON.parse(r.attachmentsJson);
+    } catch {
+      return null;
+    }
+  })();
 
   return {
     id: String(r.id),
-    orgId: r.orgId ?? null,
+    orgId,
     type: safeType,
     createdAt: Number(r.createdAt),
     updatedAt: Number(r.updatedAt),
@@ -247,6 +268,10 @@ function rowToWorkOrder(r: any): WorkOrderRow {
     assetMatch,
 
     details: decodeDetails(r.detailsJson) ?? null,
+    attachments: normalizeWorkOrderAttachments(attachmentsRaw, {
+      orgId: String(orgId ?? ""),
+      workOrderId: String(r.id),
+    }),
   };
 }
 
@@ -495,6 +520,7 @@ export function deleteWorkOrder(id: string, orgIdRaw: string) {
 
 export function getWorkOrderById(id: string, orgId?: string | null): WorkOrderRow | null {
   ensureOrgIdColumnReady("getWorkOrderById");
+  ensureAttachmentsColumnReady("getWorkOrderById");
   const safeOrg = orgId ? requireOrgId(orgId) : null;
   const orgClause = safeOrg ? ` AND orgId = ?` : ``;
   const orgParams = safeOrg ? [safeOrg] : [];

@@ -17,7 +17,7 @@ describe("storagePaths", () => {
   it("builds required org-scoped work order photo path", () => {
     expect(
       workOrderPhotoPath({ orgId, workOrderId: "wo_1", fileName: "before.jpg" }),
-    ).toBe("orgs/org_123/workOrders/wo_1/photos/before.jpg");
+    ).toBe("orgs/org_123/workOrders/wo_1/before.jpg");
   });
 
   it("builds required org-scoped asset/sign/inspection/export paths", () => {
@@ -51,19 +51,25 @@ describe("storagePaths", () => {
   });
 
   it("accepts org-scoped path and rejects legacy non-scoped path", () => {
-    const ok = "orgs/org_123/workOrders/wo_1/photos/file.jpg";
+    const ok = "orgs/org_123/workOrders/wo_1/file.jpg";
     expect(isOrgScopedStoragePath(orgId, ok)).toBe(true);
     expect(assertOrgScopedStoragePath(orgId, ok)).toBe(ok);
 
     expect(() =>
-      assertOrgScopedStoragePath(orgId, "workOrders/wo_1/photos/file.jpg"),
+      assertOrgScopedStoragePath(orgId, "workOrders/wo_1/file.jpg"),
     ).toThrow(/Org-owned uploads must use org-scoped paths/);
   });
 
   it("validates outbox payload storage paths when present", () => {
     expect(() =>
       assertOrgScopedPathsInPayload(orgId, {
-        storagePath: "orgs/org_123/workOrders/wo_1/photos/file.jpg",
+        storagePath: "orgs/org_123/workOrders/wo_1/file.jpg",
+      }),
+    ).not.toThrow();
+
+    expect(() =>
+      assertOrgScopedPathsInPayload(orgId, {
+        attachments: [{ storagePath: "orgs/org_123/workOrders/wo_1/file.jpg" }],
       }),
     ).not.toThrow();
 
@@ -79,14 +85,14 @@ describe("storagePaths", () => {
       orgId,
       entityType: "workOrders",
       entityId: "wo_99",
-      storagePath: "orgs/org_123/workOrders/wo_99/photos/pic.jpg",
+      storagePath: "orgs/org_123/workOrders/wo_99/pic.jpg",
     });
 
     expect(meta).toEqual({
       orgId: "org_123",
       entityType: "workOrders",
       entityId: "wo_99",
-      storagePath: "orgs/org_123/workOrders/wo_99/photos/pic.jpg",
+      storagePath: "orgs/org_123/workOrders/wo_99/pic.jpg",
     });
   });
 });

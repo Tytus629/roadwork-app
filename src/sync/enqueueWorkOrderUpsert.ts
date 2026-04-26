@@ -25,6 +25,8 @@ import { normalizeWorkOrderDetailsForType } from "../workOrders/pavementDetails"
 import { getTypeGroup } from "../workOrders/typeGroups";
 import { toCreatorIdentitySnapshot } from "../utils/userIdentity";
 import { normalizeWorkTypeKey } from "../constants/workOrderTypes";
+import { normalizeWorkOrderAttachments } from "../workOrders/attachments";
+import { updatePhotoDevDiagnostics } from "../services/workOrderPhotoDiagnosticsStore";
 
 function now() {
   return Date.now();
@@ -101,6 +103,7 @@ function ensureTables() {
       assignedToEmail TEXT,
       assetId TEXT,
       assetMatchJson TEXT,
+      attachmentsJson TEXT,
       detailsJson TEXT,
       needsSync INTEGER NOT NULL DEFAULT 1,
       deleted INTEGER NOT NULL DEFAULT 0
@@ -147,6 +150,7 @@ function ensureTables() {
   addColumnIfMissing("offline_work_orders", "assignedToEmail", "TEXT");
   addColumnIfMissing("offline_work_orders", "assetId", "TEXT");
   addColumnIfMissing("offline_work_orders", "assetMatchJson", "TEXT");
+  addColumnIfMissing("offline_work_orders", "attachmentsJson", "TEXT");
 }
 
 let _tablesReady = false;
@@ -203,6 +207,11 @@ export function saveAndEnqueueWorkOrder(wo: WorkOrder) {
     assetId != null ? wo.assetType ?? inferAssetTypeFromWorkOrderType(wo.type) : null;
   const assetMatch = wo.assetMatch ?? null;
   const assetMatchJson = assetMatch ? JSON.stringify(assetMatch) : null;
+  const attachments = normalizeWorkOrderAttachments(wo.attachments, {
+    orgId,
+    workOrderId: wo.id,
+  });
+  const attachmentsJson = attachments.length ? JSON.stringify(attachments) : null;
   const originalLine = Array.isArray(wo.line) ? wo.line : [];
   const cleanLine = sanitizeLinePoints(originalLine);
   const safeLine = cleanLine.length >= 2 ? cleanLine : [];
@@ -242,8 +251,8 @@ export function saveAndEnqueueWorkOrder(wo: WorkOrder) {
     // Upsert offline_work_orders
     db.executeSync(
       `INSERT INTO offline_work_orders
-        (id, orgId, type, status, priority, note, geometryType, createdAt, updatedAt, createdByUid, createdByEmail, createdByFirstName, createdByLastName, createdByDisplayName, assignedToUid, assignedToName, assignedToEmail, assetId, assetMatchJson, detailsJson, needsSync, deleted)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, 0)
+        (id, orgId, type, status, priority, note, geometryType, createdAt, updatedAt, createdByUid, createdByEmail, createdByFirstName, createdByLastName, createdByDisplayName, assignedToUid, assignedToName, assignedToEmail, assetId, assetMatchJson, attachmentsJson, detailsJson, needsSync, deleted)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, 0)
        ON CONFLICT(id) DO UPDATE SET
          type=excluded.type,
          status=excluded.status,
@@ -260,6 +269,7 @@ export function saveAndEnqueueWorkOrder(wo: WorkOrder) {
          assignedToEmail=excluded.assignedToEmail,
          assetId=excluded.assetId,
          assetMatchJson=excluded.assetMatchJson,
+         attachmentsJson=excluded.attachmentsJson,
          detailsJson=excluded.detailsJson,
          needsSync=1,
          deleted=0`,
@@ -283,6 +293,7 @@ export function saveAndEnqueueWorkOrder(wo: WorkOrder) {
         wo.assignedToEmail ?? null,
         assetId,
         assetMatchJson,
+        attachmentsJson,
         normalizedDetails ? JSON.stringify(normalizedDetails) : null,
       ]
     );
@@ -306,6 +317,7 @@ export function saveAndEnqueueWorkOrder(wo: WorkOrder) {
 
     // Enqueue for sync
     if (__DEV__) {
+      console.log(`[Sync] UPSERT_WORK_ORDER enqueue attachments count: ${attachments.length}`);
       const woAny = wo as any;
       console.log("[OutboxDiag][local] work-order row", {
         workOrderId: wo.id,
@@ -322,6 +334,7 @@ export function saveAndEnqueueWorkOrder(wo: WorkOrder) {
         assetId,
         assetType,
         assetMatchMethod: assetMatch?.method ?? null,
+        attachmentsCount: attachments.length,
         assignedToUserId: wo.assignedToUid ?? null,
         assignedToName: wo.assignedToName ?? null,
         createdBy: creator.uid ?? null,
@@ -331,7 +344,7 @@ export function saveAndEnqueueWorkOrder(wo: WorkOrder) {
       });
     }
 
-    enqueue(orgId, "UPSERT_WORK_ORDER", wo.id, {
+    const outboxPayload = {
       id: wo.id,
       orgId,
       type: payloadType,
@@ -351,9 +364,41 @@ export function saveAndEnqueueWorkOrder(wo: WorkOrder) {
       assetId,
       assetType,
       assetMatch,
+      attachments,
       updatedAt: t,
       details: normalizedDetails,
-    });
+    };
+
+    if (__DEV__) {
+      const payloadAttachmentsCount = Array.isArray(outboxPayload.attachments)
+        ? outboxPayload.attachments.length
+        : 0;
+      if (attachments.length > 0 && payloadAttachmentsCount < 1) {
+        console.error("attachments dropped before outbox payload", {
+          workOrderId: wo.id,
+          attachmentsCountBeforePayload: attachments.length,
+          payloadAttachmentsCount,
+        });
+      }
+
+      console.log("[Sync][enqueueWorkOrderUpsert]", {
+        workOrderId: wo.id,
+        attachmentsCount: payloadAttachmentsCount,
+        storagePaths: Array.isArray(outboxPayload.attachments)
+          ? outboxPayload.attachments.map((a: any) => a?.storagePath).filter(Boolean)
+          : [],
+      });
+
+      updatePhotoDevDiagnostics(wo.id, {
+        latestQueuedAttachmentsCount: payloadAttachmentsCount,
+        latestQueuedAttachmentStoragePaths: Array.isArray(outboxPayload.attachments)
+          ? outboxPayload.attachments.map((a: any) => String(a?.storagePath ?? "")).filter(Boolean)
+          : [],
+        latestAttachmentWriteStage: "enqueueWorkOrderUpsert",
+      });
+    }
+
+    enqueue(orgId, "UPSERT_WORK_ORDER", wo.id, outboxPayload);
 
     db.executeSync("COMMIT");
     console.log("[Offline] saveAndEnqueueWorkOrder COMMITTED", {

@@ -32,6 +32,11 @@ import type {
 } from "../types/MaintenanceSlip";
 import type { GeometryType, WorkOrder, WorkOrderPriority, WorkOrderStatus } from "../types/WorkOrder";
 import { normalizeWorkOrderDetailsForType } from "../workOrders/pavementDetails";
+import { normalizeWorkOrderAttachments } from "../workOrders/attachments";
+import {
+  getWorkOrderPhotoDevDiagnostics,
+  updatePhotoDevDiagnostics,
+} from "../services/workOrderPhotoDiagnosticsStore";
 
 export type RemoteSyncHandle = {
   stop: () => void;
@@ -442,6 +447,42 @@ function toLocalWorkOrder(
   const updatedAt = toEpochMs(data.updatedAt, createdAt || now);
 
   const rawDetails = data.details ?? safeJsonParse(data.detailsJson ?? null, null);
+  const attachments = normalizeWorkOrderAttachments(data.attachments, {
+    orgId,
+    workOrderId: rowId,
+  });
+
+  if (__DEV__) {
+    console.log(`RemoteSync inbound attachments count: ${attachments.length}`, {
+      orgId,
+      rowId,
+    });
+    console.log("[RemoteSync][WO] inbound attachments", {
+      orgId,
+      rowId,
+      count: attachments.length,
+    });
+
+    const localDiag = getWorkOrderPhotoDevDiagnostics(rowId);
+    const recentlySentCount = localDiag?.latestSentAttachmentsCount ?? 0;
+    if (attachments.length === 0 && recentlySentCount > 0) {
+      console.warn("[RemoteSync][WO] inbound empty attachments after recent local send", {
+        rowId,
+        orgId,
+        recentlySentCount,
+        latestBackendUpsertResult: localDiag?.latestBackendUpsertResult ?? null,
+      });
+      updatePhotoDevDiagnostics(rowId, {
+        latestAttachmentWriteStage: "remoteSync-inbound-empty-after-local-send",
+        latestRemoteFetchError: `Inbound attachments=0 after local sent attachments=${recentlySentCount}`,
+      });
+    }
+
+    updatePhotoDevDiagnostics(rowId, {
+      latestRemoteAttachmentCount: attachments.length,
+      latestAttachmentWriteStage: "remoteSync-inbound",
+    });
+  }
 
   const assetType = normalizeAssetType(data.assetType);
   const assetMatch = normalizeAssetMatch(data.assetMatch ?? data.assetMatchJson ?? null);
@@ -481,6 +522,7 @@ function toLocalWorkOrder(
     assetType,
     assetMatch,
     details: normalizeWorkOrderDetailsForType(type, rawDetails),
+    attachments,
   };
 }
 

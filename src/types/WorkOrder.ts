@@ -24,6 +24,28 @@ export type WorkOrderDetails =
   | GuardrailDetails
   | Record<string, any>;
 
+export type WorkOrderAttachment = {
+  id?: string;
+  photoId?: string;
+  orgId: string;
+  workOrderId: string;
+  entityType: "workOrder";
+  entityId: string;
+  storagePath: string;
+  fileName?: string;
+  contentType?: string;
+  sizeBytes?: number;
+  width?: number;
+  height?: number;
+  downloadURL?: string;
+  createdAt: number;
+  updatedAt: number;
+  createdByUid?: string;
+  createdByName?: string;
+  createdByEmail?: string;
+  deleted?: boolean;
+};
+
 export type WorkOrder = {
   id: string;
   orgId: string;
@@ -78,4 +100,7 @@ export type WorkOrder = {
 
   // detailsJson
   details?: WorkOrderDetails | null;
+
+  // backend contract: orgs/{orgId}/workOrders/{workOrderId}.attachments[]
+  attachments?: WorkOrderAttachment[] | null;
 };
