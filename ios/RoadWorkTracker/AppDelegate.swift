@@ -19,8 +19,16 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
     // Initialize Firebase
     FirebaseApp.configure()
 
-    // Initialize Google Maps — replace with your iOS Maps API key
-    GMSServices.provideAPIKey("YOUR_IOS_GOOGLE_MAPS_API_KEY")
+    // Initialize Google Maps from Info.plist to avoid hardcoding secrets.
+    let mapsKeyRaw = (Bundle.main.object(forInfoDictionaryKey: "GOOGLE_MAPS_API_KEY") as? String) ?? ""
+    let mapsKey = mapsKeyRaw.trimmingCharacters(in: .whitespacesAndNewlines)
+    if !mapsKey.isEmpty && !mapsKey.contains("$(") && mapsKey != "YOUR_IOS_GOOGLE_MAPS_API_KEY" {
+      GMSServices.provideAPIKey(mapsKey)
+    } else {
+#if DEBUG
+      print("[Maps] GOOGLE_MAPS_API_KEY is missing or placeholder; map tiles may not load.")
+#endif
+    }
     
     let delegate = ReactNativeDelegate()
     let factory = RCTReactNativeFactory(delegate: delegate)
