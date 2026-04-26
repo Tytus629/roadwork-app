@@ -1,3 +1,5 @@
+require 'fileutils'
+
 # Resolve react_native_pods.rb with node to allow for hoisting
 require Pod::Executable.execute_command('node', ['-p',
   'require.resolve(
@@ -5,48 +7,47 @@ require Pod::Executable.execute_command('node', ['-p',
     {paths: [process.argv[1]]},
   )', __dir__]).strip
 
-# Keep pod install quieter and more stable in CI/local environments.
-ENV['COCOAPODS_DISABLE_STATS'] = 'true'
-
-# react-native-permissions — declare only the permissions actually used
-require Pod::Executable.execute_command('node', ['-p',
-  'require.resolve(
-    "react-native-permissions/scripts/setup.rb",
-    {paths: [process.argv[1]]},
-  )', __dir__]).strip
-
-setup_permissions([
-  'LocationWhenInUse',
-  'Camera',
-  'PhotoLibrary',
-  'Notifications',
-])
-
 # Firebase - use static frameworks for better compatibility
 $RNFirebaseAsStaticFramework = true
 
 platform :ios, min_ios_version_supported
+
+# Do NOT enable global modular headers for React Native.
+# Global use_modular_headers! caused:
+# "Redefinition of module 'react_runtime'"
+# use_modular_headers!
+
 prepare_react_native_project!
 
-linkage = ENV['USE_FRAMEWORKS']
-if linkage != nil
-  linkage_value = linkage.strip.downcase
-  if linkage_value == 'static' || linkage_value == 'dynamic'
-    Pod::UI.puts "Configuring Pod with #{linkage_value}ally linked Frameworks".green
-    use_frameworks! :linkage => linkage_value.to_sym
-  else
-    Pod::UI.puts "USE_FRAMEWORKS='#{linkage}' is invalid. Expected 'static' or 'dynamic'; defaulting to static.".yellow
-    use_frameworks! :linkage => :static
-  end
-end
+# Firebase Swift pods need frameworks so headers like FirebaseAuth-Swift.h are generated correctly.
+use_frameworks! :linkage => :static
+
+# Firebase Swift static-framework dependencies need module maps.
+# Use selective modular headers here instead of global use_modular_headers!.
+pod 'FirebaseAuthInterop', :modular_headers => true
+pod 'FirebaseAppCheckInterop', :modular_headers => true
+pod 'FirebaseMessagingInterop', :modular_headers => true
+pod 'FirebaseRemoteConfigInterop', :modular_headers => true
+pod 'FirebaseSessions', :modular_headers => true
+pod 'FirebaseCoreInternal', :modular_headers => true
+pod 'FirebaseFirestoreInternal', :modular_headers => true
+pod 'GoogleUtilities', :modular_headers => true
+pod 'GoogleDataTransport', :modular_headers => true
+pod 'nanopb', :modular_headers => true
+pod 'RecaptchaInterop', :modular_headers => true
+
+# Keep gRPC non-modular to avoid the previous gRPC module-map problems.
+pod 'gRPC-C++', :modular_headers => false
+pod 'gRPC-Core', :modular_headers => false
 
 target 'RoadWorkTracker' do
   config = use_native_modules!
 
+  # React Native 0.83 requires Hermes as the default engine.
   use_react_native!(
     :path => config[:reactNativePath],
-    # An absolute path to your application root.
-    :app_path => "#{Pod::Config.instance.installation_root}/.."
+    :app_path => "#{Pod::Config.instance.installation_root}/..",
+    :hermes_enabled => true
   )
 
   post_install do |installer|
@@ -54,7 +55,83 @@ target 'RoadWorkTracker' do
       installer,
       config[:reactNativePath],
       :mac_catalyst_enabled => false,
-      # :ccache_enabled => true
     )
+
+    # Fix script sandboxing problems in newer Xcode versions.
+    installer.pods_project.build_configurations.each do |config|
+      config.build_settings['ENABLE_USER_SCRIPT_SANDBOXING'] = 'NO'
+    end
+
+    installer.pods_project.targets.each do |target|
+      # Fix duplicate op-sqlite libsql headers copied into the generated framework.
+      if target.name == 'op-sqlite'
+        target.build_configurations.each do |config|
+          config.build_settings['PRODUCT_NAME'] = 'op_sqlite'
+          config.build_settings['PRODUCT_MODULE_NAME'] = 'op_sqlite'
+        end
+
+        if target.respond_to?(:product_reference) && target.product_reference
+          target.product_reference.name = 'op_sqlite.framework'
+          target.product_reference.path = 'op_sqlite.framework'
+        end
+
+        target.build_phases.each do |phase|
+          next unless phase.respond_to?(:files)
+
+          phase.files.to_a.each do |file|
+            display_name = file.display_name.to_s
+            path = file.file_ref&.path.to_s
+            real_path = ''
+            begin
+              real_path = file.file_ref&.real_path.to_s
+            rescue
+              real_path = ''
+            end
+
+            combined = "#{display_name} #{path} #{real_path}"
+            if combined.include?('libsql_experimental.xcframework') ||
+               combined.include?('libsql.h') ||
+               combined.include?('libsql-ffi.h') ||
+               combined.include?('SQLite.framework')
+              puts "Removing duplicate op-sqlite build phase file: #{combined}"
+              file.remove_from_project
+            end
+          end
+        end
+      end
+
+      target.build_configurations.each do |config|
+        # Fix deployment target warnings.
+        config.build_settings['IPHONEOS_DEPLOYMENT_TARGET'] = '13.0'
+        # Fix React Native / Firebase / Hermes script sandboxing.
+        config.build_settings['ENABLE_USER_SCRIPT_SANDBOXING'] = 'NO'
+
+        # Fix gRPC modular header issues.
+        if ['gRPC-C++', 'gRPC-Core'].include? target.name
+          config.build_settings['CLANG_ALLOW_NON_MODULAR_INCLUDES_IN_FRAMEWORK_MODULES'] = 'YES'
+          config.build_settings['DEFINES_MODULE'] = 'NO'
+        end
+      end
+
+      # Fix missing module map for gRPC-C++-dummy.
+      if target.name == 'gRPC-C++'
+        target.build_configurations.each do |config|
+          config.build_settings['DEFINES_MODULE'] = 'NO'
+          config.build_settings['MODULEMAP_FILE'] = ''
+        end
+      end
+    end
+
+    # Manually create the missing module map file.
+    grpc_dummy_path = "#{installer.sandbox.root}/Headers/Private/gRPC-C++-dummy"
+    FileUtils.mkdir_p(grpc_dummy_path)
+    module_map_content = <<~MAP
+      framework module gRPC_C___dummy {
+        umbrella header "PodsDummy_gRPC_C__.h"
+        export *
+        module * { export * }
+      }
+    MAP
+    File.write("#{grpc_dummy_path}/module.modulemap", module_map_content)
   end
 end
