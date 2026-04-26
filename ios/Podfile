@@ -40,6 +40,12 @@ pod 'RecaptchaInterop', :modular_headers => true
 pod 'gRPC-C++', :modular_headers => false
 pod 'gRPC-Core', :modular_headers => false
 
+# Google Maps provider for react-native-maps.
+# Required because AppDelegate.swift imports GoogleMaps.
+rn_maps_path = '../node_modules/react-native-maps'
+pod 'react-native-google-maps', :path => rn_maps_path
+pod 'GoogleMaps'
+
 target 'RoadWorkTracker' do
   config = use_native_modules!
 
