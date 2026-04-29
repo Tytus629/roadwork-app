@@ -42,6 +42,9 @@ describe("rolePermissions", () => {
     expect(hasRolePermission("viewVehicleAssets", "crew_member")).toBe(false);
     expect(hasRolePermission("deleteWorkOrder", "crew_member")).toBe(false);
     expect(hasRolePermission("deleteWorkOrder", "org_admin")).toBe(true);
+    expect(hasRolePermission("addWorkOrderPhoto", "viewer")).toBe(true);
+    expect(hasRolePermission("addWorkOrderPhoto", "mechanic")).toBe(true);
+    expect(hasRolePermission("addWorkOrderPhoto", "member")).toBe(true);
     expect(hasRolePermission("manageAssets", "asset_manager")).toBe(true);
     expect(hasRolePermission("manageAssets", "mechanic")).toBe(false);
     expect(hasRolePermission("createTailgate", "crew_member")).toBe(false);

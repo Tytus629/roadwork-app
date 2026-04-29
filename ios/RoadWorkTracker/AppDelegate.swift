@@ -20,14 +20,18 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
     FirebaseApp.configure()
 
     // Initialize Google Maps from Info.plist to avoid hardcoding secrets.
+    // Google Maps SDK crashes if provideAPIKey is never called, so in DEBUG we
+    // provide a harmless fallback key to keep the app open for UI smoke testing.
     let mapsKeyRaw = (Bundle.main.object(forInfoDictionaryKey: "GOOGLE_MAPS_API_KEY") as? String) ?? ""
     let mapsKey = mapsKeyRaw.trimmingCharacters(in: .whitespacesAndNewlines)
-    if !mapsKey.isEmpty && !mapsKey.contains("$(") && mapsKey != "YOUR_IOS_GOOGLE_MAPS_API_KEY" {
-      GMSServices.provideAPIKey(mapsKey)
-    } else {
-#if DEBUG
-      print("[Maps] GOOGLE_MAPS_API_KEY is missing or placeholder; map tiles may not load.")
-#endif
+    let hasConfiguredKey = !mapsKey.isEmpty && !mapsKey.contains("$(") && mapsKey != "YOUR_IOS_GOOGLE_MAPS_API_KEY"
+    let effectiveMapsKey = hasConfiguredKey ? mapsKey : "DUMMY_FOR_DEV_ONLY"
+    GMSServices.provideAPIKey(effectiveMapsKey)
+
+    if !hasConfiguredKey {
+  #if DEBUG
+      print("[Maps] GOOGLE_MAPS_API_KEY is missing/placeholder. Using DEBUG fallback key; map tiles may not load.")
+  #endif
     }
     
     let delegate = ReactNativeDelegate()

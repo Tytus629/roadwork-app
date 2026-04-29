@@ -390,8 +390,8 @@ export function connectToEmulatorsIfDev(hostOverride?: string) {
           );
         }
       } catch (pingErr: any) {
-        console.error(
-          "[Emulators] Functions ping FAILED",
+        console.warn(
+          "[Emulators] Functions ping failed (non-blocking). Start Firebase emulators if needed:",
           pingErr?.message ?? String(pingErr)
         );
       }

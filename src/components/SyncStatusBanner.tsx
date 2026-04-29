@@ -9,7 +9,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { getSyncStatus, subscribeSyncStatus } from "../sync/syncStatus";
 import { manualSyncNow } from "../sync/syncScheduler";
 
-export function SyncStatusBanner() {
+export function SyncStatusBanner({ topOffset = 4 }: { topOffset?: number }) {
   const [s, setS] = useState(getSyncStatus());
   const insets = useSafeAreaInsets();
 
@@ -33,7 +33,7 @@ export function SyncStatusBanner() {
       : "rgba(0,0,0,0.75)";     // dark
 
   return (
-    <View style={[styles.wrapper, { top: insets.top + 4 }]} pointerEvents="box-none">
+    <View style={[styles.wrapper, { top: insets.top + topOffset }]} pointerEvents="box-none">
       <Pressable onPress={() => manualSyncNow()} style={[styles.pill, { backgroundColor: bg }]}>
         <Text style={styles.label}>{label}</Text>
 

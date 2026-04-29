@@ -9,6 +9,7 @@ require Pod::Executable.execute_command('node', ['-p',
 
 # Firebase - use static frameworks for better compatibility
 $RNFirebaseAsStaticFramework = true
+ENV['RCT_NEW_ARCH_ENABLED'] = '0'
 
 platform :ios, min_ios_version_supported
 
@@ -19,7 +20,14 @@ platform :ios, min_ios_version_supported
 
 prepare_react_native_project!
 
-# Firebase Swift pods need frameworks so headers like FirebaseAuth-Swift.h are generated correctly.
+require_relative '../node_modules/react-native-permissions/scripts/setup'
+setup_permissions([
+  'Camera',
+  'LocationWhenInUse',
+  'PhotoLibrary',
+])
+
+# Firebase Swift pods need frameworks so Swift-generated headers are available.
 use_frameworks! :linkage => :static
 
 # Firebase Swift static-framework dependencies need module maps.
@@ -43,8 +51,7 @@ pod 'gRPC-Core', :modular_headers => false
 # Google Maps provider for react-native-maps.
 # Required because AppDelegate.swift imports GoogleMaps.
 rn_maps_path = '../node_modules/react-native-maps'
-pod 'react-native-google-maps', :path => rn_maps_path
-pod 'GoogleMaps'
+pod 'react-native-maps', :path => rn_maps_path, :subspecs => ['Google']
 
 target 'RoadWorkTracker' do
   config = use_native_modules!
@@ -53,7 +60,8 @@ target 'RoadWorkTracker' do
   use_react_native!(
     :path => config[:reactNativePath],
     :app_path => "#{Pod::Config.instance.installation_root}/..",
-    :hermes_enabled => true
+    :hermes_enabled => true,
+    :new_arch_enabled => false
   )
 
   post_install do |installer|
@@ -66,6 +74,11 @@ target 'RoadWorkTracker' do
     # Fix script sandboxing problems in newer Xcode versions.
     installer.pods_project.build_configurations.each do |config|
       config.build_settings['ENABLE_USER_SCRIPT_SANDBOXING'] = 'NO'
+      defs = config.build_settings['GCC_PREPROCESSOR_DEFINITIONS'] || ['$(inherited)']
+      defs = [defs] unless defs.is_a?(Array)
+      defs << 'RCT_ENABLE_INSPECTOR=0' unless defs.include?('RCT_ENABLE_INSPECTOR=0')
+      defs << 'RCT_REMOTE_PROFILE=0' unless defs.include?('RCT_REMOTE_PROFILE=0')
+      config.build_settings['GCC_PREPROCESSOR_DEFINITIONS'] = defs
     end
 
     installer.pods_project.targets.each do |target|
@@ -111,6 +124,35 @@ target 'RoadWorkTracker' do
         config.build_settings['IPHONEOS_DEPLOYMENT_TARGET'] = '13.0'
         # Fix React Native / Firebase / Hermes script sandboxing.
         config.build_settings['ENABLE_USER_SCRIPT_SANDBOXING'] = 'NO'
+        # Allow mixed modular/non-modular headers when static frameworks are enabled.
+        config.build_settings['CLANG_ALLOW_NON_MODULAR_INCLUDES_IN_FRAMEWORK_MODULES'] = 'YES'
+
+        # Keep RN inspector/profile macros coherent for RN 0.83 pod targets.
+        defs = config.build_settings['GCC_PREPROCESSOR_DEFINITIONS'] || ['$(inherited)']
+        defs = [defs] unless defs.is_a?(Array)
+        defs << 'RCT_ENABLE_INSPECTOR=0' unless defs.include?('RCT_ENABLE_INSPECTOR=0')
+        defs << 'RCT_REMOTE_PROFILE=0' unless defs.include?('RCT_REMOTE_PROFILE=0')
+        config.build_settings['GCC_PREPROCESSOR_DEFINITIONS'] = defs
+
+        # Ensure React-Core targets can find RN DevSupport headers when using static frameworks.
+        if target.name.start_with?('React-Core')
+          header_paths = config.build_settings['HEADER_SEARCH_PATHS'] || ['$(inherited)']
+          header_paths = [header_paths] unless header_paths.is_a?(Array)
+          header_paths << '$(PODS_TARGET_SRCROOT)/React/DevSupport' unless header_paths.include?('$(PODS_TARGET_SRCROOT)/React/DevSupport')
+          header_paths << '$(PODS_TARGET_SRCROOT)/React/Base' unless header_paths.include?('$(PODS_TARGET_SRCROOT)/React/Base')
+          config.build_settings['HEADER_SEARCH_PATHS'] = header_paths
+        end
+
+        # RN 0.83 + use_frameworks! generates two React-Core targets:
+        # React-Core-<hash> (full, 270+ headers) and React-Core.common (stub, 1 header).
+        # Consumer targets only get React-Core.common in their FRAMEWORK_SEARCH_PATHS,
+        # so #import <React/…> fails because the stub only has the umbrella header.
+        # Fix: disable module advertising on the stub (already done above) AND inject
+        # the full React-Core-<hash> dir into every target's framework search paths
+        # so the compiler finds the complete React.framework first.
+        if target.name == 'React-Core.common'
+          config.build_settings['DEFINES_MODULE'] = 'NO'
+        end
 
         # Fix gRPC modular header issues.
         if ['gRPC-C++', 'gRPC-Core'].include? target.name
@@ -128,6 +170,213 @@ target 'RoadWorkTracker' do
       end
     end
 
+    # RN 0.83 + use_frameworks!: add diagnostics and harden React-Core header resolution.
+    full_react_core_target = installer.pods_project.targets.find { |t| t.name =~ /^React-Core-[a-f0-9]+$/ }
+    react_core_common_target = installer.pods_project.targets.find { |t| t.name == 'React-Core.common' }
+    react_core_targets = installer.pods_project.targets.select { |t| t.name.start_with?('React-Core') }
+
+    pods_debug_enabled = ENV.fetch('RW_PODS_DEBUG', '1') == '1'
+    debug_dir = File.expand_path('../.pod-debug', installer.sandbox.root.to_s)
+    FileUtils.mkdir_p(debug_dir)
+    debug_report = []
+    debug_report << "timestamp=#{Time.now.utc.iso8601 rescue Time.now.utc.to_s}"
+    debug_report << "podfile=#{__FILE__}"
+    debug_report << "pods_root=#{installer.sandbox.root}"
+    debug_report << "react_core_targets=#{react_core_targets.map(&:name).join(',')}"
+    debug_report << "full_react_core_target=#{full_react_core_target&.name || 'nil'}"
+    debug_report << "react_core_common_target=#{react_core_common_target&.name || 'nil'}"
+
+    if full_react_core_target
+      full_dir = '"${PODS_CONFIGURATION_BUILD_DIR}/' + full_react_core_target.name + '"'
+      xcconfig_dir = "#{installer.sandbox.root}/Target Support Files"
+      consumer_xcconfig_updates = 0
+      common_xcconfig_updates = 0
+
+      # Step 1: Fix consumer xcconfigs (React-RCTText, react-native-maps, etc.)
+      Dir.glob("#{xcconfig_dir}/**/*.xcconfig").each do |xcconfig_path|
+        content = File.read(xcconfig_path)
+        next if content.include?(full_react_core_target.name)
+        next unless content.include?('"${PODS_CONFIGURATION_BUILD_DIR}/React-Core.common"')
+
+        updated = content.gsub(
+          '"${PODS_CONFIGURATION_BUILD_DIR}/React-Core.common"',
+          "#{full_dir} \"${PODS_CONFIGURATION_BUILD_DIR}/React-Core.common\""
+        )
+        if updated != content
+          File.write(xcconfig_path, updated)
+          consumer_xcconfig_updates += 1
+        end
+      end
+
+      # Step 2: Copy React headers to stable repo-local mirrors.
+      # Keep the flat React mirror selective to avoid duplicate declarations
+      # from unguarded headers being included through two different paths.
+      rn_root = File.expand_path('../../node_modules/react-native', installer.sandbox.root.to_s)
+      react_tree_mirror = File.join(debug_dir, 'React')
+      static_react_headers = File.join(debug_dir, 'StaticReact')
+      FileUtils.mkdir_p(react_tree_mirror)
+      FileUtils.mkdir_p(static_react_headers)
+      copied_headers = 0
+      copied_react_flat = 0
+      source_headers = (
+        Dir.glob("#{rn_root}/React/**/*.h") +
+        Dir.glob("#{rn_root}/Libraries/**/*.h")
+      ).uniq
+
+      # Rebuild flat mirror every run so stale headers from previous strategies
+      # cannot keep affecting later builds.
+      FileUtils.rm_rf(Dir.glob(File.join(react_tree_mirror, '*')))
+
+      # Mirror all React header basenames as lightweight forwarding shims.
+      # This keeps <React/...> resolution comprehensive while always including
+      # canonical source headers (avoids duplicate type declarations from copied
+      # file bodies under multiple include paths).
+      flat_react_whitelist = source_headers.map { |src| File.basename(src) }.uniq.sort
+      headers_by_name = {}
+      source_headers.each { |src| headers_by_name[File.basename(src)] ||= src }
+      flat_react_whitelist.each do |header_name|
+        src = headers_by_name[header_name]
+        next unless src
+
+        react_flat_dst = File.join(react_tree_mirror, header_name)
+        shim = <<~HDR
+          #pragma once
+          #import "#{src}"
+        HDR
+        File.write(react_flat_dst, shim)
+        copied_react_flat += 1
+      end
+
+      source_headers.each do |src|
+
+        dst = File.join(static_react_headers, File.basename(src))
+        unless File.exist?(dst)
+          FileUtils.cp(src, dst)
+          copied_headers += 1
+        end
+      end
+
+      # Step 3: Fix React-Core.common xcconfigs.
+      # Keep full React-Core framework dir, and use canonical RN headers from
+      # node_modules (avoid mirrored copies that can duplicate declarations).
+      Dir.glob("#{xcconfig_dir}/React-Core.common/*.xcconfig").each do |xcconfig_path|
+        content = File.read(xcconfig_path)
+        updated = content.dup
+
+        if updated.include?('FRAMEWORK_SEARCH_PATHS = $(inherited)') && !updated.include?(full_react_core_target.name)
+          updated = updated.gsub(
+            'FRAMEWORK_SEARCH_PATHS = $(inherited)',
+            "FRAMEWORK_SEARCH_PATHS = $(inherited) #{full_dir}"
+          )
+        end
+
+        # Remove previous mirror injections first.
+        updated = updated.gsub(' "$(PODS_ROOT)/../.pod-debug"', '')
+        updated = updated.gsub(' "$(PODS_ROOT)/../.pod-debug/React"', '')
+        updated = updated.gsub(' "$(PODS_ROOT)/../.pod-debug/StaticReact"', '')
+
+        rn_root_quoted = '"$(PODS_ROOT)/../../node_modules/react-native"'
+        debug_root_quoted = '"$(PODS_ROOT)/../.pod-debug"'
+        debug_react_quoted = '"$(PODS_ROOT)/../.pod-debug/React"'
+        if updated.include?('HEADER_SEARCH_PATHS = $(inherited)') && !updated.include?('node_modules/react-native')
+          updated = updated.gsub(
+            'HEADER_SEARCH_PATHS = $(inherited)',
+            "HEADER_SEARCH_PATHS = $(inherited) #{rn_root_quoted} #{debug_root_quoted} #{debug_react_quoted}"
+          )
+        elsif updated.include?('HEADER_SEARCH_PATHS = $(inherited)') && !updated.include?('.pod-debug/React')
+          updated = updated.gsub(
+            'HEADER_SEARCH_PATHS = $(inherited)',
+            "HEADER_SEARCH_PATHS = $(inherited) #{debug_root_quoted} #{debug_react_quoted}"
+          )
+        end
+
+        if updated != content
+          File.write(xcconfig_path, updated)
+          common_xcconfig_updates += 1
+        end
+      end
+
+      # Step 4: Add explicit diagnostics for critical headers and target settings.
+      static_header_count = Dir.glob("#{static_react_headers}/*.h").length
+      tree_header_count = Dir.glob("#{react_tree_mirror}/**/*.h").length
+      critical_headers = %w[RCTComponent.h RCTDefines.h RCTAssert.h RCTViewManager.h RCTBridge.h]
+      critical_status = critical_headers.map do |h|
+        "#{h}=#{File.exist?(File.join(static_react_headers, h)) ? 'present' : 'missing'}"
+      end
+
+      debug_report << "rn_root=#{rn_root}"
+      debug_report << "react_header_sources=#{source_headers.length}"
+      debug_report << "react_header_copied_now=#{copied_headers}"
+      debug_report << "react_header_mirror=#{static_react_headers}"
+      debug_report << "react_header_mirror_count=#{static_header_count}"
+      debug_report << "react_tree_mirror=#{react_tree_mirror}"
+      debug_report << "react_tree_mirror_count=#{tree_header_count}"
+      debug_report << "react_flat_header_copied_now=#{copied_react_flat}"
+      debug_report << "consumer_xcconfig_updates=#{consumer_xcconfig_updates}"
+      debug_report << "common_xcconfig_updates=#{common_xcconfig_updates}"
+      debug_report << "critical_headers=#{critical_status.join(',')}"
+
+      react_core_targets.each do |target|
+        target.build_configurations.each do |cfg|
+          fs = cfg.build_settings['FRAMEWORK_SEARCH_PATHS']
+          hs = cfg.build_settings['HEADER_SEARCH_PATHS']
+          dm = cfg.build_settings['DEFINES_MODULE']
+          debug_report << "target=#{target.name} config=#{cfg.name} DEFINES_MODULE=#{dm.inspect}"
+          debug_report << "target=#{target.name} config=#{cfg.name} FRAMEWORK_SEARCH_PATHS=#{fs.inspect}"
+          debug_report << "target=#{target.name} config=#{cfg.name} HEADER_SEARCH_PATHS=#{hs.inspect}"
+        end
+      end
+    end
+
+    debug_report_path = File.join(debug_dir, 'react-core-diagnostics.txt')
+    File.write(debug_report_path, debug_report.join("\n") + "\n")
+    if pods_debug_enabled
+      puts "[RW_PODS_DEBUG] wrote diagnostics: #{debug_report_path}"
+      puts "[RW_PODS_DEBUG] set RW_PODS_DEBUG=0 to mute this output"
+    end
+
+    # Deduplicate headers across all React-Core* targets.
+    # CocoaPods with use_frameworks! generates multiple targets (React-Core-HASH,
+    # React-Core.common, etc.) that all output to the same React.framework/Headers/.
+    # The Default subspec globs React/**/*.h which captures DevSupport/*.h,
+    # and the DevSupport subspec adds them again -- causing "Multiple commands produce".
+    react_core_seen_headers = {}
+    installer.pods_project.targets.each do |target|
+      next unless target.name.start_with?('React-Core')
+      target.build_phases.each do |phase|
+        next unless phase.is_a?(Xcodeproj::Project::Object::PBXHeadersBuildPhase)
+        phase.files.to_a.each do |build_file|
+          header_name = build_file.file_ref&.path.to_s
+          if react_core_seen_headers[header_name]
+            puts "Deduplicating React-Core header from #{target.name}: #{header_name}"
+            build_file.remove_from_project
+          else
+            react_core_seen_headers[header_name] = true
+          end
+        end
+      end
+    end
+
+    # Also deduplicate the generated umbrella headers (these are written by CocoaPods
+    # as static files and the build system copies them into the framework).
+    Dir.glob("#{installer.sandbox.root}/Target Support Files/React-Core*/*-umbrella.h").each do |umbrella_path|
+      content = File.read(umbrella_path)
+      seen = {}
+      deduped = content.lines.reject do |line|
+        m = line.match(/#import\s+"([^"]+)"/)
+        if m
+          if seen[m[1]]
+            puts "Deduplicating umbrella import #{m[1]} in #{File.basename(umbrella_path)}"
+            true
+          else
+            seen[m[1]] = true
+            false
+          end
+        end
+      end.join
+      File.write(umbrella_path, deduped) if deduped != content
+    end
+
     # Manually create the missing module map file.
     grpc_dummy_path = "#{installer.sandbox.root}/Headers/Private/gRPC-C++-dummy"
     FileUtils.mkdir_p(grpc_dummy_path)
@@ -139,5 +388,18 @@ target 'RoadWorkTracker' do
       }
     MAP
     File.write("#{grpc_dummy_path}/module.modulemap", module_map_content)
+
+    # Some pods (RNNotifee, RNFS) import DevSupport/Inspector headers as <React/...>.
+    # Mirror DevSupport AND Inspector headers into Pods/Headers/Public/React so that
+    # <React/RCTDevLoadingViewProtocol.h> and <React/RCTInspectorPackagerConnection.h> resolve.
+    react_native_root = File.expand_path('../node_modules/react-native', __dir__)
+    react_public_headers = "#{installer.sandbox.root}/Headers/Public/React"
+    FileUtils.mkdir_p(react_public_headers)
+    ['React/DevSupport'].each do |subdir|
+      Dir.glob(File.join(react_native_root, subdir, '*.h')).each do |src|
+        dst = File.join(react_public_headers, File.basename(src))
+        FileUtils.cp(src, dst) unless File.exist?(dst)
+      end
+    end
   end
 end

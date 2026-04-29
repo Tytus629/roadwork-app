@@ -353,6 +353,7 @@ export function saveAndEnqueueWorkOrder(wo: WorkOrder) {
       note: wo.note ?? null,
       geometryType,
       geo,
+      createdAt: wo.createdAt || t,
       createdByUid: creator.uid,
       createdByEmail: creator.email,
       createdByFirstName: creator.firstName,

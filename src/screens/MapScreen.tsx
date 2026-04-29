@@ -163,6 +163,7 @@ import {
   setCustomKeySafe,
 } from "../telemetry/crashlytics";
 import { useColorblindModePreference } from "../settings/colorblindMode";
+import { SyncStatusBanner } from "../components/SyncStatusBanner";
 
 function regionToBBox(region: Region): BBox {
   const halfLat = region.latitudeDelta / 2;
@@ -2455,6 +2456,8 @@ export default function MapScreen() {
           </Text>
         </View>
       )}
+
+      <SyncStatusBanner topOffset={__DEV__ ? 82 : 52} />
 
       <View style={[styles.topLeftControls, { top: insets.top + 8 }]}>
         {/* Map type toggle */}

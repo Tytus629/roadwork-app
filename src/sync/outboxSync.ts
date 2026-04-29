@@ -736,6 +736,14 @@ async function callFn(name: string, data: any): Promise<any> {
 
 async function handleRow(row: OutboxRow) {
   const payload = JSON.parse(row.payloadJson);
+  // Backfill required timestamps for older queued rows created before
+  // createdAt/updatedAt was consistently included in outbox payloads.
+  if (payload.createdAt == null) {
+    payload.createdAt = Number(row.createdAt ?? Date.now());
+  }
+  if (payload.updatedAt == null) {
+    payload.updatedAt = Number(payload.createdAt ?? row.createdAt ?? Date.now());
+  }
   // Validate orgId before sending to Cloud Function
   requireOrgId(payload.orgId);
   // Enforce org-scoped storage path convention when payload includes uploads.
@@ -1297,6 +1305,9 @@ export async function trySyncOutbox(
         const msg = e?.message ?? String(e);
         const code = e?.code ?? e?.details?.code ?? "unknown";
         const name = e?.name ?? "Error";
+        const shouldWarnOnlyInDev =
+          __DEV__ &&
+          /functions\/(invalid_argument|internal|not_found|unavailable)/i.test(String(code ?? ""));
 
         // Try to capture EVERYTHING react-native-firebase might attach
         const nativeErrorMessage =
@@ -1324,29 +1335,32 @@ export async function trySyncOutbox(
         let causeJson = null;
         try { causeJson = cause ? JSON.stringify(cause) : null; } catch {}
 
-        console.error(
-          `[Sync] ERROR outbox ${row.id}:${row.kind}:${row.createdAt}`,
-          {
-            name,
-            code,
-            msg,
-            nativeErrorCode,
-            nativeErrorMessage,
-            userInfo,
-            userInfoJson,
-            cause,
-            causeJson,
-            eJson,
-            stack: e?.stack,
-          }
-        );
+        const outboxErrorPayload = {
+          name,
+          code,
+          msg,
+          nativeErrorCode,
+          nativeErrorMessage,
+          userInfo,
+          userInfoJson,
+          cause,
+          causeJson,
+          eJson,
+          stack: e?.stack,
+        };
+
+        if (shouldWarnOnlyInDev) {
+          console.warn(`[Sync] ERROR outbox ${row.id}:${row.kind}:${row.createdAt}`, outboxErrorPayload);
+        } else {
+          console.error(`[Sync] ERROR outbox ${row.id}:${row.kind}:${row.createdAt}`, outboxErrorPayload);
+        }
 
         // Keep item in outbox so it can retry — bump error counter + set backoff
         bumpOutboxError(row.id, `${code}: ${nativeErrorMessage ?? msg}`, row.attempts ?? 0);
         const retryState = getRowRetryState(row.id);
 
         if (__DEV__) {
-          console.error("[OutboxDebug] row failure", {
+          console.warn("[OutboxDebug] row failure", {
             rowId: row.id,
             kind: row.kind,
             entityId: row.entityId ?? null,

@@ -58,7 +58,6 @@ import { getAuth, onAuthStateChanged } from "@react-native-firebase/auth";
 
 import RootNavigator from "./src/navigation/RootNavigator";
 import { SignsProvider } from "./src/state/SignsContext";
-import { SyncStatusBanner } from "./src/components/SyncStatusBanner";
 import { requestNotificationPermission } from "./src/services/notify";
 import { ensureDbSchemaReady } from "./src/db/migrations";
 import { dbPing } from "./src/db/db";
@@ -262,7 +261,6 @@ function RootGate() {
             <NavigationContainer>
               <RootNavigator />
             </NavigationContainer>
-            <SyncStatusBanner />
           </View>
         </AssetsProvider>
       </SignsProvider>

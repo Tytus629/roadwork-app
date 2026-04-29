@@ -192,7 +192,7 @@ export async function callDevFunctionHttp<T = any>(
     const errDetails = errObj?.details ?? json?.details ?? null;
 
     if (__DEV__ && functionName === "roadwork_requestJoinOrg") {
-      console.error("[JoinOrg][HTTP] roadwork_requestJoinOrg error envelope", {
+      console.warn("[JoinOrg][HTTP] roadwork_requestJoinOrg error envelope", {
         status: resp.status,
         error: errObj ?? null,
         body: json ?? null,
