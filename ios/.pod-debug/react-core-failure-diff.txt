@@ -1,0 +1,147 @@
+new_log=/tmp/xbc.log
+old_log=/tmp/xbb.log
+new_target=in target 'React-jsitooling' from project 'Pods'
+old_target=in target 'React-Core.common' from project 'Pods'
+new_resp=/tmp/rw-ddc/Build/Intermediates.noindex/Pods.build/Debug-iphonesimulator/React-graphics.build/Objects-normal/arm64/82b82416624d2658e5098eb0a28c15c5-common-args.resp
+old_resp=/tmp/rw-ddb/Build/Intermediates.noindex/Pods.build/Debug-iphonesimulator/React-Core.common.build/Objects-normal/arm64/af3fcb34312c57c0f52879cdce924b91-common-args.resp
+
+==== first-errors (new) ====
+76522:/Users/user949187/roadwork-app/node_modules/react-native/React/Views/UIView+React.h:10:9: error: 'React/RCTComponent.h' file not found (in target 'React-Core.common' from project 'Pods')
+76533:/Users/user949187/roadwork-app/node_modules/react-native/React/Base/RCTUtils.h:12:9: fatal error: 'React/RCTAssert.h' file not found
+76545:/Users/user949187/roadwork-app/node_modules/react-native/React/Modules/RCTUIManagerObserverCoordinator.h:10:9: fatal error: 'React/RCTViewManager.h' file not found
+
+==== first-errors (old) ====
+70996:/Users/user949187/roadwork-app/node_modules/react-native/React/Profiler/RCTProfileTrampoline-x86_64.S:8:10: fatal error: 'RCTDefines.h' file not found
+
+==== diff errors (old -> new) ====
+--- /dev/fd/63	2026-04-27 22:23:35
++++ /dev/fd/62	2026-04-27 22:23:35
+@@ -1 +1,3 @@
+-70996:/Users/user949187/roadwork-app/node_modules/react-native/React/Profiler/RCTProfileTrampoline-x86_64.S:8:10: fatal error: 'RCTDefines.h' file not found
++76522:/Users/user949187/roadwork-app/node_modules/react-native/React/Views/UIView+React.h:10:9: error: 'React/RCTComponent.h' file not found (in target 'React-Core.common' from project 'Pods')
++76533:/Users/user949187/roadwork-app/node_modules/react-native/React/Base/RCTUtils.h:12:9: fatal error: 'React/RCTAssert.h' file not found
++76545:/Users/user949187/roadwork-app/node_modules/react-native/React/Modules/RCTUIManagerObserverCoordinator.h:10:9: fatal error: 'React/RCTViewManager.h' file not found
+
+==== diff response include/framework paths (old -> new) ====
+--- /var/folders/2x/cf1mc9vx2_b9n3r1r17329780000kl/T/tmp.FcQLeiNjgF	2026-04-27 22:23:35
++++ /var/folders/2x/cf1mc9vx2_b9n3r1r17329780000kl/T/tmp.6N3ApsjdHa	2026-04-27 22:23:35
+@@ -1,17 +1,15 @@
+ --- -I include paths ---
+--I/tmp/rw-ddb/Build/Intermediates.noindex/Pods.build/Debug-iphonesimulator/React-Core.common.build/React-own-target-headers.hmap
+--I/tmp/rw-ddb/Build/Intermediates.noindex/Pods.build/Debug-iphonesimulator/React-Core.common.build/React-all-non-framework-target-headers.hmap
+--I/tmp/rw-ddb/Build/Products/Debug-iphonesimulator/React-Core.common/include
+--I/tmp/rw-ddb/Build/Products/Debug-iphonesimulator/ReactCommon/ReactCommon.framework/Headers
+--I/tmp/rw-ddb/Build/Products/Debug-iphonesimulator/ReactCommon/ReactCommon.framework/Headers/react/nativemodule/core
+--I/tmp/rw-ddb/Build/Products/Debug-iphonesimulator/React-runtimeexecutor/React_runtimeexecutor.framework/Headers
+--I/tmp/rw-ddb/Build/Products/Debug-iphonesimulator/React-runtimeexecutor/React_runtimeexecutor.framework/Headers/platform/ios
+--I/tmp/rw-ddb/Build/Products/Debug-iphonesimulator/ReactCommon-Samples/ReactCommon_Samples.framework/Headers
+--I/tmp/rw-ddb/Build/Products/Debug-iphonesimulator/ReactCommon-Samples/ReactCommon_Samples.framework/Headers/platform/ios
+--I/tmp/rw-ddb/Build/Products/Debug-iphonesimulator/React-Fabric/React_Fabric.framework/Headers/react/renderer/components/view/platform/cxx
+--I/tmp/rw-ddb/Build/Products/Debug-iphonesimulator/React-NativeModulesApple/React_NativeModulesApple.framework/Headers
+--I/tmp/rw-ddb/Build/Products/Debug-iphonesimulator/React-graphics/React_graphics.framework/Headers
+--I/tmp/rw-ddb/Build/Products/Debug-iphonesimulator/React-graphics/React_graphics.framework/Headers/react/renderer/graphics/platform/ios
++-I/tmp/rw-ddc/Build/Products/Debug-iphonesimulator/React-graphics/include
++-I/tmp/rw-ddc/Build/Products/Debug-iphonesimulator/ReactCommon/ReactCommon.framework/Headers
++-I/tmp/rw-ddc/Build/Products/Debug-iphonesimulator/ReactCommon/ReactCommon.framework/Headers/react/nativemodule/core
++-I/tmp/rw-ddc/Build/Products/Debug-iphonesimulator/React-runtimeexecutor/React_runtimeexecutor.framework/Headers
++-I/tmp/rw-ddc/Build/Products/Debug-iphonesimulator/React-runtimeexecutor/React_runtimeexecutor.framework/Headers/platform/ios
++-I/tmp/rw-ddc/Build/Products/Debug-iphonesimulator/ReactCommon-Samples/ReactCommon_Samples.framework/Headers
++-I/tmp/rw-ddc/Build/Products/Debug-iphonesimulator/ReactCommon-Samples/ReactCommon_Samples.framework/Headers/platform/ios
++-I/tmp/rw-ddc/Build/Products/Debug-iphonesimulator/React-Fabric/React_Fabric.framework/Headers/react/renderer/components/view/platform/cxx
++-I/tmp/rw-ddc/Build/Products/Debug-iphonesimulator/React-NativeModulesApple/React_NativeModulesApple.framework/Headers
++-I/tmp/rw-ddc/Build/Products/Debug-iphonesimulator/React-graphics/React_graphics.framework/Headers
++-I/tmp/rw-ddc/Build/Products/Debug-iphonesimulator/React-graphics/React_graphics.framework/Headers/react/renderer/graphics/platform/ios
+ -I/Users/user949187/roadwork-app/ios/Pods/Headers/Public
+ -I/Users/user949187/roadwork-app/ios/Pods/Headers/Public/React-callinvoker
+ -I/Users/user949187/roadwork-app/ios/Pods/Headers/Public/React-timing
+@@ -19,18 +17,7 @@
+ -I/Users/user949187/roadwork-app/ios/Pods/Headers/Public/fast_float
+ -I/Users/user949187/roadwork-app/ios/Pods/Headers/Public/hermes-engine
+ -I/Users/user949187/roadwork-app/node_modules/react-native/ReactCommon
+--I/Users/user949187/roadwork-app/ios/Pods/Headers/Public/FlipperKit
+--I/Users/user949187/roadwork-app/ios/Pods/Headers/Public/ReactCommon
+--I/Users/user949187/roadwork-app/ios/Pods/Headers/Public/React-hermes
+--I/Users/user949187/roadwork-app/ios/Pods/Headers/Public/hermes-engine
+--I/tmp/rw-ddb/Build/Products/Debug-iphonesimulator/React-runtimeexecutor/React_runtimeexecutor.framework/Headers
+--I/tmp/rw-ddb/Build/Products/Debug-iphonesimulator/React-runtimeexecutor/React_runtimeexecutor.framework/Headers/platform/ios
+--I/tmp/rw-ddb/Build/Products/Debug-iphonesimulator/React-jsinspector/jsinspector_modern.framework/Headers
+--I/tmp/rw-ddb/Build/Products/Debug-iphonesimulator/React-jsinspectorcdp/jsinspector_moderncdp.framework/Headers
+--I/tmp/rw-ddb/Build/Products/Debug-iphonesimulator/React-jsitooling/JSITooling.framework/Headers
+--I/tmp/rw-ddb/Build/Products/Debug-iphonesimulator/React-utils/React_utils.framework/Headers
+--I/tmp/rw-ddb/Build/Products/Debug-iphonesimulator/React-utils/React_utils.framework/Headers/react/utils/platform/ios
+--I/tmp/rw-ddb/Build/Products/Debug-iphonesimulator/RCTDeprecation/RCTDeprecation.framework/Headers
++-I/Users/user949187/roadwork-app/node_modules/react-native/ReactCommon/react/renderer/graphics/platform/ios
+ -I/Users/user949187/roadwork-app/ios/Pods/glog
+ -I/Users/user949187/roadwork-app/ios/Pods/boost
+ -I/Users/user949187/roadwork-app/ios/Pods/DoubleConversion
+@@ -38,46 +25,29 @@
+ -I/Users/user949187/roadwork-app/ios/Pods/fmt/include
+ -I/Users/user949187/roadwork-app/ios/Pods/SocketRocket
+ -I/Users/user949187/roadwork-app/ios/Pods/RCT-Folly
+--I/Users/user949187/roadwork-app/ios/Pods/RCT-Folly
+--I/Users/user949187/roadwork-app/ios/Pods/DoubleConversion
+--I/Users/user949187/roadwork-app/ios/Pods/fast_float/include
+--I/Users/user949187/roadwork-app/ios/Pods/fmt/include
+--I/Users/user949187/roadwork-app/ios/Pods/boost
+--I/Users/user949187/roadwork-app/node_modules/react-native/React/DevSupport
+--I/Users/user949187/roadwork-app/node_modules/react-native/React/Base
+--I/tmp/rw-ddb/Build/Intermediates.noindex/Pods.build/Debug-iphonesimulator/React-Core.common.build/DerivedSources-normal/arm64
+--I/tmp/rw-ddb/Build/Intermediates.noindex/Pods.build/Debug-iphonesimulator/React-Core.common.build/DerivedSources/arm64
+--I/tmp/rw-ddb/Build/Intermediates.noindex/Pods.build/Debug-iphonesimulator/React-Core.common.build/DerivedSources
++-I/tmp/rw-ddc/Build/Intermediates.noindex/Pods.build/Debug-iphonesimulator/React-graphics.build/DerivedSources-normal/arm64
++-I/tmp/rw-ddc/Build/Intermediates.noindex/Pods.build/Debug-iphonesimulator/React-graphics.build/DerivedSources/arm64
++-I/tmp/rw-ddc/Build/Intermediates.noindex/Pods.build/Debug-iphonesimulator/React-graphics.build/DerivedSources
+ --- -F framework paths ---
+--F/tmp/rw-ddb/Build/Products/Debug-iphonesimulator/React-Core.common
+--F/tmp/rw-ddb/Build/Products/Debug-iphonesimulator/React-Core-f955c501
+--F/tmp/rw-ddb/Build/Products/Debug-iphonesimulator/DoubleConversion
+--F/tmp/rw-ddb/Build/Products/Debug-iphonesimulator/RCT-Folly
+--F/tmp/rw-ddb/Build/Products/Debug-iphonesimulator/RCTDeprecation
+--F/tmp/rw-ddb/Build/Products/Debug-iphonesimulator/React-cxxreact
+--F/tmp/rw-ddb/Build/Products/Debug-iphonesimulator/React-debug
+--F/tmp/rw-ddb/Build/Products/Debug-iphonesimulator/React-featureflags
+--F/tmp/rw-ddb/Build/Products/Debug-iphonesimulator/React-hermes
+--F/tmp/rw-ddb/Build/Products/Debug-iphonesimulator/React-jsi
+--F/tmp/rw-ddb/Build/Products/Debug-iphonesimulator/React-jsiexecutor
+--F/tmp/rw-ddb/Build/Products/Debug-iphonesimulator/React-jsinspector
+--F/tmp/rw-ddb/Build/Products/Debug-iphonesimulator/React-jsinspectorcdp
+--F/tmp/rw-ddb/Build/Products/Debug-iphonesimulator/React-jsinspectornetwork
+--F/tmp/rw-ddb/Build/Products/Debug-iphonesimulator/React-jsinspectortracing
+--F/tmp/rw-ddb/Build/Products/Debug-iphonesimulator/React-jsitooling
+--F/tmp/rw-ddb/Build/Products/Debug-iphonesimulator/React-logger
+--F/tmp/rw-ddb/Build/Products/Debug-iphonesimulator/React-oscompat
+--F/tmp/rw-ddb/Build/Products/Debug-iphonesimulator/React-perflogger
+--F/tmp/rw-ddb/Build/Products/Debug-iphonesimulator/React-performancetimeline
+--F/tmp/rw-ddb/Build/Products/Debug-iphonesimulator/React-rendererconsistency
+--F/tmp/rw-ddb/Build/Products/Debug-iphonesimulator/React-rendererdebug
+--F/tmp/rw-ddb/Build/Products/Debug-iphonesimulator/React-runtimeexecutor
+--F/tmp/rw-ddb/Build/Products/Debug-iphonesimulator/React-runtimescheduler
+--F/tmp/rw-ddb/Build/Products/Debug-iphonesimulator/React-utils
+--F/tmp/rw-ddb/Build/Products/Debug-iphonesimulator/SocketRocket
+--F/tmp/rw-ddb/Build/Products/Debug-iphonesimulator/Yoga
+--F/tmp/rw-ddb/Build/Products/Debug-iphonesimulator/fmt
+--F/tmp/rw-ddb/Build/Products/Debug-iphonesimulator/glog
++-F/tmp/rw-ddc/Build/Products/Debug-iphonesimulator/React-graphics
++-F/tmp/rw-ddc/Build/Products/Debug-iphonesimulator/DoubleConversion
++-F/tmp/rw-ddc/Build/Products/Debug-iphonesimulator/RCT-Folly
++-F/tmp/rw-ddc/Build/Products/Debug-iphonesimulator/React-cxxreact
++-F/tmp/rw-ddc/Build/Products/Debug-iphonesimulator/React-debug
++-F/tmp/rw-ddc/Build/Products/Debug-iphonesimulator/React-featureflags
++-F/tmp/rw-ddc/Build/Products/Debug-iphonesimulator/React-jsi
++-F/tmp/rw-ddc/Build/Products/Debug-iphonesimulator/React-jsiexecutor
++-F/tmp/rw-ddc/Build/Products/Debug-iphonesimulator/React-jsinspector
++-F/tmp/rw-ddc/Build/Products/Debug-iphonesimulator/React-jsinspectorcdp
++-F/tmp/rw-ddc/Build/Products/Debug-iphonesimulator/React-jsinspectornetwork
++-F/tmp/rw-ddc/Build/Products/Debug-iphonesimulator/React-jsinspectortracing
++-F/tmp/rw-ddc/Build/Products/Debug-iphonesimulator/React-logger
++-F/tmp/rw-ddc/Build/Products/Debug-iphonesimulator/React-oscompat
++-F/tmp/rw-ddc/Build/Products/Debug-iphonesimulator/React-perflogger
++-F/tmp/rw-ddc/Build/Products/Debug-iphonesimulator/React-runtimeexecutor
++-F/tmp/rw-ddc/Build/Products/Debug-iphonesimulator/React-utils
++-F/tmp/rw-ddc/Build/Products/Debug-iphonesimulator/SocketRocket
++-F/tmp/rw-ddc/Build/Products/Debug-iphonesimulator/fmt
++-F/tmp/rw-ddc/Build/Products/Debug-iphonesimulator/glog
+ -F/Users/user949187/roadwork-app/ios/Pods/hermes-engine/destroot/Library/Frameworks/universal
+--F/tmp/rw-ddb/Build/Products/Debug-iphonesimulator/XCFrameworkIntermediates/hermes-engine/Pre-built
+--F/tmp/rw-ddb/Build/Products/Debug-iphonesimulator/React-hermes
++-F/tmp/rw-ddc/Build/Products/Debug-iphonesimulator/XCFrameworkIntermediates/hermes-engine/Pre-built
