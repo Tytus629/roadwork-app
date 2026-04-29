@@ -152,6 +152,14 @@ target 'RoadWorkTracker' do
         # so the compiler finds the complete React.framework first.
         if target.name == 'React-Core.common'
           config.build_settings['DEFINES_MODULE'] = 'NO'
+          # Avoid archive collisions with the full React-Core target which also emits React.framework.
+          config.build_settings['PRODUCT_NAME'] = 'ReactCoreCommon'
+          config.build_settings['PRODUCT_MODULE_NAME'] = 'ReactCoreCommon'
+        end
+
+        if target.name == 'React-Core.common-React-Core_privacy'
+          # Avoid duplicate React-Core_privacy.bundle output during Archive.
+          config.build_settings['PRODUCT_NAME'] = 'ReactCoreCommon_privacy'
         end
 
         # Fix gRPC modular header issues.
