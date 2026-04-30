@@ -11,7 +11,7 @@
 	<key>PLIST_VERSION</key>
 	<string>1</string>
 	<key>BUNDLE_ID</key>
-	<string>com.tds.waycrew</string>
+	<string>com.kyletitus.waycrew</string>
 	<key>PROJECT_ID</key>
 	<string>skyhours-781d1</string>
 	<key>STORAGE_BUCKET</key>
@@ -27,6 +27,6 @@
 	<key>IS_SIGNIN_ENABLED</key>
 	<true></true>
 	<key>GOOGLE_APP_ID</key>
-	<string>1:1097724420570:ios:1e10bfa64385e3da9de0e3</string>
+	<string>1:1097724420570:ios:86ef94dd41e4678f9de0e3</string>
 </dict>
 </plist>
