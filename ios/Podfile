@@ -9,7 +9,6 @@ require Pod::Executable.execute_command('node', ['-p',
 
 # Firebase - use static frameworks for better compatibility
 $RNFirebaseAsStaticFramework = true
-ENV['RCT_NEW_ARCH_ENABLED'] = '0'
 
 platform :ios, min_ios_version_supported
 
@@ -56,12 +55,12 @@ pod 'react-native-maps', :path => rn_maps_path, :subspecs => ['Google']
 target 'RoadWorkTracker' do
   config = use_native_modules!
 
-  # React Native 0.83 requires Hermes as the default engine.
+  # React Native 0.83 uses Hermes and the New Architecture by default.
   use_react_native!(
     :path => config[:reactNativePath],
     :app_path => "#{Pod::Config.instance.installation_root}/..",
     :hermes_enabled => true,
-    :new_arch_enabled => false
+    :new_arch_enabled => true
   )
 
   post_install do |installer|
@@ -88,6 +87,61 @@ target 'RoadWorkTracker' do
       aggregate_target.user_project.native_targets.each do |native_target|
         native_target.build_configurations.each do |config|
           config.build_settings['ENABLE_USER_SCRIPT_SANDBOXING'] = 'NO'
+        end
+
+        next unless native_target.name == 'RoadWorkTracker'
+
+        phase_name = 'Generate Hermes dSYM for Archive Validation'
+        hermes_phase = native_target.shell_script_build_phases.find { |phase| phase.name == phase_name }
+        hermes_phase ||= native_target.new_shell_script_build_phase(phase_name)
+        hermes_phase.input_paths = [
+          '${TARGET_BUILD_DIR}/${WRAPPER_NAME}/Frameworks/hermesvm.framework/hermesvm',
+          '${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/hermesvm.framework/hermesvm',
+        ]
+        hermes_phase.output_paths = [
+          '${DWARF_DSYM_FOLDER_PATH}/hermesvm.framework.dSYM/Contents/Resources/DWARF/hermesvm',
+        ]
+        hermes_phase.shell_script = <<~'SCRIPT'
+          set -euo pipefail
+
+          if [ "${CONFIGURATION:-}" != "Release" ]; then
+            exit 0
+          fi
+
+          HERMES_BIN="${TARGET_BUILD_DIR}/${WRAPPER_NAME}/Frameworks/hermesvm.framework/hermesvm"
+          if [ ! -f "$HERMES_BIN" ]; then
+            HERMES_BIN="${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/hermesvm.framework/hermesvm"
+          fi
+
+          if [ ! -f "$HERMES_BIN" ]; then
+            echo "note: Hermes binary not found, skipping dSYM generation"
+            exit 0
+          fi
+
+          OUT_DSYM="${DWARF_DSYM_FOLDER_PATH}/hermesvm.framework.dSYM"
+          /usr/bin/dsymutil "$HERMES_BIN" -o "$OUT_DSYM"
+          /usr/bin/xcrun dwarfdump --uuid "$OUT_DSYM" || true
+          echo "note: Generated Hermes dSYM at $OUT_DSYM"
+
+          if [ -n "${ARCHIVE_DSYMS_PATH:-}" ]; then
+            /bin/mkdir -p "$ARCHIVE_DSYMS_PATH"
+            /usr/bin/rsync -a --delete "$OUT_DSYM" "$ARCHIVE_DSYMS_PATH/"
+            /usr/bin/xcrun dwarfdump --uuid "$ARCHIVE_DSYMS_PATH/hermesvm.framework.dSYM" || true
+            echo "note: Copied Hermes dSYM into archive dSYMs at $ARCHIVE_DSYMS_PATH"
+          fi
+        SCRIPT
+
+        # These scripts are expected to run on each build/archive and have no stable outputs.
+        always_run_phase_names = [
+          'Bundle React Native code and images',
+          'Upload dSYMs to Crashlytics',
+          '[CP-User] [RNFB] Crashlytics Configuration',
+          '[CP-User] [RNFB] Core Configuration',
+        ]
+        native_target.shell_script_build_phases.each do |phase|
+          next unless always_run_phase_names.include?(phase.name)
+
+          phase.always_out_of_date = '1'
         end
       end
       aggregate_target.user_project.save
@@ -173,10 +227,44 @@ target 'RoadWorkTracker' do
           config.build_settings['PRODUCT_NAME'] = 'ReactCoreCommon_privacy'
         end
 
+        # Keep dependency warnings manageable without relaxing app target diagnostics.
+        dependency_warning_targets = [
+          target.name.start_with?('React'),
+          target.name.start_with?('RCT'),
+          target.name.start_with?('RN'),
+          target.name.start_with?('react-native-'),
+          ['Yoga', 'ReactCommon', 'hermes-engine', 'SocketRocket', 'FirebaseFirestoreInternal', 'FirebaseStorage', 'op-sqlite'].include?(target.name),
+        ].any?
+
+        if dependency_warning_targets
+          warning_flags = config.build_settings['WARNING_CFLAGS'] || ['$(inherited)']
+          warning_flags = [warning_flags] unless warning_flags.is_a?(Array)
+
+          %w[
+            -Wno-deprecated-declarations
+            -Wno-documentation
+            -Wno-documentation-deprecated-sync
+            -Wno-nullability-completeness
+            -Wno-unguarded-availability-new
+            -Wno-shorten-64-to-32
+            -Wno-implicit-int-conversion
+            -Wno-sign-conversion
+          ].each do |flag|
+            warning_flags << flag unless warning_flags.include?(flag)
+          end
+
+          config.build_settings['WARNING_CFLAGS'] = warning_flags
+        end
+
         # Fix gRPC modular header issues.
-        if ['gRPC-C++', 'gRPC-Core'].include? target.name
+        if ['gRPC-C++', 'gRPC-Core', 'BoringSSL-GRPC'].include? target.name
           config.build_settings['CLANG_ALLOW_NON_MODULAR_INCLUDES_IN_FRAMEWORK_MODULES'] = 'YES'
           config.build_settings['DEFINES_MODULE'] = 'NO'
+
+          warning_flags = config.build_settings['WARNING_CFLAGS'] || ['$(inherited)']
+          warning_flags = [warning_flags] unless warning_flags.is_a?(Array)
+          warning_flags << '-Wno-macro-redefined' unless warning_flags.include?('-Wno-macro-redefined')
+          config.build_settings['WARNING_CFLAGS'] = warning_flags
         end
       end
 
@@ -184,7 +272,13 @@ target 'RoadWorkTracker' do
       if target.name == 'gRPC-C++'
         target.build_configurations.each do |config|
           config.build_settings['DEFINES_MODULE'] = 'NO'
-          config.build_settings['MODULEMAP_FILE'] = ''
+        end
+      end
+
+      target.build_configurations.each do |config|
+        # Silence invalid module-map warnings when a target is intentionally non-modular.
+        if config.build_settings['DEFINES_MODULE'] == 'NO'
+          config.build_settings.delete('MODULEMAP_FILE')
         end
       end
 
@@ -253,5 +347,24 @@ target 'RoadWorkTracker' do
         FileUtils.cp(src, dst) unless File.exist?(dst)
       end
     end
+  end
+end
+
+post_integrate do |installer|
+  installer.aggregate_targets.each do |aggregate_target|
+    user_project = aggregate_target.user_project
+    next unless user_project
+
+    user_project.native_targets.each do |native_target|
+      next unless native_target.name == 'RoadWorkTracker'
+
+      native_target.shell_script_build_phases.each do |phase|
+        next unless ['[CP-User] [RNFB] Core Configuration', '[CP-User] [RNFB] Crashlytics Configuration'].include?(phase.name)
+
+        phase.always_out_of_date = '1'
+      end
+    end
+
+    user_project.save
   end
 end
