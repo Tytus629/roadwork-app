@@ -55,8 +55,31 @@ function toMillis(value: unknown): number | null {
   return null;
 }
 
+function toOptionalString(value: unknown): string | null {
+  if (value == null) return null;
+  const s = String(value).trim();
+  return s ? s : null;
+}
+
+function pickFirstString(...values: unknown[]): string | null {
+  for (const value of values) {
+    const next = toOptionalString(value);
+    if (next) return next;
+  }
+  return null;
+}
+
 function normalizeAsset(raw: any): VehicleAsset {
   const src = (raw ?? {}) as Record<string, any>;
+  const sourceRaw = src.source && typeof src.source === "object" ? (src.source as Record<string, any>) : null;
+  const sourceProvider = pickFirstString(sourceRaw?.provider, src.provider, src.sourceProvider);
+  const sourceExternalId = pickFirstString(
+    sourceRaw?.externalId,
+    src.externalId,
+    src.providerVehicleId,
+    src.sourceExternalId
+  );
+
   return {
     id: String(src.id ?? ""),
     orgId: String(src.orgId ?? ""),
@@ -79,6 +102,15 @@ function normalizeAsset(raw: any): VehicleAsset {
     updatedBy: src.updatedBy ? String(src.updatedBy) : null,
     createdByName: src.createdByName ? String(src.createdByName) : null,
     updatedByName: src.updatedByName ? String(src.updatedByName) : null,
+    department: pickFirstString(src.department, src.departmentName),
+    location: pickFirstString(src.location, src.locationName, src.locationLabel),
+    source:
+      sourceProvider || sourceExternalId
+        ? {
+            provider: sourceProvider,
+            externalId: sourceExternalId,
+          }
+        : null,
   };
 }
 

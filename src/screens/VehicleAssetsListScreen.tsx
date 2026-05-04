@@ -34,6 +34,8 @@ function assetMeta(asset: VehicleAsset): string {
     asset.year != null ? String(asset.year) : null,
     asset.licensePlate,
     asset.vin,
+    asset.department,
+    asset.location,
   ].filter(Boolean);
   return bits.join(" • ");
 }

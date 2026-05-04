@@ -13,7 +13,11 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { getVehicleAssetDetail, updateVehicleAsset } from "../api/vehicleMaintenance";
 import type { VehicleAsset, VehicleAssetStatus } from "../types/VehicleAsset";
 import { useOrg } from "../state/OrgContext";
-import { hasRolePermission, permissionDeniedMessage } from "../permissions/rolePermissions";
+import {
+  hasRolePermission,
+  normalizeRole,
+  permissionDeniedMessage,
+} from "../permissions/rolePermissions";
 
 const STATUSES: VehicleAssetStatus[] = ["active", "in_service", "out_of_service", "retired"];
 
@@ -43,6 +47,7 @@ export default function VehicleAssetDetailScreen({ route }: any) {
   const canEdit = hasRolePermission("editVehicleAssets", role);
   const tabBarHeight = useBottomTabBarHeight();
   const insets = useSafeAreaInsets();
+  const canonicalRole = normalizeRole(role);
 
   const [asset, setAsset] = useState<VehicleAsset | null>(null);
   const [loading, setLoading] = useState(false);
@@ -97,6 +102,12 @@ export default function VehicleAssetDetailScreen({ route }: any) {
   }, [load]);
 
   const canSave = useMemo(() => canEdit && unitNumber.trim().length > 0 && !saving, [canEdit, saving, unitNumber]);
+  const isRtaAsset = (asset?.source?.provider ?? "").toLowerCase() === "rta";
+  const canEditRtaIdentity = useMemo(() => {
+    if (!isRtaAsset) return true;
+    return canonicalRole === "platform_owner" || canonicalRole === "org_owner" || canonicalRole === "org_admin";
+  }, [canonicalRole, isRtaAsset]);
+  const identityEditable = canEdit && canEditRtaIdentity;
 
   async function onSave() {
     if (!canEdit) {
@@ -137,15 +148,19 @@ export default function VehicleAssetDetailScreen({ route }: any) {
         orgId,
         vehicleAssetId,
         patch: {
-          unitNumber: unitNumber.trim(),
-          truckNumber: cleanString(truckNumber),
-          make: cleanString(make),
-          model: cleanString(model),
-          year: yearNum,
-          vin: cleanString(vin),
-          serialNumber: cleanString(serialNumber),
-          licensePlate: cleanString(licensePlate),
-          inServiceDate: inServiceTs == null ? null : inServiceTs,
+          ...(identityEditable
+            ? {
+                unitNumber: unitNumber.trim(),
+                truckNumber: cleanString(truckNumber),
+                make: cleanString(make),
+                model: cleanString(model),
+                year: yearNum,
+                vin: cleanString(vin),
+                serialNumber: cleanString(serialNumber),
+                licensePlate: cleanString(licensePlate),
+                inServiceDate: inServiceTs == null ? null : inServiceTs,
+              }
+            : {}),
           status,
           odometer: odometerNum,
           engineHours: engineHoursNum,
@@ -193,27 +208,37 @@ export default function VehicleAssetDetailScreen({ route }: any) {
     >
       <Text style={styles.title}>Vehicle Asset</Text>
       <Text style={styles.subtitle}>ID: {asset.id}</Text>
+      {isRtaAsset ? <Text style={styles.importedBadge}>Imported from RTA</Text> : null}
+
+      <RowFields>
+        <Field label="Department">
+          <TextInput value={asset.department ?? ""} style={styles.input} editable={false} placeholder="—" />
+        </Field>
+        <Field label="Location">
+          <TextInput value={asset.location ?? ""} style={styles.input} editable={false} placeholder="—" />
+        </Field>
+      </RowFields>
 
       <Field label="Unit Number" required>
-        <TextInput value={unitNumber} onChangeText={setUnitNumber} style={styles.input} editable={canEdit} />
+        <TextInput value={unitNumber} onChangeText={setUnitNumber} style={styles.input} editable={identityEditable} />
       </Field>
 
       <Field label="Truck / Secondary ID">
-        <TextInput value={truckNumber} onChangeText={setTruckNumber} style={styles.input} editable={canEdit} />
+        <TextInput value={truckNumber} onChangeText={setTruckNumber} style={styles.input} editable={identityEditable} />
       </Field>
 
       <RowFields>
         <Field label="Make">
-          <TextInput value={make} onChangeText={setMake} style={styles.input} editable={canEdit} />
+          <TextInput value={make} onChangeText={setMake} style={styles.input} editable={identityEditable} />
         </Field>
         <Field label="Model">
-          <TextInput value={model} onChangeText={setModel} style={styles.input} editable={canEdit} />
+          <TextInput value={model} onChangeText={setModel} style={styles.input} editable={identityEditable} />
         </Field>
       </RowFields>
 
       <RowFields>
         <Field label="Year">
-          <TextInput value={year} onChangeText={setYear} style={styles.input} keyboardType="number-pad" editable={canEdit} />
+          <TextInput value={year} onChangeText={setYear} style={styles.input} keyboardType="number-pad" editable={identityEditable} />
         </Field>
         <Field label="Status">
           <View style={styles.statusWrap}>
@@ -237,15 +262,15 @@ export default function VehicleAssetDetailScreen({ route }: any) {
       </RowFields>
 
       <Field label="VIN">
-        <TextInput value={vin} onChangeText={setVin} style={styles.input} editable={canEdit} autoCapitalize="characters" />
+        <TextInput value={vin} onChangeText={setVin} style={styles.input} editable={identityEditable} autoCapitalize="characters" />
       </Field>
 
       <RowFields>
         <Field label="Serial Number">
-          <TextInput value={serialNumber} onChangeText={setSerialNumber} style={styles.input} editable={canEdit} />
+          <TextInput value={serialNumber} onChangeText={setSerialNumber} style={styles.input} editable={identityEditable} />
         </Field>
         <Field label="License Plate">
-          <TextInput value={licensePlate} onChangeText={setLicensePlate} style={styles.input} editable={canEdit} autoCapitalize="characters" />
+          <TextInput value={licensePlate} onChangeText={setLicensePlate} style={styles.input} editable={identityEditable} autoCapitalize="characters" />
         </Field>
       </RowFields>
 
@@ -255,7 +280,7 @@ export default function VehicleAssetDetailScreen({ route }: any) {
             value={inServiceDate}
             onChangeText={setInServiceDate}
             style={styles.input}
-            editable={canEdit}
+            editable={identityEditable}
             placeholder="2026-04-20"
           />
         </Field>
@@ -280,9 +305,14 @@ export default function VehicleAssetDetailScreen({ route }: any) {
       </Field>
 
       {canEdit ? (
-        <TouchableOpacity style={[styles.saveBtn, !canSave && styles.saveBtnDisabled]} onPress={onSave} disabled={!canSave}>
+        <>
+          {!canEditRtaIdentity && isRtaAsset ? (
+            <Text style={styles.readOnlyNote}>Imported identity fields are read-only for your role.</Text>
+          ) : null}
+          <TouchableOpacity style={[styles.saveBtn, !canSave && styles.saveBtnDisabled]} onPress={onSave} disabled={!canSave}>
           <Text style={styles.saveText}>{saving ? "Saving..." : "Save Changes"}</Text>
-        </TouchableOpacity>
+          </TouchableOpacity>
+        </>
       ) : (
         <Text style={styles.readOnlyNote}>Read-only: {permissionDeniedMessage("editVehicleAssets")}</Text>
       )}
@@ -321,6 +351,19 @@ const styles = StyleSheet.create({
   blockedHint: { marginTop: 6, color: "#64748b", textAlign: "center" },
   title: { marginTop: 16, fontSize: 22, fontWeight: "700", color: "#0f172a" },
   subtitle: { marginTop: 4, marginBottom: 14, color: "#64748b", fontSize: 12 },
+  importedBadge: {
+    alignSelf: "flex-start",
+    marginBottom: 12,
+    backgroundColor: "#ecfeff",
+    borderColor: "#a5f3fc",
+    borderWidth: 1,
+    color: "#155e75",
+    fontWeight: "700",
+    fontSize: 12,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 999,
+  },
   row: { flexDirection: "row", gap: 10 },
   field: { marginBottom: 12, flex: 1 },
   label: { marginBottom: 6, fontSize: 13, color: "#334155", fontWeight: "600" },

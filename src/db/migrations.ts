@@ -657,6 +657,19 @@ export function runMigrations() {
   );
 
   for (const m of pending) {
+    // Migration 6 rewrites work_orders with orgId NOT NULL and selects orgId
+    // from the old table. Ensure the column exists first for legacy states
+    // where dbVersion advanced but the orgId column was never added.
+    if (m.id === 6) {
+      try {
+        const orgIdResult = ensureWorkOrdersOrgIdColumn();
+        console.log(`[DB][migrate] preflight work_orders.orgId ${orgIdResult}`);
+      } catch (e) {
+        console.warn("[DB][migrate] preflight failed ensuring work_orders.orgId", e);
+        throw e;
+      }
+    }
+
     for (const stmt of m.sql) {
       db.executeSync(stmt);
     }

@@ -1,5 +1,10 @@
 export type VehicleAssetStatus = "active" | "in_service" | "out_of_service" | "retired";
 
+export type VehicleAssetSource = {
+  provider: string | null;
+  externalId: string | null;
+};
+
 export type VehicleAsset = {
   id: string;
   orgId: string;
@@ -22,4 +27,7 @@ export type VehicleAsset = {
   updatedBy: string | null;
   createdByName: string | null;
   updatedByName: string | null;
+  department?: string | null;
+  location?: string | null;
+  source?: VehicleAssetSource | null;
 };
