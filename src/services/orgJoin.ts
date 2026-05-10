@@ -21,6 +21,7 @@ import {
 } from "@react-native-firebase/firestore";
 import { getFunctions, httpsCallable } from "@react-native-firebase/functions";
 import { callDevFunctionHttp } from "../firebase/devFunctionsHttp";
+import { getEmulatorConnectionInfo } from "../firebase/emulators";
 
 const REGION = "us-central1";
 
@@ -90,7 +91,7 @@ async function callFnDev(fnName: string, payload: Record<string, any>): Promise<
 }
 
 async function invokeRequestJoin(payload: Record<string, any>): Promise<any> {
-  if (__DEV__) {
+  if (__DEV__ && getEmulatorConnectionInfo().enabled) {
     return callFnDev("roadwork_requestJoinOrg", payload);
   }
   const fn = httpsCallable(getFunctions(getApp()), "roadwork_requestJoinOrg");

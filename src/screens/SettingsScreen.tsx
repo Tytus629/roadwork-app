@@ -651,6 +651,7 @@ export default function SettingsScreen() {
             <Text style={styles.devInfoLine}>Photo upload error message: {globalPhotoDiag?.latestUploadErrorMessage ?? "none"}</Text>
             <Text style={styles.devInfoLine}>Photo upload storage path: {globalPhotoDiag?.latestUploadStoragePath ?? "n/a"}</Text>
             <Text style={styles.devInfoLine}>Photo upload orgId: {globalPhotoDiag?.latestSelectedOrgId ?? "n/a"}</Text>
+            <Text style={styles.devInfoLine}>Photo upload assetId: {globalPhotoDiag?.latestUploadAssetId ?? "n/a"}</Text>
             <Text style={styles.devInfoLine}>Photo upload auth UID: {globalPhotoDiag?.latestAuthUid ?? "n/a"}</Text>
             <Text style={styles.devInfoLine}>Photo upload auth email: {globalPhotoDiag?.latestAuthEmail ?? "n/a"}</Text>
             <Text style={styles.devInfoLine}>Photo upload dev emulator mode: {globalPhotoDiag?.latestDevEmulatorModeActive == null ? "n/a" : globalPhotoDiag.latestDevEmulatorModeActive ? "yes" : "no"}</Text>

@@ -381,6 +381,18 @@ function distancePointToPolylineMeters(
   return best;
 }
 
+function isValidAssetLineCoords(coords: Array<{ latitude: number; longitude: number }>): boolean {
+  if (!Array.isArray(coords) || coords.length < 2) return false;
+  for (const point of coords) {
+    const lat = Number(point?.latitude);
+    const lng = Number(point?.longitude);
+    if (!Number.isFinite(lat) || !Number.isFinite(lng)) return false;
+    if (Math.abs(lat) > 90 || Math.abs(lng) > 180) return false;
+    if (Math.abs(lat) < 1e-9 && Math.abs(lng) < 1e-9) return false;
+  }
+  return true;
+}
+
 /**
  * Helper: Convert zoom level to camera zoom number
  */
@@ -629,6 +641,7 @@ export default function MapScreen() {
   const suppressTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const signVisualLogKeyRef = useRef<string>("");
   const signRenderLogKeysRef = useRef<Set<string>>(new Set());
+  const assetLineRenderLogKeysRef = useRef<Set<string>>(new Set());
 
   // ── FOCUS LOCK ──
   // Timestamp until which onRegionChangeComplete callbacks are ignored.
@@ -729,6 +742,65 @@ export default function MapScreen() {
     () => assets.filter((asset) => matchesAssetLayerFilter(asset, assetLayerFilter)),
     [assets, assetLayerFilter],
   );
+
+  const visibleAssetById = useMemo(() => {
+    const byId = new Map<string, any>();
+    for (const asset of visibleAssets) {
+      byId.set(String(asset.id), asset);
+    }
+    return byId;
+  }, [visibleAssets]);
+
+  const assetById = useMemo(() => {
+    const byId = new Map<string, any>();
+    for (const asset of assets) {
+      byId.set(String(asset.id), asset);
+    }
+    return byId;
+  }, [assets]);
+
+  const culvertAssetLineCount = useMemo(() => {
+    let count = 0;
+    for (const asset of visibleAssets) {
+      if (String(asset?.assetType ?? "").toUpperCase() !== "CULVERT") continue;
+      const endpoints = getCulvertEndpoints(asset);
+      if (!endpoints) continue;
+      const coords = [
+        { latitude: endpoints.inlet.lat, longitude: endpoints.inlet.lng },
+        { latitude: endpoints.outlet.lat, longitude: endpoints.outlet.lng },
+      ];
+      if (isValidAssetLineCoords(coords)) count += 1;
+    }
+    return count;
+  }, [visibleAssets]);
+
+  const guardrailAssetLineCount = useMemo(() => {
+    let count = 0;
+    for (const asset of visibleAssets) {
+      if (String(asset?.assetType ?? "").toUpperCase() !== "GUARDRAIL") continue;
+      const linkedLineWorkOrders = dbItems.filter(
+        (wo) =>
+          wo.geomType === "line" &&
+          String(wo.type ?? "").toLowerCase().includes("guardrail") &&
+          String(wo.assetId ?? "") === String(asset.id),
+      );
+
+      for (const wo of linkedLineWorkOrders) {
+        const points = getWorkOrderLinePoints(wo);
+        const coords = points.map((p) => ({ latitude: p.lat, longitude: p.lng }));
+        if (isValidAssetLineCoords(coords)) count += 1;
+      }
+    }
+    return count;
+  }, [dbItems, visibleAssets]);
+
+  useEffect(() => {
+    if (!__DEV__) return;
+    console.log("[MapAssetLine] counts", {
+      culvert: culvertAssetLineCount,
+      guardrail: guardrailAssetLineCount,
+    });
+  }, [culvertAssetLineCount, guardrailAssetLineCount]);
 
   const signVisualByAssetId = useMemo(() => {
     const byId: Record<string, SignVisualStyle> = {};
@@ -1351,11 +1423,54 @@ export default function MapScreen() {
   }
 
   const handleAssetTap = useCallback(
-    (asset: any, _source: "marker" | "culvert-line" | "guardrail-line") => {
+    (asset: any, source: "marker" | "culvert-line" | "guardrail-line" | "bridge-line") => {
       if (pickingLocation) return;
 
-      const id = String(asset?.id ?? "");
-      if (!id) return;
+      const id = String(asset?.id ?? asset?.assetId ?? "");
+      const type = String(asset?.assetType ?? asset?.type ?? "UNKNOWN").toUpperCase();
+      if (!id) {
+        console.warn("[MapTap] cannot open asset detail: missing asset id", {
+          source,
+          type,
+          asset,
+        });
+        return;
+      }
+
+      console.log("[MapTap] opening asset detail", {
+        assetId: id,
+        type,
+        source,
+      });
+
+      navigation.navigate("AssetDetail", { assetId: id });
+    },
+    [navigation, pickingLocation],
+  );
+
+  const handleAssetTapById = useCallback(
+    (
+      assetIdLike: string | number | null | undefined,
+      source: "marker" | "culvert-line" | "guardrail-line" | "bridge-line",
+      type?: string | null,
+    ) => {
+      if (pickingLocation) return;
+
+      const id = String(assetIdLike ?? "");
+      const normalizedType = String(type ?? "UNKNOWN").toUpperCase();
+      if (!id) {
+        console.warn("[MapTap] cannot open asset detail by id: missing asset id", {
+          source,
+          type: normalizedType,
+        });
+        return;
+      }
+
+      console.log("[MapTap] opening asset detail by id", {
+        assetId: id,
+        type: normalizedType,
+        source,
+      });
 
       navigation.navigate("AssetDetail", { assetId: id });
     },
@@ -1363,8 +1478,13 @@ export default function MapScreen() {
   );
 
   const handleLinearAssetWorkOrderTap = useCallback(
-    (item: { id: string }) => {
+    (item: { id: string; type?: string | null }, source: "marker" | "line" | "map-near-tap" = "marker") => {
       if (pickingLocation) return;
+      console.log("[MapTap] work order pressed", {
+        workOrderId: item.id,
+        type: String(item.type ?? "UNKNOWN").toLowerCase(),
+        source,
+      });
       setSelectedId(item.id);
     },
     [pickingLocation],
@@ -1377,28 +1497,10 @@ export default function MapScreen() {
         e.nativeEvent.coordinate.longitude,
       );
 
-      if (tap && isValidMapCoord(tap)) {
-        let bestWorkOrderLine: { id: string; distM: number } | null = null;
-        for (const item of dbItems) {
-          if (item.geomType !== "line") continue;
-          const linePoints = getWorkOrderLinePoints(item);
-          const distM = distancePointToPolylineMeters(tap, linePoints);
-          if (distM == null) continue;
-          if (!bestWorkOrderLine || distM < bestWorkOrderLine.distM) {
-            bestWorkOrderLine = { id: String(item.id), distM };
-          }
-        }
-
-        if (bestWorkOrderLine && bestWorkOrderLine.distM <= 20) {
-          setSelectedId(bestWorkOrderLine.id);
-          return;
-        }
-      }
-
-      if (showAssets) {
+      if (assets.length > 0) {
         if (tap && isValidMapCoord(tap)) {
           let best: { id: string; type: string; distM: number } | null = null;
-          for (const asset of visibleAssets) {
+          for (const asset of assets) {
             const center = getAssetCenter(asset);
             if (!center || !isValidMapCoord(center)) continue;
             const distM = mapDistanceMeters(tap, center);
@@ -1410,7 +1512,7 @@ export default function MapScreen() {
           // Prefer linear-asset geometry when user taps along culvert/guardrail lines.
           let bestLinearAsset: { id: string; type: "CULVERT" | "GUARDRAIL"; distM: number } | null = null;
           let bestBridgeAsset: { id: string; distM: number } | null = null;
-          for (const asset of visibleAssets) {
+          for (const asset of assets) {
             const assetType = String(asset.assetType ?? "").toUpperCase();
             if (assetType === "CULVERT") {
               const endpoints = getCulvertEndpoints(asset);
@@ -1451,16 +1553,23 @@ export default function MapScreen() {
             }
           }
 
-          if (bestBridgeAsset && bestBridgeAsset.distM <= 26) {
-            const matched = visibleAssets.find((a) => String(a.id) === bestBridgeAsset.id);
+          if (bestBridgeAsset && bestBridgeAsset.distM <= 50) {
+            const matched = assets.find((a) => String(a.id) === bestBridgeAsset.id);
             if (matched) {
               handleAssetTap(matched, "marker");
               return;
             }
           }
 
-          if (bestLinearAsset && bestLinearAsset.distM <= 26) {
-            const matched = visibleAssets.find((a) => String(a.id) === bestLinearAsset.id);
+          const linearAssetTapMaxDistM =
+            bestLinearAsset?.type === "CULVERT"
+              ? 75
+              : bestLinearAsset?.type === "GUARDRAIL"
+                ? 65
+                : 45;
+
+          if (bestLinearAsset && bestLinearAsset.distM <= linearAssetTapMaxDistM) {
+            const matched = assets.find((a) => String(a.id) === bestLinearAsset.id);
             if (matched) {
               handleAssetTap(matched, bestLinearAsset.type === "CULVERT" ? "culvert-line" : "guardrail-line");
               return;
@@ -1469,8 +1578,8 @@ export default function MapScreen() {
 
           // Android fallback: if marker press is swallowed by map internals,
           // allow near-tap on culvert to open detail.
-          if (best && best.type === "CULVERT" && best.distM <= 18) {
-            const matched = visibleAssets.find((a) => String(a.id) === best.id);
+          if (best && best.type === "CULVERT" && best.distM <= 35) {
+            const matched = assets.find((a) => String(a.id) === best.id);
             if (matched) {
               handleAssetTap(matched, "marker");
               return;
@@ -1478,6 +1587,130 @@ export default function MapScreen() {
           }
         }
       }
+
+      if (tap && isValidMapCoord(tap)) {
+        let bestWorkOrderLine: { id: string; type: string; distM: number } | null = null;
+        for (const item of dbItems) {
+          if (item.geomType !== "line") continue;
+          const linePoints = getWorkOrderLinePoints(item);
+          const distM = distancePointToPolylineMeters(tap, linePoints);
+          if (distM == null) continue;
+          if (!bestWorkOrderLine || distM < bestWorkOrderLine.distM) {
+            bestWorkOrderLine = {
+              id: String(item.id),
+              type: String(item.type ?? "UNKNOWN"),
+              distM,
+            };
+          }
+        }
+
+        if (bestWorkOrderLine) {
+          const bestWorkOrderType = String(bestWorkOrderLine.type ?? "").toLowerCase();
+          const isLinearAssetWorkOrder =
+            bestWorkOrderType.includes("guardrail") ||
+            bestWorkOrderType.includes("culvert") ||
+            bestWorkOrderType.includes("bridge");
+
+          const maxNearTapDistM = isLinearAssetWorkOrder ? 70 : 24;
+          if (bestWorkOrderLine.distM > maxNearTapDistM) {
+            return;
+          }
+
+          if (isLinearAssetWorkOrder) {
+            const bestWorkOrder = dbItems.find((item) => String(item.id) === bestWorkOrderLine.id);
+            const linkedAssetId = String(bestWorkOrder?.assetId ?? "");
+            let linkedLinearAsset =
+              bestWorkOrder
+                ? assetById.get(String(bestWorkOrder.assetId ?? "")) ?? null
+                : null;
+
+            if (!linkedLinearAsset && linkedAssetId) {
+              handleAssetTapById(linkedAssetId, bestWorkOrderType.includes("culvert") ? "culvert-line" : "guardrail-line", bestWorkOrderType);
+              return;
+            }
+
+            if (!linkedLinearAsset) {
+              const desiredLinkedAssetType = bestWorkOrderType.includes("guardrail")
+                ? "GUARDRAIL"
+                : bestWorkOrderType.includes("culvert")
+                  ? "CULVERT"
+                  : bestWorkOrderType.includes("bridge")
+                    ? "BRIDGE"
+                    : null;
+
+              if (desiredLinkedAssetType) {
+                let inferred: { asset: any; distM: number } | null = null;
+                for (const asset of assets) {
+                  const assetType = String(asset.assetType ?? "").toUpperCase();
+                  if (assetType !== desiredLinkedAssetType) continue;
+
+                  let distM: number | null = null;
+                  if (assetType === "CULVERT") {
+                    const endpoints = getCulvertEndpoints(asset);
+                    if (endpoints) {
+                      distM = distancePointToSegmentMeters(tap, endpoints.inlet, endpoints.outlet);
+                    }
+                  } else if (assetType === "GUARDRAIL") {
+                    const linkedLines = dbItems.filter(
+                      (wo) =>
+                        wo.geomType === "line" &&
+                        String(wo.type ?? "").toLowerCase().includes("guardrail") &&
+                        String(wo.assetId ?? "") === String(asset.id),
+                    );
+                    for (const wo of linkedLines) {
+                      const linePoints = getWorkOrderLinePoints(wo);
+                      const d = distancePointToPolylineMeters(tap, linePoints);
+                      if (d == null) continue;
+                      if (distM == null || d < distM) distM = d;
+                    }
+                  } else if (assetType === "BRIDGE") {
+                    const corners = getBridgeAssetCorners(asset);
+                    if (corners && corners.length === 4) {
+                      distM = distancePointToBridgeMeters(tap, corners);
+                    }
+                  }
+
+                  if (distM == null) continue;
+                  if (!inferred || distM < inferred.distM) {
+                    inferred = { asset, distM };
+                  }
+                }
+
+                const maxInferenceDistM =
+                  desiredLinkedAssetType === "CULVERT"
+                    ? 75
+                    : desiredLinkedAssetType === "GUARDRAIL"
+                      ? 65
+                      : 70;
+
+                if (inferred && inferred.distM <= maxInferenceDistM) {
+                  linkedLinearAsset = inferred.asset;
+                }
+              }
+            }
+
+            if (linkedLinearAsset) {
+              const linkedLinearAssetType = String(linkedLinearAsset.assetType ?? "").toUpperCase();
+              handleAssetTap(
+                linkedLinearAsset,
+                linkedLinearAssetType === "CULVERT"
+                  ? "culvert-line"
+                  : linkedLinearAssetType === "GUARDRAIL"
+                    ? "guardrail-line"
+                    : "marker",
+              );
+            }
+            return;
+          }
+
+          handleLinearAssetWorkOrderTap(
+            { id: bestWorkOrderLine.id, type: bestWorkOrderLine.type },
+            "map-near-tap",
+          );
+          return;
+        }
+      }
+
       return;
     }
 
@@ -2038,6 +2271,48 @@ export default function MapScreen() {
             Uses native pinColor instead of custom View markers because pinColor
             survives native view lifecycle changes (no bitmap cache dependency). */}
         {!suppressMarkers && dbItems.map((item, idx) => {
+          const linkedAsset = assetById.get(String(item.assetId ?? "")) ?? null;
+          const typeKey = String(item.type ?? "").toLowerCase();
+          const desiredLinkedAssetType = typeKey.includes("guardrail")
+            ? "GUARDRAIL"
+            : typeKey.includes("culvert")
+              ? "CULVERT"
+              : typeKey.includes("bridge")
+                ? "BRIDGE"
+                : null;
+          const inferredLinkedAsset =
+            !linkedAsset && desiredLinkedAssetType && item.geomType === "line"
+              ? (() => {
+                  const linePoints = getWorkOrderLinePoints(item);
+                  if (linePoints.length < 2) return null;
+                  const center = getWorkOrderCenter(item) ?? linePoints[Math.floor(linePoints.length / 2)] ?? null;
+                  if (!center || !isValidMapCoord(center)) return null;
+
+                  let best: { asset: any; distM: number } | null = null;
+                  for (const asset of assets) {
+                    const assetType = String(asset.assetType ?? "").toUpperCase();
+                    if (assetType !== desiredLinkedAssetType) continue;
+                    const assetCenter = getAssetCenter(asset);
+                    if (!assetCenter || !isValidMapCoord(assetCenter)) continue;
+                    const distM = mapDistanceMeters(center, assetCenter);
+                    if (!best || distM < best.distM) {
+                      best = { asset, distM };
+                    }
+                  }
+
+                  // Keep inference conservative so unrelated nearby assets don't hijack taps.
+                  return best && best.distM <= 80 ? best.asset : null;
+                })()
+              : null;
+          const resolvedLinkedAsset = linkedAsset ?? inferredLinkedAsset;
+          const linkedAssetType = String(resolvedLinkedAsset?.assetType ?? "").toUpperCase();
+          const shouldPreferLinkedAssetTap =
+            !!resolvedLinkedAsset &&
+            (linkedAssetType === "SIGN" ||
+              linkedAssetType === "CULVERT" ||
+              linkedAssetType === "GUARDRAIL" ||
+              linkedAssetType === "BRIDGE");
+
           if (item.geomType === "point") {
             const center = normalizeMapCoordPair(item.lat, item.lng);
             if (!center || !isValidMapCoord(center)) {
@@ -2061,7 +2336,11 @@ export default function MapScreen() {
                 description={`${formatStatusLabel(item.status)} • ${item.priority}\nAssigned: ${assignmentSummaryLabel(item, { unassignedLabel: "Unassigned" })}\n${center.lat.toFixed(5)}, ${center.lng.toFixed(5)}`}
                 onPress={() => {
                   if (pickingLocation) return;
-                  handleLinearAssetWorkOrderTap(item);
+                  if (shouldPreferLinkedAssetTap && linkedAsset) {
+                    handleAssetTap(linkedAsset, "marker");
+                    return;
+                  }
+                  handleLinearAssetWorkOrderTap(item, "marker");
                 }}
               />
             );
@@ -2080,13 +2359,142 @@ export default function MapScreen() {
             }
 
             const coords = points.map((p) => ({ latitude: p.lat, longitude: p.lng }));
-            const typeKey = String(item.type ?? "").toLowerCase();
             const isGuardrailWorkOrder = typeKey.includes("guardrail");
+            const isLinearAssetWorkOrder =
+              typeKey.includes("guardrail") || typeKey.includes("culvert") || typeKey.includes("bridge");
+            const shouldShowLineTapMarker =
+              typeKey.includes("guardrail") || typeKey.includes("bridge");
+            const lineCenter = shouldShowLineTapMarker ? getWorkOrderCenter(item) : null;
             const lineColor = getWorkOrderTypeColor(item.type as any, { colorblindMode });
             const dashPattern = getWorkOrderTypePattern(item.type as any, { colorblindMode });
+            const handleLinePress = (event?: any) => {
+              const pressPoint = normalizeMapCoordPair(
+                event?.nativeEvent?.coordinate?.latitude,
+                event?.nativeEvent?.coordinate?.longitude,
+              );
+
+              if (isLinearAssetWorkOrder && resolvedLinkedAsset) {
+                handleAssetTap(
+                  resolvedLinkedAsset,
+                  linkedAssetType === "CULVERT"
+                    ? "culvert-line"
+                    : linkedAssetType === "GUARDRAIL"
+                      ? "guardrail-line"
+                      : "marker",
+                );
+                return;
+              }
+
+              if (!resolvedLinkedAsset && item.assetId) {
+                handleAssetTapById(
+                  item.assetId,
+                  typeKey.includes("culvert")
+                    ? "culvert-line"
+                    : typeKey.includes("guardrail")
+                      ? "guardrail-line"
+                      : "bridge-line",
+                  typeKey,
+                );
+                return;
+              }
+
+              if (isLinearAssetWorkOrder) {
+                const probe =
+                  pressPoint && isValidMapCoord(pressPoint)
+                    ? pressPoint
+                    : lineCenter && isValidMapCoord(lineCenter)
+                    ? lineCenter
+                    : points[Math.floor(points.length / 2)] ?? points[0] ?? null;
+
+                if (probe && isValidMapCoord(probe)) {
+                  const desiredLinkedAssetType = typeKey.includes("guardrail")
+                    ? "GUARDRAIL"
+                    : typeKey.includes("culvert")
+                      ? "CULVERT"
+                      : typeKey.includes("bridge")
+                        ? "BRIDGE"
+                        : null;
+
+                  if (desiredLinkedAssetType) {
+                    let inferred: { asset: any; distM: number } | null = null;
+                    for (const asset of assets) {
+                      const assetType = String(asset.assetType ?? "").toUpperCase();
+                      if (assetType !== desiredLinkedAssetType) continue;
+
+                      let distM: number | null = null;
+                      if (assetType === "CULVERT") {
+                        const endpoints = getCulvertEndpoints(asset);
+                        if (endpoints) {
+                          distM = distancePointToSegmentMeters(probe, endpoints.inlet, endpoints.outlet);
+                        }
+                      } else if (assetType === "GUARDRAIL") {
+                        const linkedLines = dbItems.filter(
+                          (wo) =>
+                            wo.geomType === "line" &&
+                            String(wo.type ?? "").toLowerCase().includes("guardrail") &&
+                            String(wo.assetId ?? "") === String(asset.id),
+                        );
+
+                        for (const wo of linkedLines) {
+                          const linePoints = getWorkOrderLinePoints(wo);
+                          const d = distancePointToPolylineMeters(probe, linePoints);
+                          if (d == null) continue;
+                          if (distM == null || d < distM) distM = d;
+                        }
+                      } else if (assetType === "BRIDGE") {
+                        const corners = getBridgeAssetCorners(asset);
+                        if (corners && corners.length === 4) {
+                          distM = distancePointToBridgeMeters(probe, corners);
+                        }
+                      }
+
+                      if (distM == null) continue;
+                      if (!inferred || distM < inferred.distM) {
+                        inferred = { asset, distM };
+                      }
+                    }
+
+                    const maxInferenceDistM =
+                      desiredLinkedAssetType === "CULVERT"
+                        ? 60
+                        : desiredLinkedAssetType === "GUARDRAIL"
+                          ? 75
+                          : 65;
+
+                    if (inferred && inferred.distM <= maxInferenceDistM) {
+                      handleAssetTap(
+                        inferred.asset,
+                        desiredLinkedAssetType === "CULVERT"
+                          ? "culvert-line"
+                          : desiredLinkedAssetType === "GUARDRAIL"
+                            ? "guardrail-line"
+                            : "marker",
+                      );
+                      return;
+                    }
+                  }
+                }
+
+                return;
+              }
+
+              handleLinearAssetWorkOrderTap(item, "line");
+            };
+
+            const lineHitTarget = (
+              <Polyline
+                key={`line-hit-${item.id}`}
+                coordinates={coords}
+                strokeWidth={34}
+                strokeColor="rgba(17,24,39,0.01)"
+                tappable
+                onPress={handleLinePress}
+              />
+            );
             if (isGuardrailWorkOrder) {
               return (
                 <React.Fragment key={item.id}>
+                  {lineHitTarget}
                   <Polyline
                     coordinates={coords}
                     strokeWidth={7}
@@ -2098,28 +2506,83 @@ export default function MapScreen() {
                     strokeWidth={5}
                     strokeColor={lineColor}
                     {...(dashPattern ? { lineDashPattern: dashPattern } : null)}
-                    tappable
+                    tappable={false}
+                  />
+                  {lineCenter && isValidMapCoord(lineCenter) ? (
+                    <Marker
+                      key={`wo-line-marker-${item.id}`}
+                      coordinate={{ latitude: lineCenter.lat, longitude: lineCenter.lng }}
+                      pinColor={lineColor}
+                      anchor={{ x: 0.5, y: 1.35 }}
+                      zIndex={31}
+                      title={`${formatWorkType(item.type as any)} Work Order`}
+                      onPress={() => {
+                        if (pickingLocation) return;
+                        if (resolvedLinkedAsset) {
+                          handleAssetTap(
+                            resolvedLinkedAsset,
+                            linkedAssetType === "CULVERT"
+                              ? "culvert-line"
+                              : linkedAssetType === "GUARDRAIL"
+                                ? "guardrail-line"
+                                : "marker",
+                          );
+                          return;
+                        }
+                        handleLinearAssetWorkOrderTap(item, "marker");
+                      }}
+                    />
+                  ) : null}
+                </React.Fragment>
+              );
+            }
+
+            const lineCore = (
+              <React.Fragment key={`line-core-${item.id}`}>
+                {lineHitTarget}
+                <Polyline
+                  key={item.id}
+                  coordinates={coords}
+                  strokeWidth={5}
+                  strokeColor={lineColor}
+                  {...(dashPattern ? { lineDashPattern: dashPattern } : null)}
+                  tappable={false}
+                />
+              </React.Fragment>
+            );
+
+            if (shouldShowLineTapMarker && lineCenter && isValidMapCoord(lineCenter)) {
+              return (
+                <React.Fragment key={item.id}>
+                  {lineCore}
+                  <Marker
+                    key={`wo-line-marker-${item.id}`}
+                    coordinate={{ latitude: lineCenter.lat, longitude: lineCenter.lng }}
+                    pinColor={lineColor}
+                    anchor={{ x: 0.5, y: 1.35 }}
+                    zIndex={31}
+                    title={`${formatWorkType(item.type as any)} Work Order`}
                     onPress={() => {
-                      handleLinearAssetWorkOrderTap(item);
+                      if (pickingLocation) return;
+                      if (resolvedLinkedAsset) {
+                        handleAssetTap(
+                          resolvedLinkedAsset,
+                          linkedAssetType === "CULVERT"
+                            ? "culvert-line"
+                            : linkedAssetType === "GUARDRAIL"
+                              ? "guardrail-line"
+                              : "marker",
+                        );
+                        return;
+                      }
+                      handleLinearAssetWorkOrderTap(item, "marker");
                     }}
                   />
                 </React.Fragment>
               );
             }
 
-            return (
-              <Polyline
-                key={item.id}
-                coordinates={coords}
-                strokeWidth={5}
-                strokeColor={lineColor}
-                {...(dashPattern ? { lineDashPattern: dashPattern } : null)}
-                tappable
-                onPress={() => {
-                  handleLinearAssetWorkOrderTap(item);
-                }}
-              />
-            );
+            return lineCore;
           }
 
           return null;
@@ -2196,6 +2659,25 @@ export default function MapScreen() {
 
           const footprint = corners.map((p) => ({ latitude: p.lat, longitude: p.lng }));
           const ring = buildBridgeRing(corners).map((p) => ({ latitude: p.lat, longitude: p.lng }));
+          if (!isValidAssetLineCoords(ring)) {
+            console.warn("[MapAssetLine] invalid asset line coords", {
+              assetId: String(asset.id),
+              type: "BRIDGE",
+              coords: ring,
+            });
+            return null;
+          }
+
+          const bridgeLogKey = `BRIDGE:${asset.id}`;
+          if (__DEV__ && !assetLineRenderLogKeysRef.current.has(bridgeLogKey)) {
+            assetLineRenderLogKeysRef.current.add(bridgeLogKey);
+            console.log("[MapAssetLine] rendered", {
+              assetId: String(asset.id),
+              type: "BRIDGE",
+              pointCount: ring.length,
+            });
+          }
+
           return (
             <React.Fragment key={`asset-bridge-footprint-${asset.id}`}>
               <MapPolygon
@@ -2203,10 +2685,23 @@ export default function MapScreen() {
                 strokeColor={bridgeOverlayStyle.strokeColor}
                 strokeWidth={bridgeOverlayStyle.polygonStrokeWidth}
                 fillColor={bridgeOverlayStyle.fillColor}
-                tappable
+                tappable={false}
                 zIndex={1}
-                onPress={() => {
-                  handleAssetTap(asset, "marker");
+              />
+              <Polyline
+                coordinates={ring}
+                strokeWidth={32}
+                strokeColor="rgba(0,0,0,0.01)"
+                lineCap="round"
+                tappable
+                zIndex={9000}
+                onPress={(event: any) => {
+                  event?.stopPropagation?.();
+                  console.log("[MapAssetLine] hit polyline pressed", {
+                    assetId: String(asset.id),
+                    type: "BRIDGE",
+                  });
+                  handleAssetTap(asset, "bridge-line");
                 }}
               />
               <Polyline
@@ -2216,9 +2711,14 @@ export default function MapScreen() {
                 lineCap="round"
                 {...(bridgeOverlayStyle.ringDashPattern ? { lineDashPattern: bridgeOverlayStyle.ringDashPattern } : null)}
                 tappable
-                zIndex={2}
-                onPress={() => {
-                  handleAssetTap(asset, "marker");
+                zIndex={9001}
+                onPress={(event: any) => {
+                  event?.stopPropagation?.();
+                  console.log("[MapAssetLine] visible polyline pressed", {
+                    assetId: String(asset.id),
+                    type: "BRIDGE",
+                  });
+                  handleAssetTap(asset, "bridge-line");
                 }}
               />
             </React.Fragment>
@@ -2255,22 +2755,65 @@ export default function MapScreen() {
           const endpoints = getCulvertEndpoints(asset);
           if (!endpoints) return null;
 
+          const coords = [
+            { latitude: endpoints.inlet.lat, longitude: endpoints.inlet.lng },
+            { latitude: endpoints.outlet.lat, longitude: endpoints.outlet.lng },
+          ];
+
+          if (!isValidAssetLineCoords(coords)) {
+            console.warn("[MapAssetLine] invalid asset line coords", {
+              assetId: String(asset.id),
+              type: "CULVERT",
+              coords,
+            });
+            return null;
+          }
+
+          const culvertLogKey = `CULVERT:${asset.id}`;
+          if (__DEV__ && !assetLineRenderLogKeysRef.current.has(culvertLogKey)) {
+            assetLineRenderLogKeysRef.current.add(culvertLogKey);
+            console.log("[MapAssetLine] rendered", {
+              assetId: String(asset.id),
+              type: "CULVERT",
+              pointCount: coords.length,
+            });
+          }
+
           return (
-            <Polyline
-              key={`asset-culvert-line-${asset.id}`}
-              coordinates={[
-                { latitude: endpoints.inlet.lat, longitude: endpoints.inlet.lng },
-                { latitude: endpoints.outlet.lat, longitude: endpoints.outlet.lng },
-              ]}
-              strokeWidth={12}
-              strokeColor="#111827"
-              lineCap="butt"
-              tappable
-              zIndex={1}
-              onPress={() => {
-                handleAssetTap(asset, "culvert-line");
-              }}
-            />
+            <React.Fragment key={`asset-culvert-line-${asset.id}`}>
+              <Polyline
+                coordinates={coords}
+                strokeWidth={32}
+                strokeColor="rgba(0,0,0,0.01)"
+                lineCap="butt"
+                tappable
+                zIndex={9000}
+                onPress={(event: any) => {
+                  event?.stopPropagation?.();
+                  console.log("[MapAssetLine] hit polyline pressed", {
+                    assetId: String(asset.id),
+                    type: "CULVERT",
+                  });
+                  handleAssetTap(asset, "culvert-line");
+                }}
+              />
+              <Polyline
+                coordinates={coords}
+                strokeWidth={12}
+                strokeColor="#111827"
+                lineCap="butt"
+                tappable
+                zIndex={9001}
+                onPress={(event: any) => {
+                  event?.stopPropagation?.();
+                  console.log("[MapAssetLine] visible polyline pressed", {
+                    assetId: String(asset.id),
+                    type: "CULVERT",
+                  });
+                  handleAssetTap(asset, "culvert-line");
+                }}
+              />
+            </React.Fragment>
           );
         })}
 
@@ -2290,24 +2833,65 @@ export default function MapScreen() {
               const points = getWorkOrderLinePoints(wo);
               if (points.length < 2) return null;
 
+              const coords = points.map((p) => ({ latitude: p.lat, longitude: p.lng }));
+              if (!isValidAssetLineCoords(coords)) {
+                console.warn("[MapAssetLine] invalid asset line coords", {
+                  assetId: String(asset.id),
+                  type: "GUARDRAIL",
+                  coords,
+                });
+                return null;
+              }
+
+              const guardrailLogKey = `GUARDRAIL:${asset.id}:${wo.id}`;
+              if (__DEV__ && !assetLineRenderLogKeysRef.current.has(guardrailLogKey)) {
+                assetLineRenderLogKeysRef.current.add(guardrailLogKey);
+                console.log("[MapAssetLine] rendered", {
+                  assetId: String(asset.id),
+                  type: "GUARDRAIL",
+                  pointCount: coords.length,
+                });
+              }
+
               return (
                 <React.Fragment key={`asset-guardrail-line-${asset.id}-${wo.id}`}>
                   <Polyline
-                    coordinates={points.map((p) => ({ latitude: p.lat, longitude: p.lng }))}
+                    coordinates={coords}
+                    strokeWidth={32}
+                    strokeColor="rgba(0,0,0,0.01)"
+                    lineCap="butt"
+                    tappable
+                    zIndex={9000}
+                    onPress={(event: any) => {
+                      event?.stopPropagation?.();
+                      console.log("[MapAssetLine] hit polyline pressed", {
+                        assetId: String(asset.id),
+                        type: "GUARDRAIL",
+                      });
+                      handleAssetTap(asset, "guardrail-line");
+                    }}
+                  />
+                  <Polyline
+                    coordinates={coords}
                     strokeWidth={14}
                     strokeColor="#111827"
                     lineCap="butt"
                     tappable={false}
-                    zIndex={1}
+                    zIndex={8999}
                   />
                   <Polyline
-                    coordinates={points.map((p) => ({ latitude: p.lat, longitude: p.lng }))}
-                    strokeWidth={12}
+                    coordinates={coords}
+                    strokeWidth={5}
                     strokeColor="#9ca3af"
                     lineCap="butt"
                     tappable
-                    zIndex={2}
-                    onPress={() => {
+                    zIndex={9001}
+                    onPress={(event: any) => {
+                      event?.stopPropagation?.();
+                      console.log("[MapAssetLine] visible polyline pressed", {
+                        assetId: String(asset.id),
+                        type: "GUARDRAIL",
+                      });
                       handleAssetTap(asset, "guardrail-line");
                     }}
                   />

@@ -17,6 +17,12 @@ import {
 
 type OrgRow = { orgId: string; name: string; role: string };
 
+export const ORG_PICKER_DIAGNOSTICS = {
+  hasJoinNewOrgAction: true,
+  joinButtonLabel: "Join New Org",
+  joinScreenInlineTarget: "JoinOrgScreen",
+} as const;
+
 export function OrgPickerScreen() {
   const { setOrgId } = useOrg();
   const [orgs, setOrgs] = useState<OrgRow[]>([]);
@@ -28,7 +34,7 @@ export function OrgPickerScreen() {
   const [autoOpenedJoin, setAutoOpenedJoin] = useState(false);
 
   const uid = getAuth(getApp()).currentUser?.uid ?? null;
-  const joinButtonLabel = orgs.length > 0 ? "Join New Organization" : "Join an Organization";
+  const joinButtonLabel = "Join New Org";
 
   // Restore pending org on mount; jump straight to JoinOrgScreen if one is found
   useEffect(() => {
@@ -130,6 +136,14 @@ export function OrgPickerScreen() {
       console.log(`[OrgPicker] explicit org select target=${item.orgId} role=${item.role}`);
     }
     await setOrgId(item.orgId);
+  }
+
+  async function goBackToSignIn() {
+    try {
+      await getAuth(getApp()).signOut();
+    } catch (e: any) {
+      Alert.alert("Sign out failed", e?.message ?? String(e));
+    }
   }
 
   async function devBootstrap() {
@@ -239,25 +253,31 @@ export function OrgPickerScreen() {
 
       {orgs.length === 0 ? (
         <Text style={styles.noOrgsText}>
-          Not in any orgs yet. Tap "Join an Organization" and enter the org code
+          Not in any orgs yet. Tap "Join New Org" and enter the org code
           (e.g. 2468) or org ID your admin shared with you.
         </Text>
       ) : (
-        <FlatList
-          data={orgs}
-          keyExtractor={(item) => item.orgId}
-          renderItem={({ item }) => (
-            <Pressable
-              onPress={() => onPick(item)}
-              style={styles.orgCard}
-            >
-              <Text style={styles.orgName}>{item.name}</Text>
-              <Text style={styles.orgRole}>Role: {item.role}</Text>
-              <Text style={styles.orgId}>OrgId: {item.orgId}</Text>
-            </Pressable>
-          )}
-        />
+        <View style={styles.orgListWrap}>
+          <FlatList
+            data={orgs}
+            keyExtractor={(item) => item.orgId}
+            renderItem={({ item }) => (
+              <Pressable
+                onPress={() => onPick(item)}
+                style={styles.orgCard}
+              >
+                <Text style={styles.orgName}>{item.name}</Text>
+                <Text style={styles.orgRole}>Role: {item.role}</Text>
+                <Text style={styles.orgId}>OrgId: {item.orgId}</Text>
+              </Pressable>
+            )}
+          />
+        </View>
       )}
+
+      <Pressable style={styles.backToSignInButton} onPress={goBackToSignIn}>
+        <Text style={styles.backToSignInButtonText}>Go Back To Sign In</Text>
+      </Pressable>
     </View>
     </SafeAreaView>
   );
@@ -348,6 +368,9 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: "600",
   },
+  orgListWrap: {
+    flex: 1,
+  },
   orgCard: {
     padding: 14,
     borderWidth: 1,
@@ -367,6 +390,20 @@ const styles = StyleSheet.create({
     opacity: 0.5,
     fontSize: 12,
     marginTop: 2,
+  },
+  backToSignInButton: {
+    marginTop: 12,
+    borderWidth: 1,
+    borderColor: "#d1d5db",
+    borderRadius: 10,
+    paddingVertical: 12,
+    alignItems: "center",
+    backgroundColor: "#f8fafc",
+  },
+  backToSignInButtonText: {
+    color: "#111827",
+    fontSize: 15,
+    fontWeight: "600",
   },
 });
 

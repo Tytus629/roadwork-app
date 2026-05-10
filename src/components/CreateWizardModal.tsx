@@ -61,7 +61,7 @@
  */
 
 import React, { useEffect, useMemo, useState } from "react";
-import { Modal, View, Text, StyleSheet, Pressable } from "react-native";
+import { Modal, View, Text, StyleSheet, Pressable, ScrollView, useWindowDimensions } from "react-native";
 import type { WorkType } from "../types/workItem";
 import {
   WORK_ORDER_TYPE_OPTIONS,
@@ -75,6 +75,12 @@ import { useColorblindModePreference } from "../settings/colorblindMode";
 import { useWorkOrderTypeVisibilityPreference } from "../settings/workOrderTypeVisibility";
 
 export type AssetCreateType = "sign" | "culvert" | "guardrail" | "delineator" | "bridge";
+
+export const CREATE_WIZARD_DIAGNOSTICS = {
+  usesScrollViewBody: true,
+  usesMaxHeightSheet: true,
+  hasBottomPaddingInBodyContent: true,
+} as const;
 
 const ASSET_TYPE_OPTIONS: ReadonlyArray<{ key: AssetCreateType; label: string }> = [
   { key: "sign", label: "Sign" },
@@ -119,6 +125,7 @@ export default function CreateWizardModal({
   onUseCurrentLocationAsset,
   onPickLocationAsset,
 }: Props) {
+  const { height: screenHeight } = useWindowDimensions();
   const colorblindMode = useColorblindModePreference();
   const workOrderTypeVisibility = useWorkOrderTypeVisibilityPreference();
   const [step, setStep] = useState<0 | 1 | 2 | 3>(0);
@@ -223,13 +230,20 @@ export default function CreateWizardModal({
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={closeAndReset}>
       <View style={styles.backdrop}>
-        <View style={styles.sheet}>
+        <View style={[styles.sheet, { maxHeight: Math.round(screenHeight * 0.84) }]}> 
           <View style={styles.topRow}>
             <Text style={styles.title}>{header}</Text>
             <Pressable onPress={closeAndReset} style={styles.closeBtn}>
               <Text style={styles.closeText}>Close</Text>
             </Pressable>
           </View>
+
+          <ScrollView
+            style={styles.bodyScroll}
+            contentContainerStyle={styles.bodyContent}
+            keyboardShouldPersistTaps="handled"
+            showsVerticalScrollIndicator
+          >
 
           {step === 0 && (
             <>
@@ -474,6 +488,8 @@ export default function CreateWizardModal({
               </View>
             </>
           )}
+
+          </ScrollView>
         </View>
       </View>
     </Modal>
@@ -482,7 +498,9 @@ export default function CreateWizardModal({
 
 const styles = StyleSheet.create({
   backdrop: { flex: 1, backgroundColor: "rgba(0,0,0,0.35)", justifyContent: "flex-end" },
-  sheet: { backgroundColor: "white", borderTopLeftRadius: 18, borderTopRightRadius: 18, padding: 14, gap: 10, maxHeight: "85%" },
+  sheet: { backgroundColor: "white", borderTopLeftRadius: 18, borderTopRightRadius: 18, padding: 14, gap: 10 },
+  bodyScroll: { flexGrow: 0 },
+  bodyContent: { paddingBottom: 12, gap: 10 },
   topRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 10 },
   title: { fontSize: 16, fontWeight: "900" },
   closeBtn: { paddingVertical: 8, paddingHorizontal: 10, borderRadius: 10, backgroundColor: "#f1f5f9" },

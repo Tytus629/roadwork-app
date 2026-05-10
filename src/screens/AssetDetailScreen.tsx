@@ -114,6 +114,8 @@ function timelineTitleForEvent(e: AssetEvent, details: Record<string, any> | nul
 function humanizeCode(code: string | null | undefined) {
   const v = String(code ?? "").trim();
   if (!v) return "Unknown";
+  const normalized = v.toLowerCase();
+  if (normalized === "deferred" || normalized === "defer") return "Archived";
   return v
     .toLowerCase()
     .replace(/[\s_]+/g, " ")
@@ -149,6 +151,7 @@ function statusLabel(status: string | null | undefined) {
   if (!v) return "Unknown";
   if (v === "Needs") return "Needs Work";
   if (v === "Done") return "Completed";
+  if (v === "Deferred") return "Archived";
   return v;
 }
 
@@ -688,6 +691,13 @@ export default function AssetDetailScreen({ route }: any) {
     return repairRows.filter((row) => !row.isCompleted);
   }, [repairRows, showCompletedRepairWorkOrders]);
 
+  const currentAssetType = String(asset?.assetType ?? "").toUpperCase();
+  const supportsLinkedWorkHistory =
+    currentAssetType === "SIGN" ||
+    currentAssetType === "GUARDRAIL" ||
+    currentAssetType === "CULVERT" ||
+    currentAssetType === "BRIDGE";
+
   const handleOpenLinkedWorkOrder = useCallback(
     (workOrderId: string) => {
       if (!asset) return;
@@ -1125,7 +1135,7 @@ export default function AssetDetailScreen({ route }: any) {
             </View>
           )}
 
-          {(repairRows.length > 0 || asset.assetType === "BRIDGE") && (
+          {supportsLinkedWorkHistory && (
             <View style={styles.repairsSection}>
               {repairRows.length > 0 && (
                 <View style={styles.repairsToggleRow}>

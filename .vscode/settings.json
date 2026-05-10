@@ -6,5 +6,19 @@
       "**/.git"
     ]
   },
-  "vscode-edge-devtools.webhint": false
+  "vscode-edge-devtools.webhint": false,
+  "java.configuration.updateBuildConfiguration": "interactive",
+  "java.import.gradle.enabled": false,
+  "java.import.maven.enabled": false,
+  "java.project.importOnFirstTimeStartup": "disabled",
+  "java.server.launchMode": "LightWeight",
+  "java.autobuild.enabled": false,
+  "java.errors.incompleteClasspath.severity": "ignore",
+  "java.import.exclusions": [
+    "**/node_modules/**",
+    "**/.git/**",
+    "**/RoadWorkTracker/**",
+    "**/android/.gradle/**",
+    "**/android/build/**"
+  ]
 }

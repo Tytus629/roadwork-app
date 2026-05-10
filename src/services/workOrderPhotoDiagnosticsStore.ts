@@ -13,6 +13,7 @@ export type PhotoDevDiagnostics = {
   latestUploadFileName?: string | null;
   latestUploadOrgId?: string | null;
   latestUploadWorkOrderId?: string | null;
+  latestUploadAssetId?: string | null;
   latestSelectedOrgId?: string | null;
   latestAuthUid?: string | null;
   latestAuthEmail?: string | null;

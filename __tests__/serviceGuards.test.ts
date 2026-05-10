@@ -99,8 +99,8 @@ describe("service permission guards", () => {
     expect(counterRepo.insert).toHaveBeenCalledTimes(1);
   });
 
-  it("blocks asset writes for crew member", async () => {
-    setActiveRoleForGuards("crew_member");
+  it("blocks asset writes for viewer", async () => {
+    setActiveRoleForGuards("viewer");
     await expect(assetsService.upsert({} as any)).rejects.toBeInstanceOf(PermissionDeniedError);
     await expect(assetsService.addEvent({} as any)).rejects.toBeInstanceOf(PermissionDeniedError);
     expect(assetsRepo.upsert).not.toHaveBeenCalled();
@@ -115,21 +115,23 @@ describe("service permission guards", () => {
     expect(assetEventsRepo.add).toHaveBeenCalledTimes(1);
   });
 
-  it("blocks work-order photo writes for viewer", () => {
-    expect(() => addWorkOrderPhoto({ workOrderId: "w1", photo: { id: "p1" } as any })).toThrow(
-      PermissionDeniedError,
-    );
-    expect(() => removeWorkOrderPhoto("p1")).toThrow(PermissionDeniedError);
-    expect(workOrderPhotosRepo.addWorkOrderPhoto).not.toHaveBeenCalled();
-    expect(workOrderPhotosRepo.removeWorkOrderPhoto).not.toHaveBeenCalled();
+  it("allows work-order photo writes for viewer", async () => {
+    await expect(
+      addWorkOrderPhoto({ workOrderId: "w1", photo: { id: "p1" } as any })
+    ).rejects.not.toBeInstanceOf(PermissionDeniedError);
+    removeWorkOrderPhoto("p1");
+    expect(workOrderPhotosRepo.addWorkOrderPhoto).toHaveBeenCalledTimes(1);
+    expect(workOrderPhotosRepo.removeWorkOrderPhoto).toHaveBeenCalledTimes(1);
   });
 
-  it("allows work-order photo writes for crew member", () => {
+  it("allows work-order photo writes for crew member", async () => {
     setActiveRoleForGuards("crew_member");
-    addWorkOrderPhoto({
-      workOrderId: "w1",
-      photo: { id: "p1", uri: "file://p.jpg", createdAt: Date.now(), source: "camera" } as any,
-    });
+    await expect(
+      addWorkOrderPhoto({
+        workOrderId: "w1",
+        photo: { id: "p1", uri: "file://p.jpg", createdAt: Date.now(), source: "camera" } as any,
+      })
+    ).rejects.not.toBeInstanceOf(PermissionDeniedError);
     removeWorkOrderPhoto("p1");
     expect(workOrderPhotosRepo.addWorkOrderPhoto).toHaveBeenCalledTimes(1);
     expect(workOrderPhotosRepo.removeWorkOrderPhoto).toHaveBeenCalledTimes(1);

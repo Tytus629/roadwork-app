@@ -1883,6 +1883,9 @@ export default function WorkItemSheet(props: Props) {
                     Upload orgId: {photoDevDiagnostics?.latestSelectedOrgId ?? "n/a"}
                   </Text>
                   <Text style={styles.devDiagLine}>
+                    Upload assetId: {photoDevDiagnostics?.latestUploadAssetId ?? "n/a"}
+                  </Text>
+                  <Text style={styles.devDiagLine}>
                     Upload auth UID/email: {(photoDevDiagnostics?.latestAuthUid ?? "n/a") + " / " + (photoDevDiagnostics?.latestAuthEmail ?? "n/a")}
                   </Text>
                   <Text style={styles.devDiagLine}>

@@ -9,6 +9,7 @@ import { requireOrgId } from "../org/requireOrg";
 import { getApp } from "@react-native-firebase/app";
 import { getFunctions, httpsCallable } from "@react-native-firebase/functions";
 import { callDevFunctionHttp } from "../firebase/devFunctionsHttp";
+import { getEmulatorConnectionInfo } from "../firebase/emulators";
 import { assertOrgScopedPathsInPayload } from "../firebase/storagePaths";
 import {
   isPavementRepairType,
@@ -723,7 +724,7 @@ function bumpOutboxError(id: string, errMsg: string, currentAttempts: number) {
 // so we bypass the native SDK entirely and use a direct HTTP fetch.
 
 async function callFn(name: string, data: any): Promise<any> {
-  if (__DEV__) {
+  if (__DEV__ && getEmulatorConnectionInfo().enabled) {
     return callDevFunctionHttp(name, data);
   }
 

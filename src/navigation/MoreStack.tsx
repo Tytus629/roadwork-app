@@ -22,6 +22,7 @@ import OperationsListsScreen from "../screens/OperationsListsScreen";
 import OperationsListDetailScreen from "../screens/OperationsListDetailScreen";
 import CreateOperationsListScreen from "../screens/CreateOperationsListScreen";
 import AddOperationsListItemScreen from "../screens/AddOperationsListItemScreen";
+import DevSmokeTestsScreen from "../screens/DevSmokeTestsScreen";
 
 const Stack = createNativeStackNavigator();
 
@@ -138,6 +139,13 @@ export function MoreStack() {
         component={OutboxFailedScreen}
         options={{ title: "Failed Jobs" }}
       />
+      {__DEV__ ? (
+        <Stack.Screen
+          name="DevSmokeTests"
+          component={DevSmokeTestsScreen}
+          options={{ title: "Developer Smoke Tests" }}
+        />
+      ) : null}
     </Stack.Navigator>
   );
 }

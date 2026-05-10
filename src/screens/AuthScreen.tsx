@@ -1,11 +1,17 @@
 import React, { useState } from "react";
 import { View, Text, TextInput, Pressable, StyleSheet, TouchableOpacity, Platform, KeyboardAvoidingView, ScrollView } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword } from "@react-native-firebase/auth";
+import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, sendPasswordResetEmail } from "@react-native-firebase/auth";
 import { getApp } from "@react-native-firebase/app";
 import { callDevFunctionHttp } from "../firebase/devFunctionsHttp";
 import { normalizeEmail, trimToNull } from "../utils/userIdentity";
 import { upsertUserProfile } from "../services/userProfileService";
+
+export const AUTH_SCREEN_DIAGNOSTICS = {
+  hasKeyboardAvoidingView: true,
+  hasScrollView: true,
+  keyboardDismissMode: "on-drag",
+} as const;
 
 
 export function AuthScreen({ onDone }: { onDone: (orgId?: string) => void }) {
@@ -42,6 +48,10 @@ export function AuthScreen({ onDone }: { onDone: (orgId?: string) => void }) {
   function friendlyAuthMessage(err: any): string {
     const code = String(err?.code ?? "");
     if (code === "auth/invalid-email") return "Please enter a valid email address.";
+    if (code === "auth/invalid-credential") return "Email or password is incorrect. Please try again.";
+    if (code === "auth/too-many-requests") {
+      return "Too many sign-in attempts from this device. Please wait a bit and try again, or use Create Account with a different test email.";
+    }
     if (code === "auth/wrong-password") return "That password is incorrect.";
     if (code === "auth/user-not-found") return "No account found for that email. Use Create Account to sign up.";
     if (code === "auth/email-already-in-use") return "An account with that email already exists. Try signing in instead.";
@@ -89,7 +99,39 @@ export function AuthScreen({ onDone }: { onDone: (orgId?: string) => void }) {
       }
     } catch (e: any) {
       setMsg(friendlyAuthMessage(e));
-      console.error("[Auth] Sign-in/up error:", e);
+      const authCode = String(e?.code ?? "");
+      if (authCode.startsWith("auth/")) {
+        console.log("[Auth] Sign-in/up rejected:", authCode);
+      } else {
+        console.error("[Auth] Sign-in/up error:", e);
+      }
+      setLoading(false);
+    }
+  }
+
+  async function submitPasswordReset() {
+    setMsg(null);
+    const safeEmail = normalizeEmail(email);
+    if (!safeEmail) {
+      setMsg("Enter your email first, then tap Forgot Password.");
+      return;
+    }
+
+    setLoading(true);
+    const auth = getAuth(getApp());
+
+    try {
+      await sendPasswordResetEmail(auth, safeEmail);
+      setMsg("Password reset email sent. Check your inbox.");
+    } catch (e: any) {
+      setMsg(friendlyAuthMessage(e));
+      const authCode = String(e?.code ?? "");
+      if (authCode.startsWith("auth/")) {
+        console.log("[Auth] Password reset rejected:", authCode);
+      } else {
+        console.error("[Auth] Password reset error:", e);
+      }
+    } finally {
       setLoading(false);
     }
   }
@@ -125,6 +167,7 @@ export function AuthScreen({ onDone }: { onDone: (orgId?: string) => void }) {
       <KeyboardAvoidingView
         style={styles.keyboardWrapper}
         behavior={Platform.OS === "ios" ? "padding" : undefined}
+        keyboardVerticalOffset={Platform.OS === "ios" ? 12 : 0}
       >
         <ScrollView
           contentContainerStyle={styles.container}
@@ -253,6 +296,12 @@ export function AuthScreen({ onDone }: { onDone: (orgId?: string) => void }) {
         </Text>
       </Pressable>
 
+      {mode === "signin" ? (
+        <Pressable onPress={submitPasswordReset} disabled={loading} style={styles.resetLinkWrap}>
+          <Text style={styles.resetLink}>Forgot Password?</Text>
+        </Pressable>
+      ) : null}
+
           {msg ? <Text style={styles.errorText}>{msg}</Text> : null}
         </ScrollView>
       </KeyboardAvoidingView>
@@ -270,11 +319,12 @@ const styles = StyleSheet.create({
   },
   container: {
     flexGrow: 1,
+    minHeight: "100%",
     paddingHorizontal: 16,
-    paddingBottom: 16,
+    paddingBottom: 24,
     paddingTop: Platform.OS === "ios" ? 40 : 16,
     gap: 12,
-    justifyContent: "center",
+    justifyContent: "flex-start",
   },
   title: {
     fontSize: 22,
@@ -356,5 +406,13 @@ const styles = StyleSheet.create({
   errorText: {
     color: "#dc2626",
     fontWeight: "600",
+  },
+  resetLinkWrap: {
+    alignItems: "center",
+    paddingVertical: 2,
+  },
+  resetLink: {
+    color: "#1d4ed8",
+    fontWeight: "700",
   },
 });

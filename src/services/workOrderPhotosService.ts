@@ -32,6 +32,13 @@ import {
 
 export { getGlobalWorkOrderPhotoDevDiagnostics, getWorkOrderPhotoDevDiagnostics };
 
+export const WORK_ORDER_PHOTO_SYNC_CONTRACT = {
+  writesAttachmentMetadataAfterUpload: true,
+  enqueuesAttachmentPatchAfterUpload: true,
+  storagePathMustBeOrgScoped: true,
+  requiredAttachmentFields: ["id", "photoId", "orgId", "workOrderId", "storagePath", "fileName", "createdAt"],
+} as const;
+
 function classifyUri(uriRaw: unknown): "local" | "remote" | "unknown" {
   const uri = String(uriRaw ?? "").trim().toLowerCase();
   if (!uri) return "unknown";
@@ -229,6 +236,7 @@ async function uploadPhotoAndBuildAttachment(args: {
   traceId: string;
   orgId: string;
   workOrderId: string;
+  assetId?: string | null;
   photo: WorkPhoto;
 }): Promise<WorkOrderAttachment> {
   const app = getApp();
@@ -287,6 +295,7 @@ async function uploadPhotoAndBuildAttachment(args: {
       authEmail,
       orgId: args.orgId,
       workOrderId: args.workOrderId,
+      assetId: args.assetId ?? null,
       photoId: args.photo.id,
       storagePath,
       localUri,
@@ -311,6 +320,7 @@ async function uploadPhotoAndBuildAttachment(args: {
       latestUploadFileName: fileName,
       latestUploadOrgId: args.orgId,
       latestUploadWorkOrderId: args.workOrderId,
+      latestUploadAssetId: args.assetId ?? null,
       latestSelectedOrgId: args.orgId,
       latestAuthUid: authUid,
       latestAuthEmail: authEmail,
@@ -341,6 +351,7 @@ async function uploadPhotoAndBuildAttachment(args: {
         traceId: args.traceId,
         orgId: args.orgId,
         workOrderId: args.workOrderId,
+        assetId: args.assetId ?? null,
         photoId: args.photo.id,
         storagePath,
         uploadPathForApi,
@@ -409,6 +420,7 @@ async function uploadPhotoAndBuildAttachment(args: {
         latestUploadFileName: fileName,
         latestUploadOrgId: args.orgId,
         latestUploadWorkOrderId: args.workOrderId,
+        latestUploadAssetId: args.assetId ?? null,
         latestUploadNormalizedPath: uploadPathForApi,
         latestUploadUriScheme: uriScheme,
         latestStorageEmulatorHost: emulatorInfo?.selectedHost ?? null,
@@ -426,6 +438,7 @@ async function uploadPhotoAndBuildAttachment(args: {
         details: err.details,
         orgId: args.orgId,
         workOrderId: args.workOrderId,
+        assetId: args.assetId ?? null,
         photoId: args.photo.id,
         localUri,
         uploadPathForApi,
@@ -459,6 +472,7 @@ async function appendAttachmentToWorkOrder(args: {
   traceId: string;
   orgId: string;
   workOrderId: string;
+  assetId?: string | null;
   attachment: WorkOrderAttachment;
 }) {
   const workOrder = getWorkOrderById(args.workOrderId, args.orgId);
@@ -480,6 +494,7 @@ async function appendAttachmentToWorkOrder(args: {
       traceId: args.traceId,
       orgId: args.orgId,
       workOrderId: args.workOrderId,
+      assetId: args.assetId ?? null,
       previousAttachmentsCount: before.length,
       nextAttachmentsCount: after.length,
       nextAttachmentStoragePaths: after.map((a) => a.storagePath),
@@ -492,6 +507,7 @@ async function appendAttachmentToWorkOrder(args: {
       latestQueuedAttachmentStoragePaths: after.map((a) => a.storagePath),
       latestAttachmentWriteErrorCode: null,
       latestAttachmentWriteErrorMessage: null,
+      latestUploadAssetId: args.assetId ?? null,
     });
   }
 
@@ -513,6 +529,7 @@ async function appendAttachmentToWorkOrder(args: {
       success: true,
       orgId: args.orgId,
       workOrderId: args.workOrderId,
+      assetId: args.assetId ?? null,
       queuedAttachmentsCount: after.length,
       queuedOutboxId: "n/a",
     });
@@ -522,6 +539,7 @@ async function appendAttachmentToWorkOrder(args: {
       latestAttachmentWriteStage: "after-patchAndEnqueue",
       latestRemoteAttachmentCount: after.length,
       latestRemoteFetchError: null,
+      latestUploadAssetId: args.assetId ?? null,
     });
     const summary = summarizeWorkOrderAttachmentContract({
       id: args.workOrderId,
@@ -631,6 +649,7 @@ export async function addWorkOrderPhoto(args: { workOrderId: string; photo: Work
         workOrderId: args.workOrderId,
       }).length
     : 0;
+  const linkedAssetId = String((woBeforeRowWrite as any)?.assetId ?? "").trim() || null;
 
   if (__DEV__) {
     const auth = getAuth(getApp());
@@ -639,6 +658,7 @@ export async function addWorkOrderPhoto(args: { workOrderId: string; photo: Work
       authUid: auth.currentUser?.uid ?? null,
       authEmail: auth.currentUser?.email ?? null,
       orgId: woBeforeRowWrite?.orgId ?? null,
+      assetId: linkedAssetId,
       workOrderId: args.workOrderId,
       uriScheme,
       currentAttachmentsCount,
@@ -650,6 +670,7 @@ export async function addWorkOrderPhoto(args: { workOrderId: string; photo: Work
       latestUploadLocalUri: String(args.photo.uri ?? "") || null,
       latestUploadUriScheme: uriScheme,
       latestSelectedOrgId: woBeforeRowWrite?.orgId ?? null,
+      latestUploadAssetId: linkedAssetId,
       latestAuthUid: auth.currentUser?.uid ?? null,
       latestAuthEmail: auth.currentUser?.email ?? null,
     });
@@ -692,6 +713,7 @@ export async function addWorkOrderPhoto(args: { workOrderId: string; photo: Work
         latestUploadErrorCode: "missing-org-id",
         latestUploadErrorMessage: missingOrgError.message,
         latestRemoteFetchError: missingOrgError.message,
+        latestUploadAssetId: linkedAssetId,
       });
     }
     throw missingOrgError;
@@ -702,6 +724,7 @@ export async function addWorkOrderPhoto(args: { workOrderId: string; photo: Work
       traceId: photoTraceId,
       orgId: wo.orgId,
       workOrderId: args.workOrderId,
+      assetId: linkedAssetId,
       photo: args.photo,
     });
 
@@ -709,6 +732,7 @@ export async function addWorkOrderPhoto(args: { workOrderId: string; photo: Work
       traceId: photoTraceId,
       orgId: wo.orgId,
       workOrderId: args.workOrderId,
+      assetId: linkedAssetId,
       attachment,
     });
   } catch (errorRaw: unknown) {
@@ -723,12 +747,14 @@ export async function addWorkOrderPhoto(args: { workOrderId: string; photo: Work
         latestAttachmentWriteErrorCode: err.code,
         latestAttachmentWriteErrorMessage: err.message,
         latestRemoteFetchError: err.details || err.message,
+        latestUploadAssetId: linkedAssetId,
       });
     }
 
     console.warn("[WorkOrderPhotos] attachment sync failed", {
       traceId: photoTraceId,
       workOrderId: args.workOrderId,
+      assetId: linkedAssetId,
       photoId: args.photo.id,
       code: err.code,
       error: err.message,
