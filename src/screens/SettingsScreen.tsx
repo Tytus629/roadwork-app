@@ -11,6 +11,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { getApp } from "@react-native-firebase/app";
 import { getAuth } from "@react-native-firebase/auth";
 import { getFunctions, httpsCallable } from "@react-native-firebase/functions";
+import RNFS from "react-native-fs";
 import { useOrg } from "../state/OrgContext";
 import { useNavigation } from "@react-navigation/native";
 import {
@@ -44,8 +45,14 @@ import {
 } from "../settings/workOrderTypeVisibility";
 import DeviceInfo from "react-native-device-info";
 import { getEmulatorConnectionInfo, getRecommendedMetroHost } from "../firebase/emulators";
-import { getDevFunctionUrl } from "../firebase/devFunctionsHttp";
+import { callDevFunctionHttp, getDevFunctionUrl } from "../firebase/devFunctionsHttp";
 import { getGlobalWorkOrderPhotoDevDiagnostics } from "../services/workOrderPhotosService";
+import { workOrdersService } from "../services/workOrdersService";
+import { addWorkOrderPhoto, getAttachmentPhotosForWorkOrder } from "../services/workOrderPhotosService";
+import type { WorkOrder } from "../types/WorkOrder";
+import type { WorkPhoto } from "../types/workItem";
+import { getWorkOrderById } from "../db/workOrdersRepo";
+import { logSyncBreadcrumb, recordErrorWithContext } from "../telemetry/crashlytics";
 
 const KEY = "settings.notifications.v1";
 
@@ -63,6 +70,98 @@ const DEFAULTS: NotificationSettings = {
   notifyHighUrgentOnCreate: true,
   notifyTypes: DEFAULT_TYPES,
 };
+
+const PHOTO_SMOKE_TITLE_MOBILE = "PHOTO SYNC SMOKE TEST - MOBILE CREATED";
+const PHOTO_SMOKE_TITLE_BACKEND = "PHOTO SYNC SMOKE TEST - BACKEND CREATED";
+const PHOTO_SMOKE_NOTE = "Created by backend photo sync smoke test. Safe to delete.";
+const TINY_PNG_BASE64 =
+  "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO7+1e8AAAAASUVORK5CYII=";
+
+type DebugVerifyPhotoSyncResponse = {
+  ok: boolean;
+  orgId?: string;
+  workOrderId?: string;
+  photoCount?: number;
+  message?: string;
+  reason?: string;
+  photos?: Array<{
+    photoId?: string;
+    storagePath?: string;
+    hasStoragePath?: boolean;
+    hasCreatedAt?: boolean;
+    hasCreatedBy?: boolean;
+    storageObjectExists?: boolean | null;
+  }>;
+};
+
+type DebugCreateWorkOrderWithPhotoResponse = {
+  ok: boolean;
+  orgId?: string;
+  workOrderId?: string;
+  photoId?: string;
+  storagePath?: string;
+  title?: string;
+  reason?: string;
+};
+
+function sleep(ms: number) {
+  return new Promise<void>((resolve) => setTimeout(resolve, ms));
+}
+
+async function callPhotoSmokeDebugFn<T = any>(functionName: string, payload: Record<string, any>): Promise<T> {
+  const emulatorInfo = getEmulatorConnectionInfo();
+  if (__DEV__ && functionName.startsWith("roadwork_debug") && !emulatorInfo.enabled) {
+    throw new Error(
+      "DEV Firebase emulators are disabled. Enable emulator mode for photo smoke debug callables.",
+    );
+  }
+  if (__DEV__ && emulatorInfo.enabled) {
+    return callDevFunctionHttp<T>(functionName, payload);
+  }
+  const fn = httpsCallable(getFunctions(getApp()), functionName);
+  const res = await fn(payload);
+  return res.data as T;
+}
+
+function buildSmokeWorkOrder(orgId: string, title: string): WorkOrder {
+  const now = Date.now();
+  const id = `wo_smoke_${now}_${Math.random().toString(36).slice(2, 8)}`;
+  return {
+    id,
+    orgId,
+    type: "pothole",
+    status: "Needs",
+    priority: "Low",
+    geomType: "point",
+    lat: 37.4219999,
+    lng: -122.0840575,
+    line: null,
+    minLat: 0,
+    minLng: 0,
+    maxLat: 0,
+    maxLng: 0,
+    note: `${title}. ${PHOTO_SMOKE_NOTE}`,
+    createdAt: now,
+    updatedAt: now,
+  };
+}
+
+async function createPlaceholderSmokePhoto(prefix: string): Promise<WorkPhoto> {
+  const now = Date.now();
+  const id = `photo_smoke_${now}_${Math.random().toString(36).slice(2, 8)}`;
+  const fileName = `${prefix}_${id}.png`;
+  const fullPath = `${RNFS.CachesDirectoryPath}/${fileName}`;
+  await RNFS.writeFile(fullPath, TINY_PNG_BASE64, "base64");
+
+  return {
+    id,
+    uri: `file://${fullPath}`,
+    fileName,
+    mimeType: "image/png",
+    createdAt: now,
+    source: "gallery",
+  };
+}
 
 const COLOR_PREVIEW_TYPES: string[] = getWorkOrderTypePreviewTypes();
 
@@ -142,6 +241,7 @@ export default function SettingsScreen() {
       return "unavailable";
     }
   })();
+  const [photoSmokeBusy, setPhotoSmokeBusy] = useState<null | "mobile" | "backend" | "cleanup">(null);
   const globalPhotoDiag = __DEV__ ? getGlobalWorkOrderPhotoDevDiagnostics() : null;
 
   useEffect(() => {
@@ -236,6 +336,204 @@ export default function SettingsScreen() {
         `Error: ${e?.message || e}\n\nCheck console for details.`,
         [{ text: "OK" }]
       );
+    }
+  };
+
+  const runPhotoSmokeMobileUpload = async () => {
+    if (!orgId) {
+      Alert.alert("No org selected", "Select an org before running photo smoke tests.");
+      return;
+    }
+
+    setPhotoSmokeBusy("mobile");
+    try {
+      console.log("[PhotoSmokeTest] START mobile upload test", { orgId });
+      logSyncBreadcrumb("PhotoSmokeTest START mobile upload", { orgId });
+
+      const workOrder = buildSmokeWorkOrder(orgId, PHOTO_SMOKE_TITLE_MOBILE);
+      await workOrdersService.upsertAndEnqueue(workOrder);
+      console.log("[PhotoSmokeTest] Created local work order", { workOrderId: workOrder.id });
+
+      const photo = await createPlaceholderSmokePhoto("mobile");
+      await addWorkOrderPhoto({ workOrderId: workOrder.id, photo });
+      console.log("[PhotoSmokeTest] Attached placeholder photo", {
+        workOrderId: workOrder.id,
+        photoId: photo.id,
+        fileName: photo.fileName,
+      });
+
+      await manualSyncNow();
+      console.log("[PhotoSmokeTest] Upload queued and sync requested", { workOrderId: workOrder.id });
+
+      await sleep(1000);
+      const verify = await callPhotoSmokeDebugFn<DebugVerifyPhotoSyncResponse>(
+        "roadwork_debugVerifyWorkOrderPhotoSync",
+        { orgId, workOrderId: workOrder.id },
+      );
+
+      console.log("[PhotoSmokeTest] Backend verify result", verify);
+
+      if (verify?.ok) {
+        const firstPhoto = verify.photos?.[0];
+        console.log("[PhotoSmokeTest] PASS mobile upload -> backend", {
+          workOrderId: workOrder.id,
+          photoId: firstPhoto?.photoId ?? photo.id,
+          storagePath: firstPhoto?.storagePath ?? null,
+          photoCount: verify.photoCount ?? 0,
+        });
+        Alert.alert(
+          "PASS: Mobile Upload -> Backend",
+          [
+            `WorkOrderId: ${workOrder.id}`,
+            `PhotoId: ${firstPhoto?.photoId ?? photo.id}`,
+            `StoragePath: ${firstPhoto?.storagePath ?? "n/a"}`,
+            "",
+            "Now open Phone B on the same org. Pull to refresh or tap Sync Now. Search for 'PHOTO SYNC SMOKE TEST - MOBILE CREATED'. Open the work order and confirm the photo appears.",
+          ].join("\n"),
+        );
+      } else {
+        Alert.alert(
+          "FAIL: Mobile Upload -> Backend",
+          `Reason: ${verify?.reason ?? verify?.message ?? "Verification did not pass."}`,
+        );
+      }
+    } catch (e: any) {
+      console.error("[PhotoSmokeTest] FAIL mobile upload -> backend", e);
+      recordErrorWithContext(e, {
+        message: "PhotoSmokeTest mobile upload failed",
+        extras: { orgId: orgId ?? "none" },
+      });
+      Alert.alert("Photo Smoke Test Failed", e?.message ?? String(e));
+    } finally {
+      setPhotoSmokeBusy(null);
+    }
+  };
+
+  const runPhotoSmokeBackendCreated = async () => {
+    if (!orgId) {
+      Alert.alert("No org selected", "Select an org before running photo smoke tests.");
+      return;
+    }
+
+    setPhotoSmokeBusy("backend");
+    try {
+      console.log("[PhotoSmokeTest] START backend-created test", { orgId });
+      logSyncBreadcrumb("PhotoSmokeTest START backend-created", { orgId });
+
+      const created = await callPhotoSmokeDebugFn<DebugCreateWorkOrderWithPhotoResponse>(
+        "roadwork_debugCreateWorkOrderWithPhoto",
+        {
+          orgId,
+          title: PHOTO_SMOKE_TITLE_BACKEND,
+          workType: "pothole",
+        },
+      );
+
+      if (!created?.ok || !created.workOrderId) {
+        throw new Error(created?.reason || "Backend smoke create did not return workOrderId.");
+      }
+
+      console.log("[PhotoSmokeTest] Backend created", {
+        workOrderId: created.workOrderId,
+        photoId: created.photoId ?? null,
+        storagePath: created.storagePath ?? null,
+      });
+
+      let localRow = null as ReturnType<typeof getWorkOrderById>;
+      let localPhotos: WorkPhoto[] = [];
+
+      for (let i = 0; i < 8; i += 1) {
+        await manualSyncNow();
+        await sleep(1200);
+
+        localRow = getWorkOrderById(created.workOrderId, orgId);
+        if (!localRow) continue;
+
+        const attachments = Array.isArray(localRow.attachments) ? localRow.attachments : [];
+        if (attachments.length < 1) continue;
+
+        localPhotos = await getAttachmentPhotosForWorkOrder({
+          orgId,
+          workOrderId: created.workOrderId,
+          attachmentsRaw: attachments,
+        });
+
+        if (localPhotos.length > 0) break;
+      }
+
+      const hasLocalRow = !!localRow;
+      const hasAttachmentMeta = (localRow?.attachments?.length ?? 0) > 0;
+      const hasDetailPhotoSource = localPhotos.length > 0;
+
+      console.log("[PhotoSmokeTest] Local verification", {
+        workOrderId: created.workOrderId,
+        hasLocalRow,
+        hasAttachmentMeta,
+        detailSourcePhotoCount: localPhotos.length,
+      });
+
+      if (hasLocalRow && hasAttachmentMeta && hasDetailPhotoSource) {
+        console.log("[PhotoSmokeTest] PASS backend -> mobile", {
+          workOrderId: created.workOrderId,
+          photoId: created.photoId ?? null,
+        });
+        Alert.alert(
+          "PASS: Backend -> Mobile",
+          [
+            `WorkOrderId: ${created.workOrderId}`,
+            `PhotoId: ${created.photoId ?? "n/a"}`,
+            `Local photos in detail source: ${localPhotos.length}`,
+            "",
+            "Backend-created photo work order is ready. On any phone in the same org, sync and open 'PHOTO SYNC SMOKE TEST - BACKEND CREATED'. Confirm the photo appears.",
+          ].join("\n"),
+        );
+      } else {
+        const reason = [
+          hasLocalRow ? null : "work order missing locally",
+          hasAttachmentMeta ? null : "photo metadata missing locally",
+          hasDetailPhotoSource ? null : "photo missing in detail source",
+        ]
+          .filter(Boolean)
+          .join(", ");
+        Alert.alert("FAIL: Backend -> Mobile", reason || "Unknown local verification failure.");
+      }
+    } catch (e: any) {
+      console.error("[PhotoSmokeTest] FAIL backend -> mobile", e);
+      recordErrorWithContext(e, {
+        message: "PhotoSmokeTest backend-created failed",
+        extras: { orgId: orgId ?? "none" },
+      });
+      Alert.alert("Photo Smoke Test Failed", e?.message ?? String(e));
+    } finally {
+      setPhotoSmokeBusy(null);
+    }
+  };
+
+  const runPhotoSmokeCleanup = async () => {
+    if (!orgId) {
+      Alert.alert("No org selected", "Select an org before cleanup.");
+      return;
+    }
+    setPhotoSmokeBusy("cleanup");
+    try {
+      console.log("[PhotoSmokeTest] START cleanup", { orgId });
+      const response = await callPhotoSmokeDebugFn<any>(
+        "roadwork_debugCleanupPhotoSyncSmokeTestData",
+        {
+          orgId,
+          titlePrefix: "PHOTO SYNC SMOKE TEST",
+        },
+      );
+      console.log("[PhotoSmokeTest] Cleanup result", response);
+      Alert.alert("Cleanup complete", `Response: ${JSON.stringify(response, null, 2)}`);
+    } catch (e: any) {
+      console.warn("[PhotoSmokeTest] cleanup failed", e);
+      Alert.alert(
+        "Cleanup failed",
+        `${e?.message ?? String(e)}\n\nIf backend cleanup callable is not deployed yet, this is expected.`,
+      );
+    } finally {
+      setPhotoSmokeBusy(null);
     }
   };
 
@@ -643,7 +941,7 @@ export default function SettingsScreen() {
             <Text style={styles.devInfoLine}>Auth Target: {devConn.authUrl}</Text>
             <Text style={styles.devInfoLine}>Storage Target: {devConn.storageTarget}</Text>
             <Text style={styles.devInfoLine}>Metro Host Hint: {getRecommendedMetroHost()}</Text>
-            <Text style={styles.devInfoLine}>Metro Port: 2468</Text>
+            <Text style={styles.devInfoLine}>Metro Port: 8081</Text>
             <Text style={styles.devInfoLine}>Photo sync debug: Work Order details to DEV Photo Sync Diagnostics</Text>
             <Text style={styles.devInfoLine}>Photo last WO: {globalPhotoDiag?.lastOpenedWorkOrderId ?? "n/a"}</Text>
             <Text style={styles.devInfoLine}>Photo upload status: {globalPhotoDiag?.latestUploadStatus ?? "idle"}</Text>
@@ -706,6 +1004,53 @@ export default function SettingsScreen() {
               }
             }}
           />
+          <View style={{ height: 12 }} />
+
+          <Pressable
+            onPress={runPhotoSmokeMobileUpload}
+            disabled={photoSmokeBusy != null}
+            style={[styles.devTestButton, photoSmokeBusy != null && { opacity: 0.7 }]}
+          >
+            <Text style={styles.devTestButtonText}>
+              {photoSmokeBusy === "mobile" ? "Running..." : "Run Photo Sync Smoke Test: Mobile Upload"}
+            </Text>
+            <Text style={styles.devTestDescription}>
+              Creates a local smoke-test work order, attaches a tiny placeholder photo, runs normal outbox/upload flow,
+              then verifies backend attachment presence via roadwork_debugVerifyWorkOrderPhotoSync.
+            </Text>
+          </Pressable>
+
+          <View style={{ height: 10 }} />
+
+          <Pressable
+            onPress={runPhotoSmokeBackendCreated}
+            disabled={photoSmokeBusy != null}
+            style={[styles.devTestButton, photoSmokeBusy != null && { opacity: 0.7 }]}
+          >
+            <Text style={styles.devTestButtonText}>
+              {photoSmokeBusy === "backend" ? "Running..." : "Run Photo Sync Smoke Test: Backend Created"}
+            </Text>
+            <Text style={styles.devTestDescription}>
+              Calls roadwork_debugCreateWorkOrderWithPhoto, syncs down, then verifies local work order and attachment
+              metadata plus detail-screen photo source resolution.
+            </Text>
+          </Pressable>
+
+          <View style={{ height: 10 }} />
+
+          <Pressable
+            onPress={runPhotoSmokeCleanup}
+            disabled={photoSmokeBusy != null}
+            style={[styles.devTestButton, { borderColor: "#b45309", backgroundColor: "#fffbeb" }, photoSmokeBusy != null && { opacity: 0.7 }]}
+          >
+            <Text style={[styles.devTestButtonText, { color: "#92400e" }]}>
+              {photoSmokeBusy === "cleanup" ? "Running..." : "Clean Photo Sync Smoke Test Data"}
+            </Text>
+            <Text style={styles.devTestDescription}>
+              Calls roadwork_debugCleanupPhotoSyncSmokeTestData for rows titled with PHOTO SYNC SMOKE TEST prefix.
+            </Text>
+          </Pressable>
+
           <View style={{ height: 12 }} />
 
           {/* ── Outbox Errors ── */}

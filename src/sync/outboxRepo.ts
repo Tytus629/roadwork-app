@@ -25,7 +25,13 @@ export function getOutboxPendingCount(orgIdRaw: string): number {
     `SELECT COUNT(*) as c
      FROM outbox
      WHERE orgId = ?
-       AND attempts < ?`,
+       AND attempts < ?
+       AND LOWER(COALESCE(lastError, '')) NOT LIKE '%permission-denied%'
+       AND LOWER(COALESCE(lastError, '')) NOT LIKE '%unauthenticated%'
+       AND LOWER(COALESCE(lastError, '')) NOT LIKE '%forbidden%'
+       AND LOWER(COALESCE(lastError, '')) NOT LIKE '%403%'
+       AND LOWER(COALESCE(lastError, '')) NOT LIKE '%missing required org permission%'
+       AND LOWER(COALESCE(lastError, '')) NOT LIKE '%unauth%'`,
     [orgId, OUTBOX_MAX_ROW_ATTEMPTS]
   );
   const rows = readRows(result);

@@ -27,15 +27,14 @@ const GLOBAL_EMULATOR_CONNECTED_KEY = "__WAYCREW_FIREBASE_EMULATORS_CONNECTED__"
 /**
  * Dev-only emulator toggle.
  *
- * Recommended:
- * - Set globalThis.__WAYCREW_ENABLE_FIREBASE_EMULATORS__ = true when actively
- *   using the local emulator suite
- * - Leave unset/false to make debug builds hit the real Firebase project
+ * Default behavior in __DEV__ is ON so local smoke tooling works out-of-the-box.
+ * To force-disable in a debug session, set:
+ *   globalThis.__WAYCREW_ENABLE_FIREBASE_EMULATORS__ = false
  *
- * Release builds still will NOT use emulators because of the __DEV__ guard.
+ * Release builds still never use emulators because of the __DEV__ guard.
  */
 const ENABLE_FIREBASE_EMULATORS =
-  __DEV__ && (globalThis as any).__WAYCREW_ENABLE_FIREBASE_EMULATORS__ === true;
+  __DEV__ && (globalThis as any).__WAYCREW_ENABLE_FIREBASE_EMULATORS__ !== false;
 
 type AndroidDevClientMode =
   | "android_emulator"

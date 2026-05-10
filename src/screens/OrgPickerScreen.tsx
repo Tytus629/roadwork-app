@@ -79,6 +79,10 @@ export function OrgPickerScreen() {
       return;
     }
 
+    if (__DEV__) {
+      console.log(`[OrgPicker] Signed in uid=${uid}`);
+    }
+
     const db = getFirestore(getApp());
     const q = query(collectionGroup(db, "members"), where("uid", "==", uid));
 
@@ -156,17 +160,35 @@ export function OrgPickerScreen() {
       console.log("[OrgPicker] DEV bootstrap OK:", res.data);
 
       const orgId = (res.data as any)?.orgId;
+      if (orgId) {
+        await setOrgId(orgId);
+      }
 
       Alert.alert(
         "Bootstrap Success ✅",
-        `Created org: ${orgId}\n\nOrg was not auto-selected. Tap an org card to select explicitly.`,
+        `Created org: ${orgId}\n\nOrg has been auto-selected for this session.`,
         [{ text: "OK" }]
       );
     } catch (e: any) {
-      console.error("[OrgPicker] DEV bootstrap ERROR:", e?.message ?? e);
+      console.error("[OrgPicker] DEV bootstrap ERROR:", {
+        message: e?.message ?? String(e),
+        code: e?.code ?? e?.userInfo?.code ?? null,
+        details: e?.details ?? e?.userInfo?.details ?? null,
+        nativeErrorCode: e?.nativeErrorCode ?? null,
+        nativeErrorMessage: e?.nativeErrorMessage ?? null,
+      });
       Alert.alert(
         "Bootstrap Failed ❌",
-        `Error: ${e?.message || e}\n\nCheck console for details.`,
+        [
+          `Error: ${e?.message || e}`,
+          e?.code ? `Code: ${e.code}` : null,
+          e?.userInfo?.code ? `UserInfo Code: ${e.userInfo.code}` : null,
+          e?.details ? `Details: ${JSON.stringify(e.details)}` : null,
+          "",
+          "Check console for details.",
+        ]
+          .filter(Boolean)
+          .join("\n"),
         [{ text: "OK" }]
       );
     }

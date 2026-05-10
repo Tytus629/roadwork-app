@@ -716,6 +716,19 @@ function bumpOutboxError(id: string, errMsg: string, currentAttempts: number) {
   );
 }
 
+function markOutboxTerminalFailure(id: string, errMsg: string) {
+  const now = Date.now();
+  db.executeSync(
+    `UPDATE outbox
+     SET attempts=?,
+         lastError=?,
+         lastAttemptAt=?,
+         nextAttemptAt=NULL
+     WHERE id=?`,
+    [OUTBOX_MAX_ROW_ATTEMPTS, errMsg.slice(0, 500), now, id]
+  );
+}
+
 // ─── Callable references (lazy-init) ────────────────────────────────────
 
 // In dev/emulator mode, the Android Firebase SDK's httpsCallable fails with
@@ -1306,9 +1319,17 @@ export async function trySyncOutbox(
         const msg = e?.message ?? String(e);
         const code = e?.code ?? e?.details?.code ?? "unknown";
         const name = e?.name ?? "Error";
+        const errorSignature = `${String(code ?? "")} ${String(msg ?? "")}`.toLowerCase();
+        const isTerminalAuthError =
+          /(permission-denied|unauthenticated|forbidden|\b403\b|missing required org permission|unauth)/i.test(
+            errorSignature,
+          );
         const shouldWarnOnlyInDev =
           __DEV__ &&
-          /functions\/(invalid_argument|internal|not_found|unavailable)/i.test(String(code ?? ""));
+          (
+            /functions\/(invalid_argument|internal|not_found|unavailable)/i.test(String(code ?? "")) ||
+            /(permission-denied|unauthenticated|forbidden|\b403\b|missing required org permission)/i.test(errorSignature)
+          );
 
         // Try to capture EVERYTHING react-native-firebase might attach
         const nativeErrorMessage =
@@ -1356,8 +1377,13 @@ export async function trySyncOutbox(
           console.error(`[Sync] ERROR outbox ${row.id}:${row.kind}:${row.createdAt}`, outboxErrorPayload);
         }
 
-        // Keep item in outbox so it can retry — bump error counter + set backoff
-        bumpOutboxError(row.id, `${code}: ${nativeErrorMessage ?? msg}`, row.attempts ?? 0);
+        // Treat auth/permission failures as terminal to avoid noisy retry loops.
+        if (isTerminalAuthError) {
+          markOutboxTerminalFailure(row.id, `${code}: ${nativeErrorMessage ?? msg}`);
+        } else {
+          // Keep item in outbox so it can retry — bump error counter + set backoff
+          bumpOutboxError(row.id, `${code}: ${nativeErrorMessage ?? msg}`, row.attempts ?? 0);
+        }
         const retryState = getRowRetryState(row.id);
 
         if (__DEV__) {
@@ -1375,12 +1401,7 @@ export async function trySyncOutbox(
         }
 
         // If unauthenticated or permission denied, stop immediately
-        const msgLower = msg.toLowerCase();
-        if (
-          msgLower.includes("unauth") ||
-          msgLower.includes("permission") ||
-          msgLower.includes("403")
-        ) {
+        if (isTerminalAuthError) {
           break;
         }
 
@@ -1401,7 +1422,13 @@ export function getOutboxStatus(orgIdRaw: string): { pending: number } {
     `SELECT COUNT(1) as c
      FROM outbox
      WHERE orgId=?
-       AND attempts < ?`,
+       AND attempts < ?
+       AND LOWER(COALESCE(lastError, '')) NOT LIKE '%permission-denied%'
+       AND LOWER(COALESCE(lastError, '')) NOT LIKE '%unauthenticated%'
+       AND LOWER(COALESCE(lastError, '')) NOT LIKE '%forbidden%'
+       AND LOWER(COALESCE(lastError, '')) NOT LIKE '%403%'
+       AND LOWER(COALESCE(lastError, '')) NOT LIKE '%missing required org permission%'
+       AND LOWER(COALESCE(lastError, '')) NOT LIKE '%unauth%'`,
     [orgId, OUTBOX_MAX_ROW_ATTEMPTS]
   );
   const rows = readRows(result);

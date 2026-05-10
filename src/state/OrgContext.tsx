@@ -24,6 +24,7 @@ import {
 } from "../permissions/rolePermissions";
 import { startRemoteSyncForOrg } from "../sync/remoteSync";
 import { registerNotificationDeviceDiagnostics } from "../services/notify";
+import { getEmulatorConnectionInfo } from "../firebase/emulators";
 
 type OrgState = {
   orgId: string | null;
@@ -258,12 +259,28 @@ export function OrgProvider({ children }: { children: React.ReactNode }) {
       throw new Error("Cannot set org without an authenticated user.");
     }
 
-    const membership = await validateMyMembership(next, uid);
-    if (!membership.isActive) {
-      throw new Error("Cannot set organization because your membership is not active.");
+    let canonicalRole: CanonicalRole = "viewer";
+    try {
+      const membership = await validateMyMembership(next, uid);
+      if (!membership.isActive) {
+        throw new Error("Cannot set organization because your membership is not active.");
+      }
+      canonicalRole = normalizeRole(membership.role);
+    } catch (e: any) {
+      const isPermissionDenied = String(e?.code ?? e?.message ?? "")
+        .toLowerCase()
+        .includes("permission-denied");
+      const canBypassForDev = __DEV__ && getEmulatorConnectionInfo().enabled && isPermissionDenied;
+      if (!canBypassForDev) {
+        throw e;
+      }
+      if (__DEV__) {
+        console.warn("[OrgSession] DEV bypass: permission-denied while validating membership", {
+          orgId: next,
+          uid,
+        });
+      }
     }
-
-    const canonicalRole = normalizeRole(membership.role);
 
     await setSelectedOrgId(next, uid);
     if (__DEV__) {

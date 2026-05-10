@@ -281,7 +281,7 @@ export default function App() {
       firestoreTarget: emulatorInfo.firestoreTarget,
       storageTarget: emulatorInfo.storageTarget,
       metroHostHint: getRecommendedMetroHost(),
-      metroPortHint: 2468,
+      metroPortHint: 8081,
     });
   }, []);
 

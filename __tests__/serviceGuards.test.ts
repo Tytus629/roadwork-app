@@ -47,6 +47,7 @@ import { dmiService } from "../src/services/dmiService";
 import { counterService } from "../src/services/counterService";
 import { assetsService } from "../src/services/assetsService";
 import {
+  addAssetPhoto,
   addWorkOrderPhoto,
   removeWorkOrderPhoto,
 } from "../src/services/workOrderPhotosService";
@@ -135,5 +136,20 @@ describe("service permission guards", () => {
     removeWorkOrderPhoto("p1");
     expect(workOrderPhotosRepo.addWorkOrderPhoto).toHaveBeenCalledTimes(1);
     expect(workOrderPhotosRepo.removeWorkOrderPhoto).toHaveBeenCalledTimes(1);
+  });
+
+  it("exports addAssetPhoto and routes through work-order photo flow", async () => {
+    setActiveRoleForGuards("crew_member");
+    expect(typeof addAssetPhoto).toBe("function");
+
+    await expect(
+      addAssetPhoto({
+        workOrderId: "w1",
+        assetId: "a1",
+        photo: { id: "p2", uri: "file://p2.jpg", createdAt: Date.now(), source: "camera" } as any,
+      })
+    ).rejects.not.toBeInstanceOf(PermissionDeniedError);
+
+    expect(workOrderPhotosRepo.addWorkOrderPhoto).toHaveBeenCalledTimes(1);
   });
 });

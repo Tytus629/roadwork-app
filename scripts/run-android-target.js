@@ -50,7 +50,7 @@ function run() {
   }
 
   const selected = pickDevice(target);
-  const args = ["react-native", "run-android", "--port", "2468", "--no-packager"];
+  const args = ["react-native", "run-android", "--port", "8081", "--no-packager"];
 
   if (selected) {
     args.push("--deviceId", selected);

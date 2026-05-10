@@ -2,7 +2,7 @@
 
 const { spawnSync, execSync } = require("child_process");
 
-const PORTS = [2468, 5001, 8080, 9099, 9199, 4000];
+const PORTS = [8081, 5001, 8080, 9099, 9199, 4000];
 
 function parseAdbDevicesOutput(raw) {
   return String(raw)

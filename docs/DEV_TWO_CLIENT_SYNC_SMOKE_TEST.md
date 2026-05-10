@@ -11,7 +11,7 @@ It is designed for local DEV only.
 - Firebase emulators are already running on the host machine.
 - Mobile repo is RoadWorkTracker.
 - USB debugging is enabled on the phone and authorized.
-- Metro port convention is 2468.
+- Metro port convention is 8081.
 
 Expected emulator ports:
 - Emulator UI: 4000
@@ -83,7 +83,7 @@ npm run android:usb
 You can also run direct adb commands with a specific serial:
 
 ~~~bash
-adb -s R58N1234ABC reverse tcp:2468 tcp:2468
+adb -s R58N1234ABC reverse tcp:8081 tcp:8081
 ~~~
 
 ## Settings Diagnostics Checks (Both Clients)
@@ -96,7 +96,7 @@ Open Settings -> Developer Tools -> Runtime Diagnostics and verify:
   - emulator: 10.0.2.2
 - Functions URL base points to host:5001 project path.
 - Firestore/Auth/Storage targets match emulator ports.
-- Metro port is 2468.
+- Metro port is 8081.
 - Current orgId is present.
 - Current uid/email are present.
 

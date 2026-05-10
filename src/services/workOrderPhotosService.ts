@@ -773,6 +773,15 @@ export async function addWorkOrderPhoto(args: { workOrderId: string; photo: Work
   return id;
 }
 
+export async function addAssetPhoto(args: {
+  workOrderId: string;
+  photo: WorkPhoto;
+  assetId?: string | null;
+}): Promise<string> {
+  // Compatibility alias used by DEV smoke checks; uploads still route through work-order attachment flow.
+  return addWorkOrderPhoto({ workOrderId: args.workOrderId, photo: args.photo });
+}
+
 export function removeWorkOrderPhoto(photoId: string) {
   assertRolePermission("addWorkOrderPhoto");
   removeWorkOrderPhotoRow(photoId);
