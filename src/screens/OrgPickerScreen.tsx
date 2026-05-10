@@ -28,6 +28,7 @@ export function OrgPickerScreen() {
   const [autoOpenedJoin, setAutoOpenedJoin] = useState(false);
 
   const uid = getAuth(getApp()).currentUser?.uid ?? null;
+  const joinButtonLabel = orgs.length > 0 ? "Join New Organization" : "Join an Organization";
 
   // Restore pending org on mount; jump straight to JoinOrgScreen if one is found
   useEffect(() => {
@@ -225,7 +226,7 @@ export function OrgPickerScreen() {
 
       {/* Join by org ID */}
       <Pressable style={styles.joinButton} onPress={() => setShowJoin(true)}>
-        <Text style={styles.joinButtonText}>Join an Organization</Text>
+        <Text style={styles.joinButtonText}>{joinButtonLabel}</Text>
       </Pressable>
 
       <View style={{ height: 8 }} />

@@ -7,6 +7,7 @@ import {
   Text,
   TextInput,
   TouchableOpacity,
+  useWindowDimensions,
   View,
 } from "react-native";
 import { SIGN_CATALOG } from "../constants/signCatalog";
@@ -106,6 +107,7 @@ export function SignTypePickerModal({
     detailsPatch: Partial<SignDetailsInfo>;
   }) => void;
 }) {
+  const { height: windowHeight } = useWindowDimensions();
   const [query, setQuery] = useState("");
   const [category, setCategory] = useState<string>("All");
   const [draftSelectedId, setDraftSelectedId] = useState<string | null>(null);
@@ -114,6 +116,9 @@ export function SignTypePickerModal({
   const [postType, setPostType] = useState<"Wood" | "Steel" | "Other" | "">("");
   const [signSize, setSignSize] = useState("");
   const [mountType, setMountType] = useState("");
+
+  const footerMaxHeight = Math.max(220, Math.min(Math.round(windowHeight * 0.46), 360));
+  const selectedSignsMaxHeight = Math.max(96, Math.min(Math.round(windowHeight * 0.2), 170));
 
   const allSignTypes = useMemo<SignTypeItem[]>(() => {
     const out: SignTypeItem[] = [];
@@ -306,8 +311,10 @@ export function SignTypePickerModal({
         </View>
 
         <FlatList
+          style={styles.resultsList}
           data={filtered}
           keyExtractor={(x) => String(x.id)}
+          keyboardShouldPersistTaps="handled"
           contentContainerStyle={styles.listContent}
           renderItem={({ item }) => {
             const active = draftSelectedId === item.id;
@@ -334,84 +341,96 @@ export function SignTypePickerModal({
         />
 
         <View style={styles.footer}>
-          <Text style={styles.footerTitle}>Signs On This Post</Text>
-          {!!selectedSigns.length && (
-            <View style={styles.selectedSignsList}>
-              {selectedSigns.map((item, index) => (
-                <View key={item.id} style={styles.selectedSignRow}>
-                  <View style={styles.selectedSignTextWrap}>
-                    <Text style={styles.selectedSignTitle}>
-                      {index + 1}. {item.label}
-                    </Text>
-                    <Text style={styles.selectedSignSub}>
-                      {item.id}{item.mutcdCode ? ` ${item.mutcdCode}` : ""}
-                    </Text>
+          <ScrollView
+            style={[styles.footerScroll, { maxHeight: footerMaxHeight }]}
+            contentContainerStyle={styles.footerScrollContent}
+            showsVerticalScrollIndicator
+            nestedScrollEnabled
+            keyboardShouldPersistTaps="handled"
+          >
+            <Text style={styles.footerTitle}>Signs On This Post</Text>
+            {!!selectedSigns.length && (
+              <ScrollView
+                style={[styles.selectedSignsList, { maxHeight: selectedSignsMaxHeight }]}
+                nestedScrollEnabled
+                showsVerticalScrollIndicator
+              >
+                {selectedSigns.map((item, index) => (
+                  <View key={item.id} style={styles.selectedSignRow}>
+                    <View style={styles.selectedSignTextWrap}>
+                      <Text style={styles.selectedSignTitle}>
+                        {index + 1}. {item.label}
+                      </Text>
+                      <Text style={styles.selectedSignSub}>
+                        {item.id}{item.mutcdCode ? ` ${item.mutcdCode}` : ""}
+                      </Text>
+                    </View>
+                    <TouchableOpacity onPress={() => removeSelectedSign(item.id)} style={styles.removeSignButton}>
+                      <Text style={styles.removeSignButtonText}>Remove</Text>
+                    </TouchableOpacity>
                   </View>
-                  <TouchableOpacity onPress={() => removeSelectedSign(item.id)} style={styles.removeSignButton}>
-                    <Text style={styles.removeSignButtonText}>Remove</Text>
-                  </TouchableOpacity>
-                </View>
+                ))}
+              </ScrollView>
+            )}
+            {!selectedSigns.length && (
+              <Text style={styles.selectedSignEmptyText}>
+                No signs added yet. Pick a sign above, then tap Add Sign.
+              </Text>
+            )}
+
+            <TouchableOpacity
+              onPress={addSelectedSign}
+              disabled={!selected}
+              style={[styles.addSignButton, !selected && styles.addSignButtonDisabled]}
+            >
+              <Text style={styles.addSignButtonText}>Add Sign</Text>
+            </TouchableOpacity>
+
+            <Text style={styles.footerTitle}>Additional Sign Info</Text>
+
+            <Text style={styles.footerLabel}>Post Type</Text>
+            <View style={styles.chipRowCompact}>
+              {(["Wood", "Steel", "Other"] as const).map((pt) => (
+                <Chip
+                  key={pt}
+                  label={pt}
+                  active={postType === pt}
+                  onPress={() => setPostType((prev) => (prev === pt ? "" : pt))}
+                />
               ))}
             </View>
-          )}
-          {!selectedSigns.length && (
-            <Text style={styles.selectedSignEmptyText}>
-              No signs added yet. Pick a sign above, then tap Add Sign.
-            </Text>
-          )}
 
-          <TouchableOpacity
-            onPress={addSelectedSign}
-            disabled={!selected}
-            style={[styles.addSignButton, !selected && styles.addSignButtonDisabled]}
-          >
-            <Text style={styles.addSignButtonText}>Add Sign</Text>
-          </TouchableOpacity>
+            <TextInput
+              value={signSize}
+              onChangeText={setSignSize}
+              placeholder='Sign size / diameter (e.g. 30" x 30")'
+              style={styles.detailInput}
+            />
 
-          <Text style={styles.footerTitle}>Additional Sign Info</Text>
+            <TextInput
+              value={mountType}
+              onChangeText={setMountType}
+              placeholder="Mount type (optional)"
+              style={styles.detailInput}
+            />
 
-          <Text style={styles.footerLabel}>Post Type</Text>
-          <View style={styles.chipRowCompact}>
-            {(["Wood", "Steel", "Other"] as const).map((pt) => (
-              <Chip
-                key={pt}
-                label={pt}
-                active={postType === pt}
-                onPress={() => setPostType((prev) => (prev === pt ? "" : pt))}
-              />
-            ))}
-          </View>
+            <View style={styles.footerButtons}>
+              <TouchableOpacity
+                onPress={onClose}
+                style={styles.cancelButton}
+              >
+                <Text style={styles.cancelText}>Cancel</Text>
+              </TouchableOpacity>
 
-          <TextInput
-            value={signSize}
-            onChangeText={setSignSize}
-            placeholder='Sign size / diameter (e.g. 30" x 30")'
-            style={styles.detailInput}
-          />
-
-          <TextInput
-            value={mountType}
-            onChangeText={setMountType}
-            placeholder="Mount type (optional)"
-            style={styles.detailInput}
-          />
-
-          <View style={styles.footerButtons}>
-            <TouchableOpacity
-              onPress={onClose}
-              style={styles.cancelButton}
-            >
-              <Text style={styles.cancelText}>Cancel</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              onPress={applySelection}
-              disabled={!selectedSigns.length && !selected}
-              style={[styles.applyButton, !selectedSigns.length && !selected && styles.applyButtonDisabled]}
-            >
-              <Text style={styles.applyText}>Apply</Text>
-            </TouchableOpacity>
-          </View>
+              <TouchableOpacity
+                onPress={applySelection}
+                disabled={!selectedSigns.length && !selected}
+                style={[styles.applyButton, !selectedSigns.length && !selected && styles.applyButtonDisabled]}
+              >
+                <Text style={styles.applyText}>Apply</Text>
+              </TouchableOpacity>
+            </View>
+          </ScrollView>
         </View>
       </View>
     </Modal>
@@ -495,6 +514,9 @@ const styles = StyleSheet.create({
     paddingTop: 6,
     paddingBottom: 16,
   },
+  resultsList: {
+    flex: 1,
+  },
   resultRow: {
     paddingVertical: 12,
     borderBottomWidth: 1,
@@ -527,6 +549,11 @@ const styles = StyleSheet.create({
   footer: {
     borderTopWidth: 1,
     borderTopColor: "#e5e7eb",
+  },
+  footerScroll: {
+    width: "100%",
+  },
+  footerScrollContent: {
     paddingHorizontal: 14,
     paddingVertical: 12,
   },

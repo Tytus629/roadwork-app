@@ -263,6 +263,23 @@ export default function SettingsScreen() {
     );
   }
 
+  async function onJoinNewOrg() {
+    Alert.alert(
+      "Join new organization?",
+      "You'll return to organization selection where you can request access to another org.",
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Continue",
+          style: "default",
+          onPress: async () => {
+            await clearOrgId();
+          },
+        },
+      ]
+    );
+  }
+
   async function onSignOut() {
     Alert.alert(
       "Sign out?",
@@ -335,6 +352,12 @@ export default function SettingsScreen() {
           title="Switch Organization"
           subtitle={orgId ? `Current org: ${orgId.slice(0, 8)}...` : "No org selected"}
           onPress={onSwitchOrg}
+        />
+
+        <SettingsRow
+          title="Join New Organization"
+          subtitle="Open org selection and submit a new join request."
+          onPress={onJoinNewOrg}
         />
 
         <SettingsRow

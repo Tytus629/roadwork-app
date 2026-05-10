@@ -139,6 +139,12 @@ export async function requestJoinOrg(orgIdOrCode: string): Promise<JoinOrgResult
     orgCode: normalizedInput,
     code: normalizedInput,
     orgId: normalizedInput,
+    organizationId: normalizedInput,
+    organizationCode: normalizedInput,
+    orgNumber: normalizedInput,
+    organizationNumber: normalizedInput,
+    joinCode: normalizedInput,
+    inviteCode: normalizedInput,
   };
 
   let data: any = null;
@@ -158,6 +164,12 @@ export async function requestJoinOrg(orgIdOrCode: string): Promise<JoinOrgResult
         orgCode: normalizedInput,
         code: normalizedInput,
         orgId: resolvedOrgId,
+        organizationId: resolvedOrgId,
+        organizationCode: normalizedInput,
+        orgNumber: normalizedInput,
+        organizationNumber: normalizedInput,
+        joinCode: normalizedInput,
+        inviteCode: normalizedInput,
       };
 
       try {
@@ -187,6 +199,12 @@ export async function requestJoinOrg(orgIdOrCode: string): Promise<JoinOrgResult
           orgCode: "2468",
           code: "2468",
           orgId: bootOrgId,
+          organizationId: bootOrgId,
+          organizationCode: "2468",
+          orgNumber: "2468",
+          organizationNumber: "2468",
+          joinCode: "2468",
+          inviteCode: "2468",
         });
       }
     } catch (bootstrapErr: any) {
@@ -199,7 +217,12 @@ export async function requestJoinOrg(orgIdOrCode: string): Promise<JoinOrgResult
   }
 
   console.log("[JoinOrg] Response:", JSON.stringify(data));
-  const resolved = data?.orgId ?? data?.organizationId ?? data?.resolvedOrgId;
+  const resolved =
+    data?.orgId ??
+    data?.organizationId ??
+    data?.resolvedOrgId ??
+    data?.requestedOrgId ??
+    data?.targetOrgId;
   if (!resolved) throw new Error("Server did not return an orgId. Check the org code and try again.");
   return {
     orgId: String(resolved),

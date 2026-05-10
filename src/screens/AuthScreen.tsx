@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { View, Text, TextInput, Pressable, StyleSheet, TouchableOpacity, Platform, KeyboardAvoidingView } from "react-native";
+import { View, Text, TextInput, Pressable, StyleSheet, TouchableOpacity, Platform, KeyboardAvoidingView, ScrollView } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword } from "@react-native-firebase/auth";
 import { getApp } from "@react-native-firebase/app";
@@ -123,10 +123,17 @@ export function AuthScreen({ onDone }: { onDone: (orgId?: string) => void }) {
   return (
     <SafeAreaView style={styles.safeArea} edges={["top", "bottom"]}>
       <KeyboardAvoidingView
-        style={styles.container}
+        style={styles.keyboardWrapper}
         behavior={Platform.OS === "ios" ? "padding" : undefined}
       >
-        <Text style={styles.title}>WayCrew</Text>
+        <ScrollView
+          contentContainerStyle={styles.container}
+          keyboardShouldPersistTaps="handled"
+          keyboardDismissMode="on-drag"
+          contentInsetAdjustmentBehavior="always"
+          showsVerticalScrollIndicator={false}
+        >
+          <Text style={styles.title}>WayCrew</Text>
 
       <View style={styles.modeRow}>
         <Pressable
@@ -246,7 +253,8 @@ export function AuthScreen({ onDone }: { onDone: (orgId?: string) => void }) {
         </Text>
       </Pressable>
 
-      {msg ? <Text style={styles.errorText}>{msg}</Text> : null}
+          {msg ? <Text style={styles.errorText}>{msg}</Text> : null}
+        </ScrollView>
       </KeyboardAvoidingView>
     </SafeAreaView>
   );
@@ -257,8 +265,11 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: "#fff",
   },
-  container: {
+  keyboardWrapper: {
     flex: 1,
+  },
+  container: {
+    flexGrow: 1,
     paddingHorizontal: 16,
     paddingBottom: 16,
     paddingTop: Platform.OS === "ios" ? 40 : 16,
