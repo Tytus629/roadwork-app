@@ -8,6 +8,12 @@ import { safeJsonStringify } from "../repositories/repoUtils";
  */
 export function enqueueWorkOrderDelete(orgId: string, workOrderId: string, deletedAt: number = Date.now()) {
   const id = `${workOrderId}:DELETE_WORK_ORDER:${deletedAt}`;
+  // Drop not-yet-sent upserts for this work order. Otherwise an upsert stuck in backoff could
+  // run after the delete and (for a work order the server has never seen) create it again.
+  db.executeSync(
+    `DELETE FROM outbox WHERE orgId=? AND entityId=? AND kind='UPSERT_WORK_ORDER'`,
+    [orgId, workOrderId],
+  );
   db.executeSync(
     `INSERT OR IGNORE INTO outbox (id, orgId, kind, entityId, payloadJson, createdAt, attempts, lastError)
      VALUES (?, ?, ?, ?, ?, ?, 0, NULL)`,

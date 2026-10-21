@@ -38,9 +38,13 @@ describe("work order delete sync", () => {
 
   it("writes a DELETE_WORK_ORDER outbox row with the softDeleteWorkOrder payload shape", () => {
     const { enqueueWorkOrderDelete } = jest.requireActual("../src/sync/enqueueWorkOrderDelete");
-    const spy = jest.spyOn(db, "executeSync").mockReturnValueOnce({ rows: [] } as any);
+    const spy = jest.spyOn(db, "executeSync").mockReturnValue({ rows: [] } as any);
     enqueueWorkOrderDelete("org1", "wo1", 123);
-    const [sql, params] = spy.mock.calls[0] as any[];
+    const [dropSql, dropParams] = spy.mock.calls[0] as any[];
+    expect(String(dropSql)).toContain("DELETE FROM outbox");
+    expect(String(dropSql)).toContain("kind='UPSERT_WORK_ORDER'");
+    expect(dropParams).toEqual(["org1", "wo1"]);
+    const [sql, params] = spy.mock.calls[1] as any[];
     expect(String(sql)).toContain("INSERT OR IGNORE INTO outbox");
     expect(params[1]).toBe("org1");
     expect(params[2]).toBe("DELETE_WORK_ORDER");
