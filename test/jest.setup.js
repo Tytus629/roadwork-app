@@ -2,6 +2,7 @@
 
 jest.mock('@react-native-firebase/app', () => ({
 	getApp: jest.fn(() => ({ name: '[DEFAULT]', options: {} })),
+	getApps: jest.fn(() => [{ name: '[DEFAULT]', options: {} }]),
 }));
 
 jest.mock('@react-native-firebase/auth', () => ({
