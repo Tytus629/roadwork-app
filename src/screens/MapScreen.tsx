@@ -89,7 +89,6 @@ import type { WorkType } from "../types/workItem";
 import WorkItemSheet, { DraftWorkOrder } from "../components/WorkItemSheet";
 import { workOrdersService, updateSignDetails } from "../services/workOrdersService";
 import type { WorkOrder } from "../types/WorkOrder";
-import { addLogEntry } from "../services/logService";
 import { uid } from "../utils/uid";
 import { requestLocationPermission } from "../native/location";
 import Geolocation from "@react-native-community/geolocation";
@@ -742,14 +741,6 @@ export default function MapScreen() {
     () => assets.filter((asset) => matchesAssetLayerFilter(asset, assetLayerFilter)),
     [assets, assetLayerFilter],
   );
-
-  const visibleAssetById = useMemo(() => {
-    const byId = new Map<string, any>();
-    for (const asset of visibleAssets) {
-      byId.set(String(asset.id), asset);
-    }
-    return byId;
-  }, [visibleAssets]);
 
   const assetById = useMemo(() => {
     const byId = new Map<string, any>();
