@@ -13,6 +13,7 @@ import { assetsRepo } from "../repositories/assetsRepo";
 import { maintenanceSlipsRepo } from "../repositories/maintenanceSlipsRepo";
 import { safeJsonParse } from "../repositories/repoUtils";
 import { workOrdersRepo } from "../repositories/workOrdersRepo";
+import { hasPendingWorkOrderDelete } from "./outboxRepo";
 import { emitDbChanged } from "../state/DbEvents";
 import { listAssignableOrgMembers } from "../services/orgMembersService";
 import { addWorkOrderNoteActivity } from "../services/workOrderNoteActivityService";
@@ -708,7 +709,9 @@ async function applyWorkOrdersSnapshot(
         deletedFlag,
       });
 
-      if (change.type === "removed" || deletedFlag) {
+      const pendingLocalDelete = !deletedFlag && hasPendingWorkOrderDelete(orgId, rowId);
+
+      if (change.type === "removed" || deletedFlag || pendingLocalDelete) {
         await workOrdersRepo.deleteById({ orgId, id: rowId });
         console.log(`[RemoteSync][WO] delete id=${rowId}`);
         logSyncBreadcrumb("inbound wo removed", {

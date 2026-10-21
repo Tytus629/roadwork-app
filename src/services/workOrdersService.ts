@@ -18,6 +18,7 @@ import {
   upsertSignDetailsPatch,
 } from "../db/workOrdersRepo";
 import { emitDbChanged } from "../state/DbEvents";
+import { enqueueWorkOrderDelete } from "../sync/enqueueWorkOrderDelete";
 import { autoLinkOrCreateAssetForWorkOrder } from "./assetAutoLink";
 import { getDeviceMeta } from "../utils/deviceMeta";
 import { normalizeWorkOrderDetailsForType } from "../workOrders/pavementDetails";
@@ -368,6 +369,9 @@ export function updateSignDetails(args: {
 
 export function removeWorkOrder(id: string, orgId: string) {
   assertRolePermission("deleteWorkOrder");
+  // Queue the server-side soft delete (DELETE_WORK_ORDER → roadwork_deleteWorkOrder)
+  // before removing the local row, so a local delete never happens without a queued sync.
+  enqueueWorkOrderDelete(orgId, id);
   deleteWorkOrder(id, orgId);
   emitDbChanged();
 }

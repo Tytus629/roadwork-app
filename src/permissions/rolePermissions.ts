@@ -76,7 +76,7 @@ const ROLE_PERMISSIONS: Record<CanonicalRole, Record<RolePermission, boolean>> =
     createMaintenanceSlip: true,
     editMaintenanceSlip: true,
     changeStatusPriority: true,
-    deleteWorkOrder: true,
+    deleteWorkOrder: false, // backend refuses canDeleteWorkOrders for platform admins (shared/roles.ts)
     addWorkOrderPhoto: true,
     manageAssets: true,
     createTailgate: true,
