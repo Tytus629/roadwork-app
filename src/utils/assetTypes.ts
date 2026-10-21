@@ -51,7 +51,7 @@ export function normalizeAssetTypeKey(raw: unknown): AssetTypeKey | null {
   const normalized = String(raw ?? "")
     .trim()
     .toLowerCase()
-    .replace(/[_\-]+/g, " ")
+    .replace(/[_-]+/g, " ")
     .replace(/\s+/g, " ");
 
   if (!normalized) return null;
