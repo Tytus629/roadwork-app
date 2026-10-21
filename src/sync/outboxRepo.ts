@@ -37,3 +37,18 @@ export function getOutboxPendingCount(orgIdRaw: string): number {
   const rows = readRows(result);
   return Number(rows?.[0]?.c ?? 0);
 }
+
+/**
+ * True when a DELETE_WORK_ORDER job for this work order is still queued and retryable.
+ * Inbound sync uses this so a locally deleted work order is not re-pulled as visible
+ * before the server-side soft delete lands.
+ */
+export function hasPendingWorkOrderDelete(orgId: string, workOrderId: string): boolean {
+  const r = db.executeSync(
+    `SELECT COUNT(*) as c FROM outbox
+     WHERE orgId=? AND entityId=? AND kind='DELETE_WORK_ORDER' AND attempts < ?`,
+    [orgId, workOrderId, OUTBOX_MAX_ROW_ATTEMPTS],
+  );
+  const rows = readRows(r);
+  return Number(rows[0]?.c ?? 0) > 0;
+}

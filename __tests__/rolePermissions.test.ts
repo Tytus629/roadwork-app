@@ -42,6 +42,12 @@ describe("rolePermissions", () => {
     expect(hasRolePermission("viewVehicleAssets", "crew_member")).toBe(false);
     expect(hasRolePermission("deleteWorkOrder", "crew_member")).toBe(false);
     expect(hasRolePermission("deleteWorkOrder", "org_admin")).toBe(true);
+    // Must match backend shared/roles.ts canDeleteWorkOrders (owner/admin only; platform admins refused).
+    expect(hasRolePermission("deleteWorkOrder", "org_owner")).toBe(true);
+    expect(hasRolePermission("deleteWorkOrder", "platform_owner")).toBe(false);
+    for (const role of ["mechanic", "asset_manager", "crew_member", "viewer"]) {
+      expect(hasRolePermission("deleteWorkOrder", role)).toBe(false);
+    }
     expect(hasRolePermission("addWorkOrderPhoto", "viewer")).toBe(true);
     expect(hasRolePermission("addWorkOrderPhoto", "mechanic")).toBe(true);
     expect(hasRolePermission("addWorkOrderPhoto", "member")).toBe(true);
