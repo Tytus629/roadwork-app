@@ -99,14 +99,14 @@ function isAlreadyConnectedError(err: unknown): boolean {
 function detectAndroidEmulatorHeuristic(): boolean {
   const constants = (Platform.constants ?? {}) as Record<string, unknown>;
   const bag = [
-    constants["Model"],
-    constants["model"],
-    constants["Brand"],
-    constants["brand"],
-    constants["Fingerprint"],
-    constants["fingerprint"],
-    constants["Manufacturer"],
-    constants["manufacturer"],
+    constants.Model,
+    constants.model,
+    constants.Brand,
+    constants.brand,
+    constants.Fingerprint,
+    constants.fingerprint,
+    constants.Manufacturer,
+    constants.manufacturer,
   ]
     .map((v) => String(v ?? "").toLowerCase())
     .join(" ");

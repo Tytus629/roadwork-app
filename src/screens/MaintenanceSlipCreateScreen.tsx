@@ -27,7 +27,6 @@ import {
   buildMaintenanceReadingLabel,
   buildMaintenanceUnitLabel,
   defaultServiceRequest,
-  describeVehicleSnapshot,
   formatDateInput,
   parseDateInputToEpoch,
   normalizeVehicleSnapshot,

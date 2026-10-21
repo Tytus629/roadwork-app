@@ -52,7 +52,7 @@
 import "react-native-gesture-handler";
 import React, { useEffect, useState } from "react";
 import { NavigationContainer } from "@react-navigation/native";
-import { View, Text, StyleSheet, StatusBar } from "react-native";
+import { View, Text, StatusBar } from "react-native";
 import { FirebaseAuthTypes } from "@react-native-firebase/auth";
 import { getAuth, onAuthStateChanged } from "@react-native-firebase/auth";
 
@@ -381,4 +381,3 @@ export default function App() {
   );
 }
 
-const styles = StyleSheet.create({});

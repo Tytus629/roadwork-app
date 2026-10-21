@@ -7,7 +7,7 @@
  *
  * Used by SignsDueScreen for the filterable due/overdue sign list.
  */
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { listSignsDueByMode, SignWorkOrder, DueMode } from "../db/workOrdersRepo";
 import { subscribeDbChanged, getDbTick } from "../state/DbEvents";
 
@@ -17,11 +17,9 @@ export function useSignsDue(mode: DueMode = "overdue_default", orgId?: string | 
 
   useEffect(() => subscribeDbChanged(() => setTick(getDbTick())), []);
 
-  const key = useMemo(() => JSON.stringify({ mode, tick, orgId }), [mode, tick, orgId]);
-
   useEffect(() => {
     setItems(listSignsDueByMode(mode, 2000, orgId));
-  }, [key, mode]);
+  }, [mode, tick, orgId]);
 
   return items;
 }
