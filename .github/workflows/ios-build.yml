@@ -1,0 +1,56 @@
+name: iOS build
+
+on:
+  pull_request:
+  push:
+    branches: [cleanup/nav-db-chaff]
+  workflow_dispatch:
+
+jobs:
+  ios-simulator-build:
+    runs-on: macos-15
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+      - name: Select Xcode 26 (App Store minimum since Apr 28, 2026)
+        run: |
+          XC=$(ls -d /Applications/Xcode_26*.app | sort -V | tail -1)
+          sudo xcode-select -s "$XC"
+          xcodebuild -version
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Ensure GoogleService-Info.plist exists (CI placeholder only if missing)
+        run: |
+          f=ios/RoadWorkTracker/GoogleService-Info.plist
+          if [ ! -f "$f" ]; then
+            cat > "$f" <<'PLIST'
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0"><dict>
+          <key>API_KEY</key><string>ci-placeholder</string>
+          <key>BUNDLE_ID</key><string>com.kyletitus.waycrew</string>
+          <key>GCM_SENDER_ID</key><string>0</string>
+          <key>GOOGLE_APP_ID</key><string>1:0:ios:0</string>
+          <key>PROJECT_ID</key><string>ci-placeholder</string>
+          </dict></plist>
+          PLIST
+          fi
+      - name: pod install
+        working-directory: ios
+        run: pod install --repo-update
+      - name: xcodebuild (simulator, unsigned)
+        working-directory: ios
+        run: |
+          set -o pipefail
+          xcodebuild -workspace RoadWorkTracker.xcworkspace -scheme RoadWorkTracker \
+            -configuration Release -sdk iphonesimulator \
+            -destination 'generic/platform=iOS Simulator' \
+            -derivedDataPath build CODE_SIGNING_ALLOWED=NO build | tee xcodebuild.log
+      - if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: xcodebuild-log
+          path: ios/xcodebuild.log
