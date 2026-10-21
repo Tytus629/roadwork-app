@@ -187,7 +187,7 @@ target 'RoadWorkTracker' do
 
       target.build_configurations.each do |config|
         # Fix deployment target warnings.
-        config.build_settings['IPHONEOS_DEPLOYMENT_TARGET'] = '13.0'
+        config.build_settings['IPHONEOS_DEPLOYMENT_TARGET'] = '15.1'
         # Fix React Native / Firebase / Hermes script sandboxing.
         config.build_settings['ENABLE_USER_SCRIPT_SANDBOXING'] = 'NO'
         # Allow mixed modular/non-modular headers when static frameworks are enabled.
