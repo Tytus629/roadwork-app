@@ -25,11 +25,11 @@
  * - subscribeDbChanged() returns unsubscribe function
  * - useEffect cleanup calls unsubscribe when component unmounts
  * - dbTick state increments on every DB change
- * - useMemo key includes dbTick → triggers re-fetch effect
+ * - effect deps include dbTick → triggers re-fetch effect
  * - This pattern ensures UI always shows latest data
  */
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { getWorkOrderById } from "../db/workOrdersRepo";
 import type { WorkOrderRow } from "../db/types";
 import { subscribeDbChanged, getDbTick } from "../state/DbEvents";
@@ -47,8 +47,6 @@ export function useWorkOrder(id: string | null, orgId?: string | null): WorkOrde
     return subscribeDbChanged(() => setDbTick(getDbTick()));
   }, []);
 
-  const key = useMemo(() => JSON.stringify({ id, orgId, dbTick }), [id, orgId, dbTick]);
-
   useEffect(() => {
     if (!id) {
       setItem(null);
@@ -56,7 +54,7 @@ export function useWorkOrder(id: string | null, orgId?: string | null): WorkOrde
     }
     const row = getWorkOrderById(id, orgId);
     setItem(row);
-  }, [key]);
+  }, [id, orgId, dbTick]);
 
   return item;
 }
