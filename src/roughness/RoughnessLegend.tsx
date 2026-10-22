@@ -13,7 +13,7 @@ export function RoughnessLegend({ compact }: { compact?: boolean }) {
           <Text style={styles.label}>{ROUGHNESS_LABELS[c]}</Text>
         </View>
       ))}
-      <Text style={styles.label}>Pins: yellow bump • orange possible pothole • red severe</Text>
+      <Text style={styles.label}>Pins: yellow bump • orange possible pothole • red severe • violet photo-AI damage</Text>
       {!compact && (
         <Text style={styles.note}>
           Screening data from a phone's motion sensors, normalized to ~30 mph. Not IRI, PCI or a CRAB rating;

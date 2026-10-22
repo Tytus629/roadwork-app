@@ -63,8 +63,10 @@ export const SEGMENT_COLUMNS = [
   "FEATURE_ID", "SURVEY_ID", "SEGMENT_SEQ", "ROUTE_ID", "ROAD_NAME", "BEGIN_MP", "END_MP", "LOC_REF_SOURCE",
   "SURVEY_DATE", "SURVEY_START", "SURVEY_END", "LENGTH_FT", "AVG_SPEED_MPH", "ROUGHNESS_INDEX", "ROUGHNESS_CLASS",
   "RMS_VERT_MS2", "SAMPLE_COUNT", "BEGIN_LAT", "BEGIN_LON", "END_LAT", "END_LON", "DATA_QUALITY", "METHOD",
+  "SCREEN_RATING_1_5", "DETECTED_DISTRESS", "PHOTOS_ANALYSED",
 ];
-export function segmentRow(s: SegmentIn, ref?: LocationRef | null): Row {
+export type SegmentExtras = { rating?: number | null; distress?: string[]; photosAnalysed?: number };
+export function segmentRow(s: SegmentIn, ref?: LocationRef | null, x: SegmentExtras = {}): Row {
   const a = s.path[0], b = s.path[s.path.length - 1];
   return {
     FEATURE_ID: s.id, SURVEY_ID: s.sessionId, SEGMENT_SEQ: s.seq, ...refCols(ref),
@@ -74,6 +76,9 @@ export function segmentRow(s: SegmentIn, ref?: LocationRef | null): Row {
     RMS_VERT_MS2: Math.round(s.rmsVertical * 1000) / 1000, SAMPLE_COUNT: s.sampleCount,
     BEGIN_LAT: a ? r6(a.lat) : null, BEGIN_LON: a ? r6(a.lng) : null, END_LAT: b ? r6(b.lat) : null, END_LON: b ? r6(b.lng) : null,
     DATA_QUALITY: "UNCALIBRATED_SCREENING", METHOD: "PHONE_ACCEL_RMS",
+    SCREEN_RATING_1_5: x.rating ?? null,
+    DETECTED_DISTRESS: x.distress && x.distress.length ? [...new Set(x.distress)].sort().join(";") : null,
+    PHOTOS_ANALYSED: x.photosAnalysed ?? 0,
   };
 }
 
@@ -172,4 +177,25 @@ export function workOrderRow(w: WorkOrderIn, ref?: LocationRef | null): Row {
 }
 export function workOrderGeom(w: WorkOrderIn): Geometry | null {
   return w.geomType === "line" ? lineGeom(w.line) : pointGeom(w.lat, w.lng);
+}
+
+// ── Photo damage detections (Phase 2, screening) ───────────────
+export type DetectionIn = { id: string; photoId: string; sessionId: string; segmentId: string | null; cls: string; score: number; lat: number | null; lng: number | null; modelName: string; modelVersion: string; createdAt: number; boxX: number; boxY: number; boxW: number; boxH: number };
+export const DETECTION_COLUMNS = [
+  "FEATURE_ID", "SURVEY_ID", "SEGMENT_ID", "PHOTO_ID", "OBS_DATE", "ROUTE_ID", "ROAD_NAME", "BEGIN_MP", "LOC_REF_SOURCE",
+  "DISTRESS_CODE", "DISTRESS_TYPE", "CONFIDENCE", "LAT", "LON", "BBOX_X", "BBOX_Y", "BBOX_W", "BBOX_H", "MODEL", "DATA_QUALITY",
+];
+const DISTRESS_NAMES: Record<string, string> = { D00: "LONGITUDINAL_CRACK", D10: "TRANSVERSE_CRACK", D20: "ALLIGATOR_CRACK", D40: "POTHOLE" };
+export function detectionRow(d: DetectionIn, ref?: LocationRef | null): Row {
+  const rc = refCols(ref);
+  const r3 = (n: number) => Math.round(n * 1000) / 1000;
+  return {
+    FEATURE_ID: d.id, SURVEY_ID: d.sessionId, SEGMENT_ID: d.segmentId, PHOTO_ID: d.photoId,
+    OBS_DATE: iso(d.createdAt)?.slice(0, 10) ?? null,
+    ROUTE_ID: rc.ROUTE_ID, ROAD_NAME: rc.ROAD_NAME, BEGIN_MP: rc.BEGIN_MP, LOC_REF_SOURCE: rc.LOC_REF_SOURCE,
+    DISTRESS_CODE: d.cls, DISTRESS_TYPE: DISTRESS_NAMES[d.cls] ?? d.cls, CONFIDENCE: r3(d.score),
+    LAT: d.lat == null ? null : r6(d.lat), LON: d.lng == null ? null : r6(d.lng),
+    BBOX_X: r3(d.boxX), BBOX_Y: r3(d.boxY), BBOX_W: r3(d.boxW), BBOX_H: r3(d.boxH),
+    MODEL: `${d.modelName}@${d.modelVersion}`, DATA_QUALITY: "UNCALIBRATED_SCREENING",
+  };
 }

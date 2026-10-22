@@ -30,6 +30,7 @@ import { loadPhotoSettings, pruneDrivePhotos, saveCapturedPhoto, savePhotoSettin
 import { listDrivePhotos, markDrivePhotoWorkOrderLinked, type DrivePhotoRow } from "../repositories/drivePhotosRepo";
 import type { GpsFix } from "../roughness/signal";
 import type { WorkPhoto } from "../types/workItem";
+import { analyseSessionPhotos } from "../detection/detectionService";
 
 const MPH = 2.23694;
 
@@ -127,6 +128,10 @@ export default function DriveModeScreen() {
       if (id) {
         try {
           finishDriveSession(id);
+          // Phase 2: analyse saved photos after the drive (no-op without a model file).
+          setTimeout(() => {
+            analyseSessionPhotos(id).then((r) => r.analysed && console.log("[DriveMode] detection", r)).catch(() => undefined);
+          }, 1500);
         } catch (e) {
           console.warn("[DriveMode] finish failed", e);
         }

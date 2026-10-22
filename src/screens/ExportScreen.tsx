@@ -8,6 +8,7 @@ const DATASETS: Array<{ key: ExportDataset; label: string; desc: string }> = [
   { key: "work_orders", label: "Work orders", desc: "Activity, status, dates, route/milepost, location" },
   { key: "drive_segments", label: "Drive Mode road segments", desc: "~100 m roughness lines (uncalibrated screening)" },
   { key: "bump_events", label: "Bump / pothole events", desc: "Points flagged by Drive Mode (uncalibrated)" },
+  { key: "damage_detections", label: "Photo damage detections", desc: "Photo-AI cracks/potholes (RDD2022 classes), screening only" },
 ];
 const RANGES = [
   { label: "30 days", days: 30 },

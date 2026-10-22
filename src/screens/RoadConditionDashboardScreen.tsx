@@ -5,6 +5,8 @@
 import React, { useCallback, useMemo, useState } from "react";
 import { View, Text, StyleSheet, Pressable, ScrollView, Image } from "react-native";
 import { listDrivePhotos, type DrivePhotoRow } from "../repositories/drivePhotosRepo";
+import { listDetections, photosCheckedBySegment, type DetectionRow } from "../repositories/detectionsRepo";
+import { segmentRating } from "../detection/rating";
 import MapView, { PROVIDER_GOOGLE } from "react-native-maps";
 import { useFocusEffect, useNavigation } from "@react-navigation/native";
 import { useOrg } from "../state/OrgContext";
@@ -50,6 +52,8 @@ export default function RoadConditionDashboardScreen() {
   const [sessions, setSessions] = useState<DriveSessionRow[]>([]);
   const [segments, setSegments] = useState<DriveSegmentRow[]>([]);
   const [events, setEvents] = useState<DriveEventRow[]>([]);
+  const [detections, setDetections] = useState<DetectionRow[]>([]);
+  const [ratings, setRatings] = useState<number[]>([]);
   const [selected, setSelected] = useState<DriveEventRow | null>(null);
   const [selectedPhoto, setSelectedPhoto] = useState<DrivePhotoRow | null>(null);
   const selectEvent = useCallback((e: DriveEventRow) => {
@@ -68,6 +72,15 @@ export default function RoadConditionDashboardScreen() {
       setSessions(listDriveSessions(orgId ?? null, 30));
       setSegments(listDriveSegments(f));
       setEvents(listDriveEvents(f));
+      const dets = listDetections({ sessionId, fromMs: f.fromMs });
+      setDetections(dets);
+      const checked = photosCheckedBySegment(sessionId);
+      const segRows = listDriveSegments(f);
+      setRatings(
+        segRows
+          .map((s) => segmentRating({ roughnessClass: s.roughnessClass as any, photosChecked: checked.get(s.id) ?? 0, detections: dets.filter((d) => d.segmentId === s.id) }))
+          .filter((r): r is number => r != null)
+      );
     } catch (e) {
       console.warn("[RoadCondition] load failed", e);
     }
@@ -102,11 +115,12 @@ export default function RoadConditionDashboardScreen() {
         ))}
       </ScrollView>
       <Text style={styles.summary}>
-        {miles.toFixed(1)} mi scored • {roughPct}% rough or worse • {events.length} bumps
+        {miles.toFixed(1)} mi scored • {roughPct}% rough or worse • {events.length} bumps • {detections.length} photo-AI flags
+        {ratings.length ? ` • avg screening rating ${(ratings.reduce((a, b) => a + b, 0) / ratings.length).toFixed(1)}/5` : ""}
       </Text>
       <View style={{ flex: 1 }}>
         <MapView key={`${rangeKey}-${sessionId ?? "all"}`} style={{ flex: 1 }} provider={PROVIDER_GOOGLE} initialRegion={region} mapType="hybrid">
-          <RoughnessOverlay segments={segments} events={events} onEventPress={(e) => openEventAsWorkOrder(navigation, e)} onEventSelect={selectEvent} />
+          <RoughnessOverlay segments={segments} events={events} onEventPress={(e) => openEventAsWorkOrder(navigation, e)} onEventSelect={selectEvent} detections={detections} />
         </MapView>
         {!segments.length && !events.length && (
           <View style={styles.empty}>

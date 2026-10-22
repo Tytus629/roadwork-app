@@ -19,6 +19,7 @@ module.exports = {
     '^react-native-toast-message$': '<rootDir>/test/mocks/reactNativeToastMessage.js',
     '^react-native-share$': '<rootDir>/test/mocks/reactNativeShare.js',
     '^react-native-vision-camera$': '<rootDir>/test/mocks/reactNativeVisionCamera.js',
+    '^react-native-fast-tflite$': '<rootDir>/test/mocks/reactNativeFastTflite.js',
     '^react-native-sensors$': '<rootDir>/test/mocks/reactNativeSensors.js',
     '^@react-native-clipboard/clipboard$': '<rootDir>/test/mocks/reactNativeClipboard.js',
   },
