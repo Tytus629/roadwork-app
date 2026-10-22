@@ -163,6 +163,9 @@ import {
 } from "../telemetry/crashlytics";
 import { useColorblindModePreference } from "../settings/colorblindMode";
 import { SyncStatusBanner } from "../components/SyncStatusBanner";
+import { subscribeMapCreateAtPoint, takeLastMapCreateAtPoint } from "../state/MapCreateWorkOrderFromPointEvents";
+import { RoughnessOverlay } from "../roughness/RoughnessOverlay";
+import { listDriveEvents, listDriveSegments, type DriveEventRow, type DriveSegmentRow } from "../repositories/roughnessRepo";
 
 function regionToBBox(region: Region): BBox {
   const halfLat = region.latitudeDelta / 2;
@@ -1227,6 +1230,34 @@ export default function MapScreen() {
     [applyFocus, canCreateWorkOrder],
   );
 
+  // ── DRIVE MODE: roughness overlay + create-at-point from a bump event ──
+  const [showRoughness, setShowRoughness] = useState(false);
+  const [roughSegments, setRoughSegments] = useState<DriveSegmentRow[]>([]);
+  const [roughEvents, setRoughEvents] = useState<DriveEventRow[]>([]);
+  useEffect(() => {
+    if (!showRoughness) return;
+    try {
+      const f = { orgId: orgId ?? null, fromMs: Date.now() - 90 * 86400000 };
+      setRoughSegments(listDriveSegments(f, 3000));
+      setRoughEvents(listDriveEvents(f, 1000));
+    } catch (e) {
+      console.warn("[MapScreen] roughness load failed", e);
+    }
+  }, [showRoughness, orgId]);
+
+  const tryApplyPendingCreateAtPoint = useCallback(() => {
+    if (!mapReady) return;
+    const p = takeLastMapCreateAtPoint();
+    if (!p) return;
+    if (!canCreateWorkOrder) {
+      Alert.alert("Permission denied", permissionDeniedMessage("createWorkOrder"));
+      return;
+    }
+    setDraftWorkOrder({ type: p.type, status: "Needs", priority: "High", point: { lat: p.lat, lng: p.lng }, note: p.note ?? null } as any);
+    mapRef.current?.animateToRegion({ latitude: p.lat, longitude: p.lng, latitudeDelta: 0.003, longitudeDelta: 0.003 }, 400);
+  }, [mapReady, canCreateWorkOrder]);
+  useEffect(() => subscribeMapCreateAtPoint(() => setTimeout(tryApplyPendingCreateAtPoint, 150)), [tryApplyPendingCreateAtPoint]);
+
   const tryApplyPendingCreateFromAsset = useCallback(() => {
     const payload = pendingCreateFromAssetRef.current ?? peekLastMapCreateWorkOrder();
     if (!payload) return;
@@ -1280,10 +1311,11 @@ export default function MapScreen() {
       const timer = setTimeout(() => {
         tryApplyPendingFocus();
         tryApplyPendingCreateFromAsset();
+        tryApplyPendingCreateAtPoint();
       }, 150);
 
       return () => clearTimeout(timer);
-    }, [tryApplyPendingFocus, tryApplyPendingCreateFromAsset])
+    }, [tryApplyPendingFocus, tryApplyPendingCreateFromAsset, tryApplyPendingCreateAtPoint])
   );
 
   // Also try to apply focus when mapReady becomes true
@@ -2579,6 +2611,10 @@ export default function MapScreen() {
           return null;
         })}
 
+        {showRoughness && (
+          <RoughnessOverlay segments={roughSegments} events={roughEvents} hideMarkers={suppressMarkers} />
+        )}
+
         {/* Draft line during drawing */}
         {draftLine.length >= 2 && (
           <Polyline
@@ -3038,6 +3074,10 @@ export default function MapScreen() {
         {/* Map type toggle */}
         <Pressable onPress={toggleMapType} style={styles.mapTypeBtn}>
           <Text style={styles.mapTypeText}>{mapType === "standard" ? "Street View" : "Satellite View"}</Text>
+        </Pressable>
+
+        <Pressable onPress={() => setShowRoughness((v) => !v)} style={styles.mapTypeBtn}>
+          <Text style={styles.mapTypeText}>{showRoughness ? "Hide Roughness" : "Roughness"}</Text>
         </Pressable>
 
         {/* DEV: Bootstrap test overlay */}

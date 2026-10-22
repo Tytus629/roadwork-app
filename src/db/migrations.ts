@@ -445,6 +445,57 @@ const MIGRATIONS: Migration[] = [
       `CREATE INDEX IF NOT EXISTS idx_maintenance_slips_org_vehicle_asset
        ON maintenance_slips(orgId, vehicleAssetId, updatedAt DESC);`,
     ],
+  },  {
+    // Drive Mode (Phase 0) — ADDITIVE ONLY: three new tables, no changes to existing ones.
+    id: 13,
+    name: 'add_drive_mode_roughness',
+    sql: [
+      `CREATE TABLE IF NOT EXISTS drive_sessions (
+        id TEXT PRIMARY KEY,
+        orgId TEXT,
+        startedAt INTEGER NOT NULL,
+        endedAt INTEGER,
+        distanceM REAL NOT NULL DEFAULT 0,
+        segmentCount INTEGER NOT NULL DEFAULT 0,
+        eventCount INTEGER NOT NULL DEFAULT 0,
+        deviceId TEXT,
+        appVersion TEXT,
+        algoVersion TEXT NOT NULL,
+        note TEXT
+      );`,
+      `CREATE INDEX IF NOT EXISTS idx_drive_sessions_org_started
+       ON drive_sessions(orgId, startedAt DESC);`,
+      `CREATE TABLE IF NOT EXISTS drive_segments (
+        id TEXT PRIMARY KEY,
+        sessionId TEXT NOT NULL,
+        seq INTEGER NOT NULL,
+        startedAt INTEGER NOT NULL,
+        endedAt INTEGER NOT NULL,
+        pathJson TEXT NOT NULL,
+        lengthM REAL NOT NULL,
+        sampleCount INTEGER NOT NULL,
+        rmsVertical REAL NOT NULL,
+        meanSpeedMps REAL NOT NULL,
+        roughnessIndex REAL NOT NULL,
+        roughnessClass TEXT NOT NULL,
+        minLat REAL NOT NULL, minLng REAL NOT NULL, maxLat REAL NOT NULL, maxLng REAL NOT NULL
+      );`,
+      `CREATE INDEX IF NOT EXISTS idx_drive_segments_session ON drive_segments(sessionId, seq);`,
+      `CREATE INDEX IF NOT EXISTS idx_drive_segments_bbox ON drive_segments(minLat, minLng, maxLat, maxLng);`,
+      `CREATE TABLE IF NOT EXISTS drive_events (
+        id TEXT PRIMARY KEY,
+        sessionId TEXT NOT NULL,
+        occurredAt INTEGER NOT NULL,
+        lat REAL NOT NULL,
+        lng REAL NOT NULL,
+        speedMps REAL,
+        peakMps2 REAL NOT NULL,
+        severity TEXT NOT NULL,
+        workOrderId TEXT
+      );`,
+      `CREATE INDEX IF NOT EXISTS idx_drive_events_session ON drive_events(sessionId, occurredAt);`,
+      `CREATE INDEX IF NOT EXISTS idx_drive_events_latlng ON drive_events(lat, lng);`,
+    ],
   },
 ];
 
@@ -701,6 +752,7 @@ export function runMigrations() {
   addColumnIfMissing("tool_dmi", "startReadingMiles", "REAL");
   addColumnIfMissing("tool_dmi", "endReadingMiles", "REAL");
   addColumnIfMissing("tool_dmi", "distanceMiles", "REAL");
+  addColumnIfMissing("drive_sessions", "syncedAt", "INTEGER"); // Drive Mode cloud sync marker (additive)
 
   // Composite indexes for orgId-scoped queries (see header docs for why composite)
   db.executeSync(
