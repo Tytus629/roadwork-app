@@ -54,6 +54,28 @@ export default function ToolsScreen() {
             Tally counter with label — count signs, culverts, etc.
           </Text>
         </Pressable>
+
+        <Pressable
+          onPress={() => navigation.navigate("DriveMode")}
+          style={styles.toolCard}
+        >
+          <Text style={styles.toolIcon}>📳</Text>
+          <Text style={styles.toolTitle}>Drive Mode (beta)</Text>
+          <Text style={styles.toolDescription}>
+            Log road roughness and bumps while driving (uncalibrated screening)
+          </Text>
+        </Pressable>
+
+        <Pressable
+          onPress={() => navigation.navigate("RoadConditionDashboard")}
+          style={styles.toolCard}
+        >
+          <Text style={styles.toolIcon}>🗺️</Text>
+          <Text style={styles.toolTitle}>Road Condition Map</Text>
+          <Text style={styles.toolDescription}>
+            Roughness heat map and bump markers by date and drive
+          </Text>
+        </Pressable>
       </View>
 
       <View style={styles.infoBox}>

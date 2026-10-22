@@ -8,6 +8,8 @@ import { MeasureDistanceScreen } from "../tools/measure/MeasureDistanceScreen";
 import AssetDetailScreen from "../screens/AssetDetailScreen";
 import DmiScreen from "../screens/DmiScreen";
 import CounterScreen from "../screens/CounterScreen";
+import DriveModeScreen from "../screens/DriveModeScreen";
+import RoadConditionDashboardScreen from "../screens/RoadConditionDashboardScreen";
 
 export type RootStackParamList = {
   MainTabs: undefined;
@@ -18,6 +20,8 @@ export type RootStackParamList = {
   MeasureDistance: undefined;
   Dmi: undefined;
   Counter: undefined;
+  DriveMode: undefined;
+  RoadConditionDashboard: undefined;
 };
 
 const Stack = createStackNavigator<RootStackParamList>();
@@ -64,6 +68,16 @@ export default function RootNavigator() {
         name="Counter"
         component={CounterScreen}
         options={{ title: "Counter" }}
+      />
+      <Stack.Screen
+        name="DriveMode"
+        component={DriveModeScreen}
+        options={{ title: "Drive Mode" }}
+      />
+      <Stack.Screen
+        name="RoadConditionDashboard"
+        component={RoadConditionDashboardScreen}
+        options={{ title: "Road Condition" }}
       />
     </Stack.Navigator>
   );
