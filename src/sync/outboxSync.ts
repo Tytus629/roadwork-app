@@ -5,6 +5,7 @@
 // to Firebase Cloud Functions. Uses synchronous op-sqlite (db.executeSync).
 
 import { pushDriveSession } from "./pushDriveSession";
+import { uploadDrivePhoto } from "../roughness/drivePhotoService";
 import { pushLocationRefs } from "./locationRefSync";
 import { getLocationRef } from "../integration/locationRefs";
 import { db } from "../db/db";
@@ -1223,6 +1224,13 @@ case "UPSERT_DMI": {
       const keys = Array.isArray(payload.keys) ? payload.keys : [];
       await pushLocationRefs(payload.orgId, keys, (k) => getLocationRef(k.entityType, k.entityId));
       console.log("[Sync] UPSERT_LOCATION_REFS OK:", keys.length);
+      deleteOutboxRow(row.id);
+      return;
+    }
+
+    case "UPLOAD_DRIVE_PHOTO": {
+      await uploadDrivePhoto(payload.orgId, String(payload.photoId ?? row.entityId));
+      console.log("[Sync] UPLOAD_DRIVE_PHOTO OK:", payload.photoId);
       deleteOutboxRow(row.id);
       return;
     }

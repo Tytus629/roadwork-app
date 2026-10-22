@@ -12,7 +12,7 @@ import { haversineMeters, type LatLng } from "../tools/measure/haversine";
 
 export type Vec3 = { x: number; y: number; z: number };
 export type ImuSample = { t: number; accel: Vec3; gyro?: Vec3 | null }; // t = epoch ms, accel m/s^2 incl. gravity
-export type GpsFix = { t: number; lat: number; lng: number; speedMps: number | null; accuracyM?: number | null };
+export type GpsFix = { t: number; lat: number; lng: number; speedMps: number | null; accuracyM?: number | null; headingDeg?: number | null };
 
 export const G = 9.80665;
 

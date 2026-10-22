@@ -14,10 +14,11 @@ type Props = {
   events: DriveEventRow[];
   hideMarkers?: boolean;
   onEventPress?: (e: DriveEventRow) => void;
+  onEventSelect?: (e: DriveEventRow) => void;
 };
 
 /** Colored roughness polylines + bump/pothole markers. Render inside a <MapView>. */
-export function RoughnessOverlay({ segments, events, hideMarkers, onEventPress }: Props) {
+export function RoughnessOverlay({ segments, events, hideMarkers, onEventPress, onEventSelect }: Props) {
   return (
     <>
       {segments
@@ -38,6 +39,7 @@ export function RoughnessOverlay({ segments, events, hideMarkers, onEventPress }
             pinColor={EVENT_PIN_COLORS[e.severity] ?? "yellow"}
             title={`${e.severity === "bump" ? "Bump" : e.severity === "pothole" ? "Possible pothole" : "Severe hit"} (${(e.peakMps2 / 9.81).toFixed(2)} g)`}
             description={new Date(e.occurredAt).toLocaleString() + (e.workOrderId ? " • work order created" : "")}
+            onPress={() => onEventSelect?.(e)}
             onCalloutPress={() => onEventPress?.(e)}
           />
         ))}
