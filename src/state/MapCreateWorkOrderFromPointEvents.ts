@@ -1,7 +1,7 @@
 /** One-shot channel: other screens (Drive Mode) ask the Map to open a work-order draft at a point. */
-import type { WorkType } from "../types/workItem";
+import type { WorkPhoto, WorkType } from "../types/workItem";
 
-export type MapCreateFromPointPayload = { lat: number; lng: number; type: WorkType; note?: string | null };
+export type MapCreateFromPointPayload = { lat: number; lng: number; type: WorkType; note?: string | null; photos?: WorkPhoto[] };
 type Listener = (p: MapCreateFromPointPayload) => void;
 
 let listeners: Listener[] = [];

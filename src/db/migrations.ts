@@ -516,6 +516,30 @@ const MIGRATIONS: Migration[] = [
       );`,
       `CREATE INDEX IF NOT EXISTS idx_location_refs_route ON location_refs(routeId, beginMp);`,
     ],
+  },  {
+    // Drive Mode Phase 1 photos — ADDITIVE new table only.
+    id: 15,
+    name: 'add_drive_photos',
+    sql: [
+      `CREATE TABLE IF NOT EXISTS drive_photos (
+        id TEXT PRIMARY KEY,
+        orgId TEXT,
+        sessionId TEXT NOT NULL,
+        eventId TEXT,                 -- set for bump photos
+        reason TEXT NOT NULL,         -- timed | distance | bump
+        capturedAt INTEGER NOT NULL,
+        localUri TEXT NOT NULL,
+        width INTEGER, height INTEGER,
+        sizeBytes INTEGER NOT NULL DEFAULT 0,
+        lat REAL, lng REAL, headingDeg REAL, speedMps REAL, accuracyM REAL,
+        storagePath TEXT,
+        uploadedAt INTEGER,
+        workOrderLinked INTEGER NOT NULL DEFAULT 0,
+        prunedAt INTEGER
+      );`,
+      `CREATE INDEX IF NOT EXISTS idx_drive_photos_session ON drive_photos(sessionId, capturedAt);`,
+      `CREATE INDEX IF NOT EXISTS idx_drive_photos_event ON drive_photos(eventId);`,
+    ],
   },
 ];
 

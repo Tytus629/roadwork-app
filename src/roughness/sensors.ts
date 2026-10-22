@@ -37,6 +37,7 @@ export function startDriveSensors(h: SensorHandlers, intervalMs = 10): () => voi
         lng: pos.coords.longitude,
         speedMps: pos.coords.speed != null && pos.coords.speed >= 0 ? pos.coords.speed : null,
         accuracyM: pos.coords.accuracy,
+        headingDeg: pos.coords.heading != null && pos.coords.heading >= 0 ? pos.coords.heading : null,
       }),
     (err) => h.onError?.(`GPS: ${err?.message ?? "unavailable"}`),
     { enableHighAccuracy: true, distanceFilter: 0, interval: 1000, fastestInterval: 500 } as any

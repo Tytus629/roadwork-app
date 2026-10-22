@@ -3,7 +3,8 @@
  * bump/pothole markers, filtered by date range and session. Local data only.
  */
 import React, { useCallback, useMemo, useState } from "react";
-import { View, Text, StyleSheet, Pressable, ScrollView } from "react-native";
+import { View, Text, StyleSheet, Pressable, ScrollView, Image } from "react-native";
+import { listDrivePhotos, type DrivePhotoRow } from "../repositories/drivePhotosRepo";
 import MapView, { PROVIDER_GOOGLE } from "react-native-maps";
 import { useFocusEffect, useNavigation } from "@react-navigation/native";
 import { useOrg } from "../state/OrgContext";
@@ -49,6 +50,16 @@ export default function RoadConditionDashboardScreen() {
   const [sessions, setSessions] = useState<DriveSessionRow[]>([]);
   const [segments, setSegments] = useState<DriveSegmentRow[]>([]);
   const [events, setEvents] = useState<DriveEventRow[]>([]);
+  const [selected, setSelected] = useState<DriveEventRow | null>(null);
+  const [selectedPhoto, setSelectedPhoto] = useState<DrivePhotoRow | null>(null);
+  const selectEvent = useCallback((e: DriveEventRow) => {
+    setSelected(e);
+    try {
+      setSelectedPhoto(listDrivePhotos({ eventId: e.id, limit: 1 })[0] ?? null);
+    } catch {
+      setSelectedPhoto(null);
+    }
+  }, []);
 
   const load = useCallback(() => {
     try {
@@ -95,11 +106,30 @@ export default function RoadConditionDashboardScreen() {
       </Text>
       <View style={{ flex: 1 }}>
         <MapView key={`${rangeKey}-${sessionId ?? "all"}`} style={{ flex: 1 }} provider={PROVIDER_GOOGLE} initialRegion={region} mapType="hybrid">
-          <RoughnessOverlay segments={segments} events={events} onEventPress={(e) => openEventAsWorkOrder(navigation, e)} />
+          <RoughnessOverlay segments={segments} events={events} onEventPress={(e) => openEventAsWorkOrder(navigation, e)} onEventSelect={selectEvent} />
         </MapView>
         {!segments.length && !events.length && (
           <View style={styles.empty}>
             <Text style={styles.emptyText}>No Drive Mode data for this filter yet. Record a drive from Tools → Drive Mode.</Text>
+          </View>
+        )}
+        {selected && (
+          <View style={styles.popup}>
+            {selectedPhoto ? (
+              <Image source={{ uri: selectedPhoto.localUri }} style={styles.popupImg} />
+            ) : (
+              <View style={[styles.popupImg, styles.noImg]}><Text style={styles.noImgText}>No photo</Text></View>
+            )}
+            <View style={styles.popupBody}>
+              <Text style={styles.popupTitle}>
+                {selected.severity === "bump" ? "Bump" : selected.severity === "pothole" ? "Possible pothole" : "Severe hit"} · {(selected.peakMps2 / 9.81).toFixed(2)} g
+              </Text>
+              <Text style={styles.popupMeta}>{new Date(selected.occurredAt).toLocaleString()}</Text>
+              <View style={styles.popupRow}>
+                <Pressable onPress={() => openEventAsWorkOrder(navigation, selected)} style={styles.popupBtn}><Text style={styles.popupBtnText}>Work order</Text></Pressable>
+                <Pressable onPress={() => setSelected(null)}><Text style={styles.popupClose}>Close</Text></Pressable>
+              </View>
+            </View>
           </View>
         )}
         <View style={styles.legend}>
@@ -131,4 +161,15 @@ const styles = StyleSheet.create({
   tip: { fontSize: 11, color: "white", textAlign: "center", marginTop: 4 },
   empty: { position: "absolute", top: 20, left: 20, right: 20, backgroundColor: "rgba(255,255,255,0.95)", padding: 12, borderRadius: 12 },
   emptyText: { textAlign: "center" },
+  popup: { position: "absolute", top: 10, left: 10, right: 10, flexDirection: "row", gap: 10, backgroundColor: "white", borderRadius: 12, padding: 8, elevation: 6 },
+  popupImg: { width: 120, height: 68, borderRadius: 8, backgroundColor: "#e2e8f0" },
+  noImg: { alignItems: "center", justifyContent: "center" },
+  noImgText: { fontSize: 11, opacity: 0.6 },
+  popupBody: { flex: 1, gap: 2 },
+  popupTitle: { fontWeight: "800" },
+  popupMeta: { fontSize: 12, opacity: 0.7 },
+  popupRow: { flexDirection: "row", alignItems: "center", gap: 12, marginTop: 4 },
+  popupBtn: { backgroundColor: "#1e293b", paddingHorizontal: 10, paddingVertical: 6, borderRadius: 8 },
+  popupBtnText: { color: "white", fontWeight: "700", fontSize: 12 },
+  popupClose: { fontWeight: "700", color: "#2563eb" },
 });

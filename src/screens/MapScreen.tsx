@@ -1253,7 +1253,7 @@ export default function MapScreen() {
       Alert.alert("Permission denied", permissionDeniedMessage("createWorkOrder"));
       return;
     }
-    setDraftWorkOrder({ type: p.type, status: "Needs", priority: "High", point: { lat: p.lat, lng: p.lng }, note: p.note ?? null } as any);
+    setDraftWorkOrder({ type: p.type, status: "Needs", priority: "High", point: { lat: p.lat, lng: p.lng }, note: p.note ?? null, photos: p.photos ?? [] } as any);
     mapRef.current?.animateToRegion({ latitude: p.lat, longitude: p.lng, latitudeDelta: 0.003, longitudeDelta: 0.003 }, 400);
   }, [mapReady, canCreateWorkOrder]);
   useEffect(() => subscribeMapCreateAtPoint(() => setTimeout(tryApplyPendingCreateAtPoint, 150)), [tryApplyPendingCreateAtPoint]);
