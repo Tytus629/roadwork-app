@@ -497,6 +497,26 @@ const MIGRATIONS: Migration[] = [
       `CREATE INDEX IF NOT EXISTS idx_drive_events_latlng ON drive_events(lat, lng);`,
     ],
   },
+  {
+    // GIS integration (route / road / milepost). ADDITIVE side table — existing
+    // tables untouched (work_orders uses INSERT OR REPLACE, which would wipe new columns).
+    id: 14,
+    name: 'add_location_refs',
+    sql: [
+      `CREATE TABLE IF NOT EXISTS location_refs (
+        entityType TEXT NOT NULL,         -- work_order | drive_segment | drive_event | inspection
+        entityId TEXT NOT NULL,
+        routeId TEXT,
+        roadName TEXT,
+        beginMp REAL,
+        endMp REAL,
+        source TEXT,                      -- manual | resolver
+        updatedAt INTEGER NOT NULL,
+        PRIMARY KEY (entityType, entityId)
+      );`,
+      `CREATE INDEX IF NOT EXISTS idx_location_refs_route ON location_refs(routeId, beginMp);`,
+    ],
+  },
 ];
 
 function rowsToArray(rows: any): any[] {

@@ -9,6 +9,7 @@ import AssetDetailScreen from "../screens/AssetDetailScreen";
 import DmiScreen from "../screens/DmiScreen";
 import CounterScreen from "../screens/CounterScreen";
 import DriveModeScreen from "../screens/DriveModeScreen";
+import ExportScreen from "../screens/ExportScreen";
 import RoadConditionDashboardScreen from "../screens/RoadConditionDashboardScreen";
 
 export type RootStackParamList = {
@@ -22,6 +23,7 @@ export type RootStackParamList = {
   Counter: undefined;
   DriveMode: undefined;
   RoadConditionDashboard: undefined;
+  IntegrationExport: undefined;
 };
 
 const Stack = createStackNavigator<RootStackParamList>();
@@ -78,6 +80,11 @@ export default function RootNavigator() {
         name="RoadConditionDashboard"
         component={RoadConditionDashboardScreen}
         options={{ title: "Road Condition" }}
+      />
+      <Stack.Screen
+        name="IntegrationExport"
+        component={ExportScreen}
+        options={{ title: "Export to GIS" }}
       />
     </Stack.Navigator>
   );

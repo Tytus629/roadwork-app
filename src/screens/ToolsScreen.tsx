@@ -76,6 +76,17 @@ export default function ToolsScreen() {
             Roughness heat map and bump markers by date and drive
           </Text>
         </Pressable>
+
+        <Pressable
+          onPress={() => navigation.navigate("IntegrationExport")}
+          style={styles.toolCard}
+        >
+          <Text style={styles.toolIcon}>📤</Text>
+          <Text style={styles.toolTitle}>Export to GIS</Text>
+          <Text style={styles.toolDescription}>
+            CSV / GeoJSON for GIS-Mo, VUEWorks and Esri
+          </Text>
+        </Pressable>
       </View>
 
       <View style={styles.infoBox}>

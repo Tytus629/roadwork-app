@@ -3,6 +3,7 @@
 // Read-only asset detail screen with event history timeline.
 // Loaded from SQLite (offline-first).
 
+import { LocationRefEditor } from "../components/LocationRefEditor";
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { View, Text, ScrollView, StyleSheet, Pressable, Alert } from "react-native";
 import { useFocusEffect, useNavigation } from "@react-navigation/native";
@@ -1219,6 +1220,9 @@ export default function AssetDetailScreen({ route }: any) {
                       {item.inspectionText ? (
                         <Text style={styles.eventMeta}>Inspection: {item.inspectionText}</Text>
                       ) : null}
+                      {item.inspectionText ? (
+                        <LocationRefEditor entityType="inspection" entityId={item.id} showEndMp={false} />
+                      ) : null}
                       {item.attachmentsText ? (
                         <Text style={styles.eventMeta}>Attachments: {item.attachmentsText}</Text>
                       ) : null}
@@ -1241,6 +1245,9 @@ export default function AssetDetailScreen({ route }: any) {
                       {item.statusText ? <Text style={styles.eventMeta}>Status: {item.statusText}</Text> : null}
                       {item.inspectionText ? (
                         <Text style={styles.eventMeta}>Inspection: {item.inspectionText}</Text>
+                      ) : null}
+                      {item.inspectionText ? (
+                        <LocationRefEditor entityType="inspection" entityId={item.id} showEndMp={false} />
                       ) : null}
                       {item.attachmentsText ? (
                         <Text style={styles.eventMeta}>Attachments: {item.attachmentsText}</Text>
