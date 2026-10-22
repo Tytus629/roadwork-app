@@ -2,6 +2,7 @@ import React from "react";
 import { View, Text, Pressable } from "react-native";
 import { useNavigation, useRoute } from "@react-navigation/native";
 import WorkItemSheet from "../components/WorkItemSheet";
+import { LocationRefEditor } from "../components/LocationRefEditor";
 import {
   logSyncBreadcrumb,
   recordErrorWithContext,
@@ -50,6 +51,9 @@ export default function WorkItemSheetScreen() {
 
   return (
     <View style={{ flex: 1, backgroundColor: "white" }}>
+      <View style={{ paddingHorizontal: 12 }}>
+        <LocationRefEditor entityType="work_order" entityId={workItemId} />
+      </View>
       <WorkItemSheet mode="existing" workItemId={workItemId} onClose={() => navigation.goBack()} />
     </View>
   );

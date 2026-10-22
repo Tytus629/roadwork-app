@@ -23,6 +23,7 @@ import {
 import { ROUGHNESS_COLORS, type Segment } from "../roughness/signal";
 import { requestMapCreateWorkOrderAtPoint } from "../state/MapCreateWorkOrderFromPointEvents";
 import { RoughnessLegend } from "../roughness/RoughnessLegend";
+import { LocationRefEditor } from "../components/LocationRefEditor";
 
 const MPH = 2.23694;
 
@@ -186,6 +187,7 @@ export default function DriveModeScreen() {
               {s.endedAt ? "" : " (not finished)"}
             </Text>
           ))}
+          <LocationRefEditor driveSessionId={sessions[0].id} />
           <RecentEventActions navigation={navigation} sessionId={sessions[0].id} />
         </View>
       )}
