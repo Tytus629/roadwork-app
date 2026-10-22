@@ -5,13 +5,15 @@ import { db } from "../db/db";
 import { ensureDbSchemaReady } from "../db/migrations";
 import { listDriveEvents, listDriveSegments } from "../repositories/roughnessRepo";
 import { getLocationRefMap, resolveRef } from "./locationRefs";
+import { listDetections, photosCheckedBySegment } from "../repositories/detectionsRepo";
+import { segmentRating } from "../detection/rating";
 import {
-  EVENT_COLUMNS, SEGMENT_COLUMNS, WORK_ORDER_COLUMNS,
+  EVENT_COLUMNS, SEGMENT_COLUMNS, WORK_ORDER_COLUMNS, DETECTION_COLUMNS, detectionRow,
   eventRow, featureCollection, lineGeom, pointGeom, segmentRow, toCsv, workOrderGeom, workOrderRow,
   type WorkOrderIn,
 } from "./serializers";
 
-export type ExportDataset = "drive_segments" | "bump_events" | "work_orders";
+export type ExportDataset = "drive_segments" | "bump_events" | "work_orders" | "damage_detections";
 export type ExportFormat = "csv" | "geojson";
 
 function rows(r: any): any[] {
@@ -46,8 +48,25 @@ export function buildExport(dataset: ExportDataset, format: ExportFormat, opts: 
   if (dataset === "drive_segments") {
     const refs = getLocationRefMap("drive_segment");
     columns = SEGMENT_COLUMNS;
-    items = listDriveSegments(f, 100000).map((s) => ({
-      id: s.id, geometry: lineGeom(s.path), properties: segmentRow(s, resolveRef("drive_segment", refs.get(s.id) ?? null, s.path)),
+    const dets = listDetections({ fromMs: f.fromMs });
+    const checked = photosCheckedBySegment(null);
+    items = listDriveSegments(f, 100000).map((s) => {
+      const sd = dets.filter((d) => d.segmentId === s.id);
+      const n = checked.get(s.id) ?? 0;
+      return {
+        id: s.id, geometry: lineGeom(s.path),
+        properties: segmentRow(s, resolveRef("drive_segment", refs.get(s.id) ?? null, s.path), {
+          rating: segmentRating({ roughnessClass: s.roughnessClass as any, photosChecked: n, detections: sd }),
+          distress: sd.map((d) => d.cls), photosAnalysed: n,
+        }),
+      };
+    });
+  } else if (dataset === "damage_detections") {
+    const refs = getLocationRefMap("drive_segment");
+    columns = DETECTION_COLUMNS;
+    items = listDetections({ fromMs: f.fromMs }).map((d) => ({
+      id: d.id, geometry: pointGeom(d.lat, d.lng),
+      properties: detectionRow(d, d.segmentId ? refs.get(d.segmentId) ?? null : null),
     }));
   } else if (dataset === "bump_events") {
     const refs = getLocationRefMap("drive_event");

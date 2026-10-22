@@ -540,6 +540,28 @@ const MIGRATIONS: Migration[] = [
       `CREATE INDEX IF NOT EXISTS idx_drive_photos_session ON drive_photos(sessionId, capturedAt);`,
       `CREATE INDEX IF NOT EXISTS idx_drive_photos_event ON drive_photos(eventId);`,
     ],
+  },  {
+    // Phase 2 groundwork — ADDITIVE: photo-based road-damage detections (screening only).
+    id: 16,
+    name: 'add_drive_detections',
+    sql: [
+      `CREATE TABLE IF NOT EXISTS drive_detections (
+        id TEXT PRIMARY KEY,
+        photoId TEXT NOT NULL,
+        sessionId TEXT NOT NULL,
+        segmentId TEXT,
+        cls TEXT NOT NULL,            -- D00 | D10 | D20 | D40 (RDD2022)
+        score REAL NOT NULL,
+        boxX REAL NOT NULL, boxY REAL NOT NULL, boxW REAL NOT NULL, boxH REAL NOT NULL,
+        lat REAL, lng REAL,
+        modelName TEXT NOT NULL,
+        modelVersion TEXT NOT NULL,
+        createdAt INTEGER NOT NULL
+      );`,
+      `CREATE INDEX IF NOT EXISTS idx_drive_detections_session ON drive_detections(sessionId);`,
+      `CREATE INDEX IF NOT EXISTS idx_drive_detections_photo ON drive_detections(photoId);`,
+      `CREATE INDEX IF NOT EXISTS idx_drive_detections_segment ON drive_detections(segmentId);`,
+    ],
   },
 ];
 
@@ -797,6 +819,9 @@ export function runMigrations() {
   addColumnIfMissing("tool_dmi", "endReadingMiles", "REAL");
   addColumnIfMissing("tool_dmi", "distanceMiles", "REAL");
   addColumnIfMissing("drive_sessions", "syncedAt", "INTEGER"); // Drive Mode cloud sync marker (additive)
+  addColumnIfMissing("drive_photos", "detectedAt", "INTEGER"); // Phase 2: photo analysed by damage detector
+  addColumnIfMissing("drive_photos", "detectorVersion", "TEXT");
+  addColumnIfMissing("drive_photos", "blurredAt", "INTEGER"); // Phase 2: privacy redaction applied
 
   // Composite indexes for orgId-scoped queries (see header docs for why composite)
   db.executeSync(

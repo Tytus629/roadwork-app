@@ -2,6 +2,8 @@ import React from "react";
 import { Marker, Polyline } from "react-native-maps";
 import { ROUGHNESS_COLORS, type RoughnessClass } from "./signal";
 import type { DriveEventRow, DriveSegmentRow } from "../repositories/roughnessRepo";
+import type { DetectionRow } from "../repositories/detectionsRepo";
+import { DAMAGE_LABELS } from "../detection/types";
 
 export const EVENT_PIN_COLORS: Record<DriveEventRow["severity"], string> = {
   bump: "yellow",
@@ -15,10 +17,11 @@ type Props = {
   hideMarkers?: boolean;
   onEventPress?: (e: DriveEventRow) => void;
   onEventSelect?: (e: DriveEventRow) => void;
+  detections?: DetectionRow[];
 };
 
 /** Colored roughness polylines + bump/pothole markers. Render inside a <MapView>. */
-export function RoughnessOverlay({ segments, events, hideMarkers, onEventPress, onEventSelect }: Props) {
+export function RoughnessOverlay({ segments, events, hideMarkers, onEventPress, onEventSelect, detections = [] }: Props) {
   return (
     <>
       {segments
@@ -43,6 +46,18 @@ export function RoughnessOverlay({ segments, events, hideMarkers, onEventPress, 
             onCalloutPress={() => onEventPress?.(e)}
           />
         ))}
+      {!hideMarkers &&
+        detections
+          .filter((d) => d.lat != null && d.lng != null)
+          .map((d) => (
+            <Marker
+              key={`det-${d.id}`}
+              coordinate={{ latitude: d.lat as number, longitude: d.lng as number }}
+              pinColor="violet"
+              title={`${DAMAGE_LABELS[d.cls] ?? d.cls} (${Math.round(d.score * 100)}%) — screening`}
+              description={`Photo AI ${d.modelName}@${d.modelVersion}; verify in field`}
+            />
+          ))}
     </>
   );
 }

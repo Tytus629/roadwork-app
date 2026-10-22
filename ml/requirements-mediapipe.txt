@@ -1,0 +1,3 @@
+# Apache-2.0 stack (recommended for commercial use)
+mediapipe-model-maker>=0.2.1
+tensorflow>=2.15,<2.17
