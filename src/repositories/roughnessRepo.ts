@@ -5,6 +5,7 @@
 import { db } from "../db/db";
 import { ensureDbSchemaReady } from "../db/migrations";
 import { makeClientId } from "./repoUtils";
+import { enqueueDriveSessionSync } from "../sync/enqueueDriveSessionSync";
 import type { Segment } from "../roughness/signal";
 import type { LocatedEvent } from "../roughness/driveEngine";
 
@@ -12,7 +13,7 @@ export const ROUGHNESS_ALGO_VERSION = "phase0-rms-v1";
 
 export type DriveSessionRow = {
   id: string; orgId: string | null; startedAt: number; endedAt: number | null;
-  distanceM: number; segmentCount: number; eventCount: number; algoVersion: string;
+  distanceM: number; segmentCount: number; eventCount: number; algoVersion: string; syncedAt?: number | null;
 };
 export type DriveSegmentRow = Omit<Segment, "start" | "end" | "index" | "startT" | "endT"> & {
   id: string; sessionId: string; seq: number; startedAt: number; endedAt: number;
@@ -49,6 +50,12 @@ export function finishDriveSession(id: string) {
      WHERE id = ?;`,
     [Date.now(), id, id, id, id]
   );
+  try {
+    const s = getDriveSession(id);
+    enqueueDriveSessionSync(s?.orgId ?? null, id);
+  } catch (e) {
+    console.warn("[DriveMode] enqueue sync failed (data kept locally)", e);
+  }
 }
 
 export function insertDriveSegment(sessionId: string, s: Segment) {
@@ -87,6 +94,11 @@ function where(f: RoughnessFilter, timeCol: string, prefix = "") {
   if (f.fromMs != null) { c.push(`${timeCol} >= ?`); a.push(f.fromMs); }
   if (f.toMs != null) { c.push(`${timeCol} <= ?`); a.push(f.toMs); }
   return { sql: c.length ? `WHERE ${c.join(" AND ")}` : "", args: a };
+}
+
+export function getDriveSession(id: string): DriveSessionRow | null {
+  ensureDbSchemaReady("roughness");
+  return (rows(db.executeSync(`SELECT * FROM drive_sessions WHERE id = ? LIMIT 1;`, [id]))[0] as DriveSessionRow) ?? null;
 }
 
 export function listDriveSessions(orgId?: string | null, limit = 50): DriveSessionRow[] {

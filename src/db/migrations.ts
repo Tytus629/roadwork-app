@@ -752,6 +752,7 @@ export function runMigrations() {
   addColumnIfMissing("tool_dmi", "startReadingMiles", "REAL");
   addColumnIfMissing("tool_dmi", "endReadingMiles", "REAL");
   addColumnIfMissing("tool_dmi", "distanceMiles", "REAL");
+  addColumnIfMissing("drive_sessions", "syncedAt", "INTEGER"); // Drive Mode cloud sync marker (additive)
 
   // Composite indexes for orgId-scoped queries (see header docs for why composite)
   db.executeSync(

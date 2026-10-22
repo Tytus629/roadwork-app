@@ -4,6 +4,7 @@
 // Outbox sync engine: processes queued offline operations and sends them
 // to Firebase Cloud Functions. Uses synchronous op-sqlite (db.executeSync).
 
+import { pushDriveSession } from "./pushDriveSession";
 import { db } from "../db/db";
 import { requireOrgId } from "../org/requireOrg";
 import { getApp } from "@react-native-firebase/app";
@@ -1212,6 +1213,13 @@ case "UPSERT_DMI": {
     case "UPSERT_COUNTER": {
       const res: any = await callFn("roadwork_upsertCounter", { rec: payload });
       console.log("[Sync] UPSERT_COUNTER OK:", res?.data ?? res?.result);
+      deleteOutboxRow(row.id);
+      return;
+    }
+
+    case "SYNC_DRIVE_SESSION": {
+      await pushDriveSession(payload.orgId, String(payload.sessionId ?? row.entityId));
+      console.log("[Sync] SYNC_DRIVE_SESSION OK:", payload.sessionId);
       deleteOutboxRow(row.id);
       return;
     }

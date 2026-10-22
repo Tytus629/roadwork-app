@@ -23,13 +23,16 @@ starting guesses and must be tuned on real drives against roads with known ratin
 Migration 13 adds `drive_sessions`, `drive_segments`, `drive_events` (+ indexes) with `CREATE TABLE IF NOT EXISTS`.
 No existing table is altered. Data is local only; nothing syncs yet.
 
-## Future backend sync (designed, NOT built, NOT deployed)
-There is no web admin dashboard today (roadwork-backend `public/` is the Firebase placeholder), so the dashboard is in-app.
-For a shared/web dashboard later:
-- Firestore: `orgs/{orgId}/driveSessions/{id}`, `orgs/{orgId}/driveSegments/{id}`, `orgs/{orgId}/driveEvents/{id}` (new, additive).
-- Rules: org members read; create by members with `createdByUid == request.auth.uid`; no update/delete except managers.
-- App: new outbox job types following `enqueue*Upsert.ts`.
-- Deploy steps (need approval): `firebase deploy --only firestore:rules,firestore:indexes`, then app release.
+## Cloud sync (IMPLEMENTED, needs backend rules deployed)
+- On Stop, `finishDriveSession` enqueues one `SYNC_DRIVE_SESSION` outbox job (existing queue, retries/backoff). Drives with no org stay local.
+- `pushDriveSession` writes directly (batched, ≤450 writes/batch, deterministic ids → idempotent retries) to:
+  - `orgs/{orgId}/driveSegments/{sessionId}_{chunk}` — 50 segments per doc, flat `[lat,lng,…]` paths
+  - `orgs/{orgId}/driveEvents/{eventId}`
+  - `orgs/{orgId}/driveSessions/{sessionId}` — written last
+- A 30-mile drive ≈ 10 chunk writes + events + 1 session doc.
+- Additive column `drive_sessions.syncedAt` (addColumnIfMissing).
+- Rules + indexes + admin heat-map module: roadwork-backend branch `feature/drive-roughness-rules`.
+  Until those rules are deployed, sync jobs fail with permission-denied and stay queued/visible in Failed Jobs; local data is unaffected.
 
 ## Known gaps / on-device to verify
 - Screen-off/background: recording stops if the app is backgrounded; keep the screen on and use car power.
