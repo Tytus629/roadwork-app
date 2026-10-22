@@ -11,7 +11,8 @@ Files are written to the app cache and shared through the OS share sheet (email,
 
 ## Location reference (route / road / milepost)
 - Optional, user-editable: 📍 chip on the work order screen, on each inspection in Asset Detail, and "Set route for this drive" in Drive Mode (applies route + road to all of that drive's segments and events).
-- Stored in a new side table `location_refs (entityType, entityId, routeId, roadName, beginMp, endMp, source, updatedAt)` — migration 14, additive. A side table is used because `work_orders` is saved with `INSERT OR REPLACE`, which would wipe new columns. Local only; not synced to Firestore yet.
+- Stored in a new side table `location_refs (entityType, entityId, routeId, roadName, beginMp, endMp, source, updatedAt)` — migration 14, additive. A side table is used because `work_orders` is saved with `INSERT OR REPLACE`, which would wipe new columns. Synced (push) — see below.
+- **Sync:** each save enqueues an `UPSERT_LOCATION_REFS` outbox job → `orgs/{orgId}/locationRefs/{entityType}__{entityId}` (side collection, so the server's replace of `workOrders` docs can't wipe it). Values are read at send time so the latest edit wins. Rules: roadwork-backend `feature/sync-rules-locrefs-photos`. Inbound (other devices pulling refs) is NOT built yet.
 - **Auto-milepost hook:** `setMilepostResolver(fn)` in `src/integration/locationRefs.ts`. `fn({ entityType, points })` returns `{ routeId, roadName, beginMp, endMp }` — e.g. snap to a county road-log centerline (CRAB road log / county GIS with MP calibration). Manual values always win; resolver errors are ignored. Not implemented yet — needs the county road log data.
 
 ## Field mapping

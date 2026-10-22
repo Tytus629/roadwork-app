@@ -5,6 +5,7 @@ import {
   getLocationRef, parseMilepost, saveLocationRef, saveDriveSessionRoute,
   type LocationEntityType, type LocationRef,
 } from "../integration/locationRefs";
+import { useOrg } from "../state/OrgContext";
 
 type Props =
   | { entityType: LocationEntityType; entityId: string; driveSessionId?: undefined; showEndMp?: boolean }
@@ -18,6 +19,7 @@ export function formatRef(r: LocationRef | null): string {
 
 export function LocationRefEditor(props: Props) {
   const isSession = !!props.driveSessionId;
+  const { orgId } = useOrg();
   const [open, setOpen] = useState(false);
   const [ref, setRef] = useState<LocationRef | null>(null);
   const [routeId, setRouteId] = useState("");
@@ -43,8 +45,8 @@ export function LocationRefEditor(props: Props) {
   };
 
   const save = () => {
-    if (isSession) saveDriveSessionRoute(props.driveSessionId!, routeId.trim() || null, roadName.trim() || null);
-    else saveLocationRef(props.entityType!, props.entityId!, { routeId: routeId.trim() || null, roadName: roadName.trim() || null, beginMp: parseMilepost(beginMp), endMp: parseMilepost(endMp) });
+    if (isSession) saveDriveSessionRoute(props.driveSessionId!, routeId.trim() || null, roadName.trim() || null, orgId ?? null);
+    else saveLocationRef(props.entityType!, props.entityId!, { routeId: routeId.trim() || null, roadName: roadName.trim() || null, beginMp: parseMilepost(beginMp), endMp: parseMilepost(endMp) }, orgId ?? null);
     setOpen(false);
   };
 

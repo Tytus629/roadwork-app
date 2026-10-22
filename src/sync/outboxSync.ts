@@ -5,6 +5,8 @@
 // to Firebase Cloud Functions. Uses synchronous op-sqlite (db.executeSync).
 
 import { pushDriveSession } from "./pushDriveSession";
+import { pushLocationRefs } from "./locationRefSync";
+import { getLocationRef } from "../integration/locationRefs";
 import { db } from "../db/db";
 import { requireOrgId } from "../org/requireOrg";
 import { getApp } from "@react-native-firebase/app";
@@ -1213,6 +1215,14 @@ case "UPSERT_DMI": {
     case "UPSERT_COUNTER": {
       const res: any = await callFn("roadwork_upsertCounter", { rec: payload });
       console.log("[Sync] UPSERT_COUNTER OK:", res?.data ?? res?.result);
+      deleteOutboxRow(row.id);
+      return;
+    }
+
+    case "UPSERT_LOCATION_REFS": {
+      const keys = Array.isArray(payload.keys) ? payload.keys : [];
+      await pushLocationRefs(payload.orgId, keys, (k) => getLocationRef(k.entityType, k.entityId));
+      console.log("[Sync] UPSERT_LOCATION_REFS OK:", keys.length);
       deleteOutboxRow(row.id);
       return;
     }
