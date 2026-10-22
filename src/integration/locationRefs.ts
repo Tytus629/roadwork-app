@@ -13,6 +13,7 @@
  */
 import { db } from "../db/db";
 import { ensureDbSchemaReady } from "../db/migrations";
+import { enqueueLocationRefSync } from "../sync/locationRefSync";
 
 export type LocationEntityType = "work_order" | "drive_segment" | "drive_event" | "inspection";
 export type LocationRef = {
@@ -87,7 +88,7 @@ export function getLocationRefMap(entityType: LocationEntityType): Map<string, L
   return m;
 }
 
-export function saveLocationRef(entityType: LocationEntityType, entityId: string, ref: Omit<LocationRef, "source">) {
+export function saveLocationRef(entityType: LocationEntityType, entityId: string, ref: Omit<LocationRef, "source">, orgId?: string | null) {
   ensureDbSchemaReady("locationRefs");
   db.executeSync(
     `INSERT INTO location_refs(entityType, entityId, routeId, roadName, beginMp, endMp, source, updatedAt)
@@ -96,10 +97,19 @@ export function saveLocationRef(entityType: LocationEntityType, entityId: string
        beginMp=excluded.beginMp, endMp=excluded.endMp, source='manual', updatedAt=excluded.updatedAt;`,
     [entityType, entityId, ref.routeId || null, ref.roadName || null, ref.beginMp, ref.endMp, Date.now()]
   );
+  if (orgId !== undefined) safeEnqueue(orgId, [{ entityType, entityId }]);
+}
+
+function safeEnqueue(orgId: string | null, keys: Array<{ entityType: LocationEntityType; entityId: string }>) {
+  try {
+    enqueueLocationRefSync(orgId, keys);
+  } catch (e) {
+    console.warn("[locationRefs] enqueue sync failed (kept locally)", e);
+  }
 }
 
 /** Apply route/road to every segment + event of a drive (mileposts stay per-segment). */
-export function saveDriveSessionRoute(sessionId: string, routeId: string | null, roadName: string | null) {
+export function saveDriveSessionRoute(sessionId: string, routeId: string | null, roadName: string | null, orgId?: string | null) {
   ensureDbSchemaReady("locationRefs");
   const segs = rows(db.executeSync(`SELECT id FROM drive_segments WHERE sessionId = ?;`, [sessionId]));
   const evs = rows(db.executeSync(`SELECT id FROM drive_events WHERE sessionId = ?;`, [sessionId]));
@@ -112,5 +122,11 @@ export function saveDriveSessionRoute(sessionId: string, routeId: string | null,
   for (const e of evs) {
     const cur = evMap.get(e.id);
     saveLocationRef("drive_event", e.id, { routeId, roadName, beginMp: cur?.beginMp ?? null, endMp: null });
+  }
+  if (orgId !== undefined) {
+    safeEnqueue(orgId, [
+      ...segs.map((s) => ({ entityType: "drive_segment" as const, entityId: String(s.id) })),
+      ...evs.map((e) => ({ entityType: "drive_event" as const, entityId: String(e.id) })),
+    ]);
   }
 }
